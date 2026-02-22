@@ -130,6 +130,7 @@ export const executeBridge = async ({
     fromChain,
     toChain,
     amount,
+    recipientAddress,
     forwardingFee = '0',
     isSwapRoute = false,
     onStatusUpdate,
@@ -155,17 +156,19 @@ export const executeBridge = async ({
         finalBridgeAmount: bridgeAmount
     });
 
-    // Step ordering for automatic advancement
+    // Standard 4-step bridge flow:
+    // 1. approve — user signs allowance increase
+    // 2. burn — user signs burn on source chain
+    // 3. fetchAttestation — SDK polls Circle for attestation (no user action)
+    // 4. mint — user signs mint on destination chain (SDK prompts chain switch)
     const STEP_ORDER = ['approve', 'burn', 'attestation', 'mint'];
 
     // Register event listeners for progress tracking.
-    // When a step completes, we immediately advance bridgeStep to the NEXT step
-    // so the modal ticks the checkmark and transitions instantly.
     const cleanup = [];
 
     const registerListener = (event, step) => {
         const handler = (payload) => {
-            // 1. Mark current step as completed (with tx data)
+            // Mark current step as completed (with tx data)
             onStatusUpdate?.({
                 step,
                 status: 'completed',
@@ -173,7 +176,7 @@ export const executeBridge = async ({
                 data: payload,
             });
 
-            // 2. Immediately advance to next step
+            // Advance to next step
             const idx = STEP_ORDER.indexOf(step);
             if (idx >= 0 && idx < STEP_ORDER.length - 1) {
                 const nextStep = STEP_ORDER[idx + 1];
@@ -188,6 +191,7 @@ export const executeBridge = async ({
         });
     };
 
+    // Listen for all 4 SDK events
     registerListener('approve', 'approve');
     registerListener('burn', 'burn');
     registerListener('fetchAttestation', 'attestation');
@@ -196,21 +200,42 @@ export const executeBridge = async ({
     try {
         onStatusUpdate?.({ step: 'approve', status: 'pending' });
 
-        // Use the official Bridge Kit API.
-        // - transferSpeed "FAST" enables the Forwarding Service automatically
-        // - customFee collects our 0.3% platform fee on source chain
-        const result = await kit.bridge({
+        // Standard bridge flow — user signs all steps.
+        // Same adapter handles both chains (SDK switches chains automatically).
+        // customFee collects our platform fee on source chain.
+        const bridgeParams = {
             from: { adapter, chain: fromChain },
-            to: { adapter, chain: toChain },
+            to: { adapter, chain: toChain, recipientAddress },
             amount: bridgeAmount,
             config: {
-                transferSpeed: 'FAST',
                 customFee: {
                     value: platformFee,
                     recipientAddress: FEE_RECIPIENT,
                 },
             },
+        };
+        console.log('[BridgeService] kit.bridge() params:', JSON.stringify({
+            from: { chain: fromChain },
+            to: { chain: toChain, recipientAddress },
+            amount: bridgeParams.amount,
+            config: bridgeParams.config,
+        }, null, 2));
+        const result = await kit.bridge(bridgeParams);
+
+        // Log the full SDK result for debugging
+        console.log('[BridgeService] kit.bridge() result:', {
+            state: result.state,
+            steps: result.steps?.map(s => ({ name: s.name, state: s.state, txHash: s.txHash, errorMessage: s.errorMessage })),
         });
+
+        // The SDK resolves (doesn't throw) even when steps fail.
+        // Check result.state and surface the actual error.
+        if (result.state === 'error') {
+            const failedStep = result.steps?.find(s => s.state === 'error');
+            const errorMsg = failedStep?.errorMessage || `Bridge failed at step: ${failedStep?.name || 'unknown'}`;
+            console.error('[BridgeService] SDK returned error state:', { failedStep, errorMsg });
+            throw new Error(errorMsg);
+        }
 
         onStatusUpdate?.({ step: 'complete', status: 'completed', data: result });
         return result;
@@ -222,6 +247,8 @@ export const executeBridge = async ({
             cause: error.cause,
             details: error.details,
             name: error.name,
+            stack: error.stack,
+            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
         });
 
         // Detect user cancellation/rejection across all wallet + SDK error formats

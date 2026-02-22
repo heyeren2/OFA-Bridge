@@ -114,8 +114,8 @@ export default function TransactionModal({
         swap: 'Exchanging ETH for USDC...',
         approve: 'Waiting for wallet confirmation...',
         burn: 'Confirming burn transaction...',
-        attestation: 'Waiting for Circle attestation...',
-        mint: 'Minting on destination chain...',
+        attestation: 'Circle is verifying attestation...',
+        mint: 'Circle is minting on destination...',
     };
 
     const steps = (bridgeSteps || []).map((s, idx) => ({
@@ -147,8 +147,8 @@ export default function TransactionModal({
 
     const progressPercent = isComplete ? 100 : ((currentIndex) / steps.length) * 100;
 
-    // Remaining time estimate based on typical 2-minute duration
-    const remainingSeconds = Math.max(0, 120 - totalElapsed);
+    // Remaining time estimate — includes Forwarder auto-steps
+    const remainingSeconds = Math.max(0, 90 - totalElapsed);
 
     // ── Render ──
     return createPortal(

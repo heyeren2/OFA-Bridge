@@ -197,20 +197,22 @@ export default function Bridge({
     }, [fromChainName]);
 
     const bridgeSteps = useMemo(() => {
+        // Standard 4-step bridge: approve → burn → attestation (auto) → mint.
+        // All steps shown; attestation auto-fetches, user signs the rest.
         if (isEthSwap) {
             return [
                 { key: 'swap', label: 'Swap ETH → USDC', icon: '🔄' },
                 { key: 'approve', label: 'Approve USDC', icon: '✅' },
                 { key: 'burn', label: 'Burn USDC', icon: '🔥' },
-                { key: 'attestation', label: 'Attestation', icon: '📡' },
-                { key: 'mint', label: `Mint on ${toChainName}`, icon: '✨' },
+                { key: 'attestation', label: 'Fetch Attestation', icon: '📡' },
+                { key: 'mint', label: 'Mint USDC', icon: '✨' },
             ];
         }
         return [
             { key: 'approve', label: 'Approve USDC', icon: '✅' },
             { key: 'burn', label: 'Burn USDC', icon: '🔥' },
-            { key: 'attestation', label: 'Attestation', icon: '📡' },
-            { key: 'mint', label: `Mint on ${toChainName}`, icon: '✨' },
+            { key: 'attestation', label: 'Fetch Attestation', icon: '📡' },
+            { key: 'mint', label: 'Mint USDC', icon: '✨' },
         ];
     }, [isEthSwap, toChainName]);
 
@@ -376,6 +378,7 @@ export default function Bridge({
                 fromChain: fromChainKit,
                 toChain: toChainKit,
                 amount: bridgeAmount,
+                recipientAddress: currentAddress,
                 forwardingFee,
                 isSwapRoute: isEthSwap,
                 onStatusUpdate: (update) => {
@@ -435,6 +438,18 @@ export default function Bridge({
                 updateHistory({ status: finalStatus });
             }
         } catch (err) {
+            // DEBUG: Surface the actual error so we can see it
+            console.error('[Bridge] Caught error:', {
+                message: err.message,
+                shortMessage: err.shortMessage,
+                code: err.code,
+                name: err.name,
+                cause: err.cause,
+                stack: err.stack,
+            });
+            // Temporarily show the raw error to user for debugging
+            const debugMsg = `[DEBUG] Bridge error: ${err.code || ''} | ${err.shortMessage || err.message || 'unknown'}`;
+
             // Fallback cancellation detection — in case bridgeService didn't catch it
             const errMsg = (err.message || '').toLowerCase();
             const errShort = (err.shortMessage || '').toLowerCase();
@@ -455,7 +470,7 @@ export default function Bridge({
                 const finalStatus = hasBurnTx ? 'mint_failed' : 'cancelled';
                 updateHistory({ status: finalStatus });
             } else {
-                setBridgeError(err.shortMessage || err.message || 'Bridge failed');
+                setBridgeError(debugMsg);
                 updateHistory({ status: 'failed' });
             }
         } finally {
