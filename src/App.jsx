@@ -6,6 +6,7 @@ import Activity from './components/Activity';
 import HeaderMenu from './components/HeaderMenu';
 import LearnPopup from './components/LearnPopup';
 import SettingsPopup from './components/SettingsPopup';
+import BackgroundIcons from './components/BackgroundIcons';
 import './App.css';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
 
     return (
         <div className={`app ${isMenuOpen ? 'menu-open' : ''} ${activeTab}-active`}>
+            <BackgroundIcons />
             {isMenuOpen && (
                 <div className="menu-backdrop" onClick={() => setIsMenuOpen(false)}></div>
             )}

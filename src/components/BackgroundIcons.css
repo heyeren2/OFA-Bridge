@@ -1,0 +1,197 @@
+.background-icons-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    /* Strictly behind everything */
+    overflow: hidden;
+}
+
+.floating-icon {
+    position: absolute;
+    opacity: 0.8;
+    /* Maximum visibility */
+    filter: none;
+    transition: opacity 0.5s ease;
+}
+
+[data-theme='light'] .floating-icon {
+    opacity: 0.7;
+    filter: none;
+}
+
+.floating-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Individual Icon Positioning & Sizing */
+
+/* Base animations */
+@keyframes float {
+    0% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-20px) rotate(5deg);
+    }
+
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+}
+
+@keyframes floatDiagonal {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    33% {
+        transform: translate(10px, -15px) rotate(3deg);
+    }
+
+    66% {
+        transform: translate(-8px, 12px) rotate(-2deg);
+    }
+
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+}
+
+@keyframes floatReverse {
+    0% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(20px) rotate(-5deg);
+    }
+
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+}
+
+/* Individual Icon Positioning & Sizing */
+
+.icon-usdc {
+    width: 130px;
+    /* Reduced by 10% from 144px */
+    bottom: 10%;
+    left: 10%;
+    animation: float 12s ease-in-out infinite;
+}
+
+.icon-eth {
+    width: 130px;
+    /* Reduced by 10% from 144px */
+    top: 12%;
+    right: 10%;
+    /* Moved 5% closer to center from 5% */
+    animation: floatDiagonal 15s ease-in-out infinite;
+}
+
+.icon-ink {
+    width: 77px;
+    /* Reduced by 20% (96px -> 77px) */
+    bottom: 15%;
+    right: 15%;
+    animation: float 18s ease-in-out infinite;
+}
+
+.icon-base {
+    display: none;
+    /* Hidden on desktop as requested */
+}
+
+.icon-sei {
+    width: 84px;
+    /* Reduced by 30% from 120px */
+    top: 15%;
+    left: 20%;
+    /* Moved 10% closer to center from 10% */
+    animation: floatDiagonal 16s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .icon-usdc {
+        width: 110px;
+        left: 5%;
+    }
+
+    .icon-eth {
+        width: 110px;
+        right: 5%;
+    }
+}
+
+@media (max-width: 768px) {
+    .floating-icon {
+        opacity: 0.9;
+    }
+
+    /* Mobile Icon Set: ETH, USDC, Ink, Sei, Base */
+    .icon-eth {
+        display: block;
+        width: 90px;
+        /* Reduced by 20% from 110px */
+        bottom: 8%;
+        left: 5%;
+        top: auto;
+        right: auto;
+        animation: float 8s ease-in-out infinite;
+    }
+
+    .icon-usdc {
+        display: block;
+        width: 90px;
+        /* Reduced by 20% from 110px */
+        bottom: 12%;
+        right: 5%;
+        top: auto;
+        left: auto;
+        animation: floatReverse 9s ease-in-out infinite;
+    }
+
+    .icon-ink {
+        display: block;
+        width: 80px;
+        /* Reduced by 20% from 100px */
+        top: 12%;
+        right: 8%;
+        bottom: auto;
+        animation: float 10s ease-in-out infinite;
+    }
+
+    .icon-base {
+        display: block;
+        width: 80px;
+        /* Reduced by 20% from 100px */
+        top: 15%;
+        left: 8%;
+        bottom: auto;
+        animation: floatReverse 11s ease-in-out infinite;
+    }
+
+    .icon-sei {
+        display: block;
+        width: 80px;
+        /* Reduced by 20% from 100px */
+        top: 45%;
+        left: 5%;
+        animation: float 12s ease-in-out infinite;
+    }
+}
+
+@media (max-height: 600px) {
+    .floating-icon {
+        display: none;
+    }
+}
