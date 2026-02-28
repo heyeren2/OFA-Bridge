@@ -10,7 +10,6 @@ import {
   baseSepolia,
   arbitrumSepolia,
   optimismSepolia,
-  polygonAmoy,
 } from 'wagmi/chains';
 import { defineChain } from 'viem';
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
@@ -40,7 +39,6 @@ export const config = getDefaultConfig({
     baseSepolia,
     arbitrumSepolia,
     optimismSepolia,
-    polygonAmoy,
     arcTestnet,
   ],
   ssr: true, // If your dApp uses server side rendering (SSR)

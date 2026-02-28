@@ -386,6 +386,10 @@ export default function Bridge({
                         setBridgeError(update.error);
                     } else if (update.step === 'cancelled') {
                         isActuallyCancelled = true;
+                        if (update.failedStep) {
+                            setBridgeStep(update.failedStep);
+                            updateHistory({ lastStep: update.failedStep });
+                        }
                         setBridgeError('CANCELLED');
                     } else if (update.step === 'complete') {
                         // Don't set complete here — we validate below
@@ -447,8 +451,14 @@ export default function Bridge({
                 cause: err.cause,
                 stack: err.stack,
             });
-            // Temporarily show the raw error to user for debugging
-            const debugMsg = `[DEBUG] Bridge error: ${err.code || ''} | ${err.shortMessage || err.message || 'unknown'}`;
+            // Determine user-facing error message
+            let displayError = err.shortMessage || err.message || 'Bridge execution failed';
+
+            // Map specific error codes for production clarity
+            if (err.code === 9002 || err.message?.includes('9002')) {
+                const currentChain = bridgeStep === 'mint' ? toChainName : fromChainName;
+                displayError = `Insufficient gas funds on ${currentChain}`;
+            }
 
             // Fallback cancellation detection — in case bridgeService didn't catch it
             const errMsg = (err.message || '').toLowerCase();
@@ -470,7 +480,7 @@ export default function Bridge({
                 const finalStatus = hasBurnTx ? 'mint_failed' : 'cancelled';
                 updateHistory({ status: finalStatus });
             } else {
-                setBridgeError(debugMsg);
+                setBridgeError(displayError);
                 updateHistory({ status: 'failed' });
             }
         } finally {

@@ -61,19 +61,59 @@ const createApprovalFixedProvider = () => {
         get(target, prop, receiver) {
             if (prop === 'request') {
                 return async (args) => {
+                    if (args.method === 'wallet_switchEthereumChain') {
+                        try {
+                            return await target.request(args);
+                        } catch (switchError) {
+                            // 4902 is "Unrecognized chain ID" in MetaMask
+                            if (switchError.code === 4902 || switchError.data?.originalError?.code === 4902) {
+                                const chainIdHex = args.params[0].chainId;
+                                const chainIdDecimal = parseInt(chainIdHex, 16);
+                                const { SUPPORTED_CHAINS } = await import('../config/chains');
+                                const chainConfig = SUPPORTED_CHAINS.find(c => c.chainId === chainIdDecimal);
+
+                                if (chainConfig) {
+                                    console.log(`[BridgeService] Chain ${chainIdDecimal} not recognized. Attempting to add network...`);
+                                    try {
+                                        await target.request({
+                                            method: 'wallet_addEthereumChain',
+                                            params: [{
+                                                chainId: chainIdHex,
+                                                chainName: chainConfig.name,
+                                                nativeCurrency: {
+                                                    name: 'Ether',
+                                                    symbol: 'ETH',
+                                                    decimals: 18,
+                                                },
+                                                rpcUrls: [chainConfig.rpc],
+                                                blockExplorerUrls: [chainConfig.explorer],
+                                            }],
+                                        });
+                                        // Attempt switch again after adding
+                                        return await target.request(args);
+                                    } catch (addError) {
+                                        throw addError;
+                                    }
+                                }
+                            }
+                            throw switchError;
+                        }
+                    }
+
+                    // Approval Fix: Intercept increaseAllowance → swap to approve
                     if (
                         args.method === 'eth_sendTransaction' &&
                         args.params?.[0]?.data?.toLowerCase().startsWith(INCREASE_ALLOWANCE)
                     ) {
-                        // Swap increaseAllowance → approve (identical params layout)
                         const originalData = args.params[0].data;
-                        const fixedData = APPROVE + originalData.slice(10); // skip 0x + 8 hex
+                        const fixedData = APPROVE + originalData.slice(10);
                         console.log('[BridgeService] Swapped increaseAllowance → approve');
                         args = {
                             ...args,
                             params: [{ ...args.params[0], data: fixedData }],
                         };
                     }
+
                     return target.request(args);
                 };
             }
@@ -162,25 +202,47 @@ export const executeBridge = async ({
     // 3. fetchAttestation — SDK polls Circle for attestation (no user action)
     // 4. mint — user signs mint on destination chain (SDK prompts chain switch)
     const STEP_ORDER = ['approve', 'burn', 'attestation', 'mint'];
+    let lastStartedStep = 'approve';
 
     // Register event listeners for progress tracking.
     const cleanup = [];
 
     const registerListener = (event, step) => {
         const handler = (payload) => {
-            // Mark current step as completed (with tx data)
-            onStatusUpdate?.({
-                step,
-                status: 'completed',
-                txHash: payload?.values?.txHash || null,
-                data: payload,
+            console.log(`[BridgeService] SDK Event [${event}]:`, {
+                state: payload?.state,
+                txHash: payload?.values?.txHash,
+                step
             });
 
-            // Advance to next step
-            const idx = STEP_ORDER.indexOf(step);
-            if (idx >= 0 && idx < STEP_ORDER.length - 1) {
-                const nextStep = STEP_ORDER[idx + 1];
-                onStatusUpdate?.({ step: nextStep, status: 'pending' });
+            // If the step just started, update the tracking for cancellation reporting
+            if (payload?.state === 'started' || !payload?.state) {
+                lastStartedStep = step;
+                // Optionally notify UI that we are working on this step
+                onStatusUpdate?.({ step, status: 'pending' });
+                return;
+            }
+
+            // Only proceed if the step successfully completed
+            if (payload?.state === 'completed') {
+                // Mark current step as completed (with tx data)
+                onStatusUpdate?.({
+                    step,
+                    status: 'completed',
+                    txHash: payload?.values?.txHash || null,
+                    data: payload,
+                });
+
+                // Advance to next step with a small delay for UI smoothness
+                const idx = STEP_ORDER.indexOf(step);
+                if (idx >= 0 && idx < STEP_ORDER.length - 1) {
+                    const nextStep = STEP_ORDER[idx + 1];
+                    lastStartedStep = nextStep;
+
+                    setTimeout(() => {
+                        onStatusUpdate?.({ step: nextStep, status: 'pending' });
+                    }, 800);
+                }
             }
         };
         kit.on(event, handler);
@@ -283,8 +345,13 @@ export const executeBridge = async ({
             );
 
         if (isCancelled) {
-            console.log('[BridgeService] Detected wallet rejection/cancellation');
-            onStatusUpdate?.({ step: 'cancelled', status: 'error', error: 'Transaction cancelled in wallet' });
+            console.log('[BridgeService] Detected wallet rejection/cancellation at step:', lastStartedStep);
+            onStatusUpdate?.({
+                step: 'cancelled',
+                failedStep: lastStartedStep,
+                status: 'error',
+                error: 'Transaction cancelled in wallet'
+            });
         } else {
             onStatusUpdate?.({ step: 'error', status: 'error', error: error.shortMessage || error.message || 'Bridge execution failed' });
         }

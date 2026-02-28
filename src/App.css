@@ -201,11 +201,18 @@ body {
   flex-direction: column;
 }
 
+/* Blur background icons when Activity tab is active */
+.activity-active .background-icons-container {
+  filter: blur(8px);
+  opacity: 0.7;
+  transition: all 0.5s ease;
+}
+
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  padding: 0px 24px;
   background: var(--midnight-indigo);
   border-bottom: 1px solid rgba(240, 231, 213, 0.1);
   position: sticky;
@@ -598,14 +605,15 @@ body {
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
 }
 
 .logo-icon {
-  width: 32px;
-  height: 32px;
+  width: 89px;
+  height: 73px;
   object-fit: contain;
-  animation: spin 8s linear infinite;
+  margin: -4.5px -21px -4.5px 0;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
@@ -619,8 +627,15 @@ body {
 }
 
 .logo h1 {
-  font-size: 20px;
+  font-family: 'Chakra Petch', sans-serif;
+  font-style: italic;
+  font-size: 24px;
   font-weight: 700;
+  -webkit-text-stroke: 0.4px var(--vanilla-cream);
+  display: inline-block;
+  transform: scaleX(1.1);
+  transform-origin: left;
+  margin: 0;
   color: var(--vanilla-cream);
 }
 
@@ -1764,16 +1779,23 @@ body {
 /* Responsive */
 @media (max-width: 640px) {
   .app-header {
-    padding: 12px 16px;
+    padding: 0px 16px;
   }
 
   .logo-icon {
-    width: 24px;
-    height: 24px;
+    width: 160px;
+    height: 74px;
+    object-fit: cover;
+    margin: -13px 4px -13px 0;
+    flex-shrink: 0;
   }
 
   .logo h1 {
-    font-size: 15px;
+    font-size: 18px;
+    -webkit-text-stroke: 0.3px var(--vanilla-cream);
+    display: inline-block;
+    transform: scaleX(1.1);
+    transform-origin: left;
   }
 
   /* Cleaned up responsive bridge-container */
@@ -2744,7 +2766,17 @@ body {
   outline: none;
   width: 100%;
   padding: 0;
+  /* Hide spin buttons */
+  -moz-appearance: textfield;
+  appearance: none;
 }
+
+.relay-amount-input::-webkit-outer-spin-button,
+.relay-amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 
 .relay-amount-display {
   color: white;
@@ -4707,6 +4739,34 @@ body {
   margin: 0;
 }
 
+.txm-cancelled-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.txm-cancelled-badge span {
+  letter-spacing: 0.05em;
+}
+
+.txm-step-label-cancelled-sub {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ef4444;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+  display: block;
+}
+
 .tx-modal-overlay {
   position: fixed;
   inset: 0;
@@ -4863,6 +4923,7 @@ body {
 
   .app.bridge-active {
     overflow: hidden !important;
+    /* Eliminate scrolling as requested */
     height: 100vh !important;
   }
 
@@ -4881,6 +4942,34 @@ body {
   .settings-btn-mobile:hover {
     opacity: 0.7;
     transform: translateY(2px);
+  }
+
+  /* Expand cards horizontally by 10% (5% each side) */
+  .bridge-container {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 99% !important;
+    /* Much wider for that 10% feel */
+    width: 99% !important;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .sell-card,
+  .buy-card,
+  .info-card {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: var(--radius-xl) !important;
+    /* Preserving curved edges as requested */
+  }
+
+  /* Keep Action Button at original constrained size (~90%) */
+  .action-card-relay {
+    width: 90% !important;
+    max-width: 420px !important;
+    margin: 12px auto 0 !important;
   }
 
   /* Scale down the icon inside the reduced swap button on mobile */

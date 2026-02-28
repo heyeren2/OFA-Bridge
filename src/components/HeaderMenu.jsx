@@ -132,9 +132,9 @@ export default function HeaderMenu({ isOpen, onClose, onOpenLearn, language }) {
             <div className="menu-divider"></div>
 
             <div className="menu-section about-section" style={{ marginBottom: '4px', marginTop: '0px' }}>
-                <a href="#" className="menu-item" style={{ gap: '8px', padding: '4px 0', justifyContent: 'flex-start' }}>
+                <a href="#" className="menu-item" style={{ gap: '6px', padding: '4px 0', justifyContent: 'flex-start' }}>
                     <span className="platform-icon" style={{ width: '24px', height: '24px', background: 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src="/icons/OFA.png" alt="OFA" style={{ width: '20px', height: '20px' }} />
+                        <img src="/icons/Ofa2.png" alt="OFA" style={{ width: '63px', height: '63px' }} />
                     </span>
                     <span style={{ fontSize: '14px', fontWeight: '600', whiteSpace: 'nowrap' }}>{t.about}</span>
                 </a>

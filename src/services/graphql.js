@@ -1,11 +1,9 @@
 import { ApolloClient, InMemoryCache, gql, HttpLink, ApolloLink } from '@apollo/client';
 
 // Map of Chain Name to Subgraph URL
-// User: Update these with the URLs from your Goldsky Dashboard!
 export const SUBGRAPH_URLS = {
   'Ethereum Sepolia': import.meta.env.VITE_GOLDSKY_SUBGRAPH_URL_SEPOLIA,
   'Base Sepolia': import.meta.env.VITE_GOLDSKY_SUBGRAPH_URL_BASE,
-  'Optimism Sepolia': import.meta.env.VITE_GOLDSKY_SUBGRAPH_URL_OPTIMISM,
   'Arbitrum Sepolia': import.meta.env.VITE_GOLDSKY_SUBGRAPH_URL_ARBITRUM,
   'Arc Testnet': import.meta.env.VITE_GOLDSKY_SUBGRAPH_URL_ARC,
 };
@@ -20,15 +18,39 @@ export const getSubgraphClient = (chainName) => {
 // Default client (Sepolia)
 export const client = getSubgraphClient('Ethereum Sepolia');
 
+// All chain clients for multi-chain aggregation
+export const ALL_CHAIN_NAMES = Object.keys(SUBGRAPH_URLS).filter(
+  (name) => !!SUBGRAPH_URLS[name]
+);
+
+export const getAllClients = () => {
+  return ALL_CHAIN_NAMES.map((name) => ({
+    chainName: name,
+    client: getSubgraphClient(name),
+  }));
+};
+
 /**
- * Multi-chain Subgraph Strategy:
- * Since we have separate subgraphs per chain, we can either:
- * 1. Create multiple clients (clunky)
- * 2. Update the URI dynamically (better for a single view)
- * 
- * For 'Global Activity', we might need to fetch from ALL and aggregate,
- * but for now we focus on the active chain or a primary one (Sepolia).
+ * Query all chains in parallel and return combined results.
  */
+export const queryAllChains = async (query, variables = {}) => {
+  const clients = getAllClients();
+  const results = await Promise.allSettled(
+    clients.map(async ({ chainName, client }) => {
+      try {
+        const result = await client.query({ query, variables, fetchPolicy: 'network-only' });
+        return { chainName, data: result.data, error: null };
+      } catch (error) {
+        console.warn(`[Subgraph] Failed to query ${chainName}:`, error.message);
+        return { chainName, data: null, error };
+      }
+    })
+  );
+
+  return results.map((r) =>
+    r.status === 'fulfilled' ? r.value : { chainName: 'Unknown', data: null, error: r.reason }
+  );
+};
 
 export const GET_TRANSACTIONS = gql`
   query GetTransactions($first: Int, $skip: Int, $orderBy: String, $orderDirection: String, $where: BridgeTransaction_filter) {
@@ -57,26 +79,35 @@ export const GET_TRANSACTIONS = gql`
   }
 `;
 
-export const GET_VOLUME_STATS = gql`
-  query GetVolumeStats {
-    global: volumeStat(id: "global") {
-      totalVolumeDisplay
+export const GET_BRIDGE_STATS = gql`
+  query GetBridgeStats {
+    bridgeStat(id: "global") {
+      totalVolume
+      totalFees
+      transactionCount
+      uniqueUsers
+    }
+  }
+`;
+
+export const GET_DAILY_VOLUMES = gql`
+  query GetDailyVolumes($first: Int) {
+    dailyVolumes(orderBy: id, orderDirection: desc, first: $first) {
+      id
+      date
+      volume
+      fees
       transactionCount
     }
   }
 `;
 
-export const GET_DAILY_VOLUME = gql`
-  query GetDailyVolume($first: Int) {
-    volumeStats(
-      first: $first, 
-      orderBy: date, 
-      orderDirection: desc,
-      where: { date_gt: 0 }
-    ) {
+export const GET_HOURLY_VOLUMES = gql`
+  query GetHourlyVolumes($first: Int) {
+    hourlyVolumes(orderBy: id, orderDirection: desc, first: $first) {
       id
-      date
-      totalVolumeDisplay
+      volume
+      fees
       transactionCount
     }
   }
@@ -85,8 +116,10 @@ export const GET_DAILY_VOLUME = gql`
 export const GET_USER_STATS = gql`
   query GetUserStats($id: ID!) {
     userStat(id: $id) {
+      totalVolume
       totalVolumeDisplay
       transactionCount
     }
   }
 `;
+

@@ -14,6 +14,7 @@
     --vanilla: #f8fafc;
     --navy-filter: #1a163b;
     --midnight-indigo: #1a163b;
+    --coming-soon-blur: 8px;
 }
 
 .activity-tab-wrapper {
@@ -937,5 +938,72 @@
 
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* =========================================
+   COMING SOON OVERLAY
+   ========================================= */
+.coming-soon-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.blur-content {
+    filter: blur(var(--coming-soon-blur));
+    pointer-events: none;
+    opacity: 0.7;
+    /* Faintly visible as requested */
+    user-select: none;
+    transition: all 0.5s ease-in-out;
+}
+
+.coming-soon-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.coming-soon-overlay span {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(4px);
+    padding: 16px 40px;
+    border-radius: 99px;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--midnight-indigo);
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.02em;
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(255, 255, 255, 0.4);
+    pointer-events: auto;
+    animation: floating-soon 3s ease-in-out infinite;
+}
+
+@keyframes floating-soon {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Mobile specific tweaks for overlay */
+@media (max-width: 820px) {
+    .coming-soon-overlay span {
+        font-size: 20px;
+        padding: 12px 28px;
     }
 }

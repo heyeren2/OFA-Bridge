@@ -195,7 +195,10 @@ export default function TransactionModal({
                                     <span>{amount} {selectedToken}</span>
                                 </div>
                                 {isCancelled && (
-                                    <span className="txm-cancelled-status-text">Transaction Cancelled</span>
+                                    <div className="txm-cancelled-badge">
+                                        <X size={12} />
+                                        <span>Cancelled</span>
+                                    </div>
                                 )}
                             </div>
                             {!isCancelled && (
@@ -321,7 +324,7 @@ export default function TransactionModal({
                                                 )}
                                             </div>
                                             {isCancelled && step.id === bridgeStep && (
-                                                <span className="txm-step-label-cancelled-sub">CANCELLED</span>
+                                                <span className="txm-step-label-cancelled-sub">TRANSACTION REJECTED</span>
                                             )}
                                             {status === 'active' && !isCancelled && (
                                                 <p className="txm-step-description-v2">{step.activeDesc}</p>

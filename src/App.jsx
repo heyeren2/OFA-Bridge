@@ -36,7 +36,7 @@ function App() {
             <header className={`app-header ${isMenuOpen ? 'header-menu-active' : ''}`}>
                 <div className="header-left">
                     <div className="logo">
-                        <img src="/icons/OFA.png" className="logo-icon" alt="OFA Logo" />
+                        <img src="/icons/Ofa2.png" className="logo-icon" alt="OFA Logo" />
                         <h1>OFA Bridge</h1>
                     </div>
                     <nav className="header-nav">
