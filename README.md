@@ -2,7 +2,7 @@
 
 OFA Bridge is a high-performance cross-chain bridging solution built for the modern multi-chain ecosystem, specifically optimized for secure and high-speed **USDC** transfers. It enables seamless asset transfers between **Arc Testnet**, **Ethereum Sepolia**, **Base Sepolia**, **Optimism Sepolia**, and **Arbitrum Sepolia** using Circle's CCTP and Bridge Kit.
 
-![OFA Bridge Logo](/public/icons/OFA.png)
+![OFA Bridge Logo](/public/icons/ofa3.png)
 
 ## ✨ Features
 
