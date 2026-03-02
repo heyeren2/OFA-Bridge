@@ -174,9 +174,10 @@ export default function Activity({ setActiveTab }) {
 
     // Initial fetch + polling every 10 seconds
     useEffect(() => {
-        fetchAllChainData();
-        const interval = setInterval(fetchAllChainData, 10000);
-        return () => clearInterval(interval);
+        // Disabled while Activity tab is "Coming Soon" and subgraphs are offline
+        // fetchAllChainData();
+        // const interval = setInterval(fetchAllChainData, 10000);
+        // return () => clearInterval(interval);
     }, [fetchAllChainData]);
 
     // Refetch helper for remint
