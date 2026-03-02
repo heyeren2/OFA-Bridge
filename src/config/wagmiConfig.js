@@ -6,13 +6,23 @@ import {
 } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import {
-  sepolia,
+  sepolia as sepoliaDefault, // aliased so we can override the RPC below
   baseSepolia,
   arbitrumSepolia,
   optimismSepolia,
 } from 'wagmi/chains';
-import { defineChain } from 'viem';
+import { http, defineChain } from 'viem';
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+
+// Override Sepolia RPC to avoid DRPC free-tier rate limits (408 timeouts)
+// that kill the attestation polling step.
+const sepolia = {
+  ...sepoliaDefault,
+  rpcUrls: {
+    default: { http: ['https://ethereum-sepolia-rpc.publicnode.com'] },
+    public: { http: ['https://ethereum-sepolia-rpc.publicnode.com'] },
+  },
+};
 
 // Define Arc Testnet
 export const arcTestnet = defineChain({
@@ -41,6 +51,13 @@ export const config = getDefaultConfig({
     optimismSepolia,
     arcTestnet,
   ],
+  transports: {
+    [sepolia.id]: http('https://ethereum-sepolia-rpc.publicnode.com'),
+    [baseSepolia.id]: http(),
+    [arbitrumSepolia.id]: http(),
+    [optimismSepolia.id]: http(),
+    [arcTestnet.id]: http(import.meta.env.VITE_ARC_RPC_URL),
+  },
   ssr: true, // If your dApp uses server side rendering (SSR)
 });
 

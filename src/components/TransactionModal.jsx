@@ -24,6 +24,7 @@ export default function TransactionModal({
     isOpen,
     onClose,
     bridgeStep,
+    stepStatuses, // { 'approve': 'completed', 'burn': 'pending', ... }
     bridgeSteps,
     error,
     txData,
@@ -132,16 +133,35 @@ export default function TransactionModal({
 
     const getStepStatus = (stepId) => {
         if (isComplete) return 'completed';
-        if (isCancelled && currentIndex <= stepOrder.indexOf(stepId)) {
-            return currentIndex === stepOrder.indexOf(stepId) ? 'error' : 'pending';
+        if (isCancelled) {
+            const targetIndex = stepOrder.indexOf(stepId);
+            if (currentIndex > targetIndex) return 'completed';
+            if (currentIndex === targetIndex) return 'error';
+            return 'pending';
         }
 
+        const explicitStatus = stepStatuses?.[stepId];
+        if (explicitStatus === 'error') return 'error';
+
+        // Position-based auto-completion: if bridgeStep has moved PAST this step,
+        // it is completed — regardless of what explicitStatus says.
+        // This is the key fix for fetchAttestation which has no txHash and
+        // can get stuck with explicitStatus='pending' even after Circle confirms.
         const targetIndex = stepOrder.indexOf(stepId);
         if (currentIndex > targetIndex) return 'completed';
+
+        // Explicit completed from stepStatuses
+        if (explicitStatus === 'completed') return 'completed';
+
+        // Current step
         if (currentIndex === targetIndex) {
             if (error) return 'error';
-            return 'active';
+            // pending/started = show spinner
+            if (explicitStatus === 'pending' || explicitStatus === 'started') return 'active';
+            return 'active'; // default for current step
         }
+
+        // Future step — always show as dimmed pending, never active
         return 'pending';
     };
 
@@ -268,7 +288,7 @@ export default function TransactionModal({
 
                             <div className="txm-footer-branding">
                                 <img src="/icons/circle.png" alt="Circle" width={14} height={14} />
-                                <span>Powered by Circle CCTP V2</span>
+                                <span>Powered by Circle CCTP</span>
                             </div>
                         </div>
                     ) : (
@@ -295,7 +315,7 @@ export default function TransactionModal({
                                                 </div>
                                             ) : status === 'active' && !isCancelled ? (
                                                 <div className="txm-step-circle active">
-                                                    <Loader2 className="spin-icon" size={16} />
+                                                    <div className="rolling-circle" />
                                                 </div>
                                             ) : status === 'error' ? (
                                                 <div className="txm-step-circle error">
@@ -348,14 +368,14 @@ export default function TransactionModal({
                     <>
                         <div className="txm-divider-v3" />
                         {/* Footer */}
-                        <div className="txm-footer-v2" style={{ border: 'none', paddingTop: 6, paddingBottom: 16 }}>
+                        <div className="txm-footer-v2" style={{ border: 'none', paddingTop: 6, paddingBottom: 10 }}>
                             <button className="txm-footer-btn-v2" onClick={onClose}>
                                 {isCancelled ? 'Back to Bridge' : 'Close'}
                             </button>
                             <div className="txm-powered-by" style={{ fontSize: '9px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <img src="/icons/circle.png" alt="Circle" width={12} height={12} />
-                                    <span>Powered by Circle CCTP V2</span>
+                                    <span>Powered by Circle CCTP</span>
                                 </div>
                             </div>
                         </div>

@@ -116,7 +116,7 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
                     )}
                     <h3>
                         {isMobile
-                            ? (mobileSubView === 'tokens' ? 'Exchange from' : 'Select chain')
+                            ? (mobileSubView === 'tokens' ? 'Bridge from' : 'Select chain')
                             : `Select ${mode === 'chain' ? 'Chain' : 'Token'}`
                         }
                     </h3>
