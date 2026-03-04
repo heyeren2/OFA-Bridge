@@ -49,6 +49,3 @@ npm run dev
 ## 🌐 Links
 
 - **Twitter**: [@heyeren_](https://x.com/heyeren_)
-
----
-Built with ❤️ by the OFA Team.
