@@ -82,7 +82,7 @@ const TRANSLATIONS = {
     }
 };
 
-export default function HeaderMenu({ isOpen, onClose, onOpenLearn, language }) {
+export default function HeaderMenu({ isOpen, onClose, onOpenLearn, onOpenAbout, language }) {
     const { theme, setTheme: onThemeChange } = useTheme();
     const [activeView, setActiveView] = useState('main');
     const t = TRANSLATIONS[language] || TRANSLATIONS.English;
@@ -132,12 +132,15 @@ export default function HeaderMenu({ isOpen, onClose, onOpenLearn, language }) {
             <div className="menu-divider"></div>
 
             <div className="menu-section about-section" style={{ marginBottom: '4px', marginTop: '0px' }}>
-                <a href="#" className="menu-item" style={{ gap: '6px', padding: '4px 0', justifyContent: 'flex-start' }}>
+                <div
+                    className="menu-item"
+                    style={{ gap: '6px', padding: '4px 0', justifyContent: 'flex-start', cursor: 'default' }}
+                >
                     <span className="platform-icon" style={{ width: '24px', height: '24px', background: 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <img src="/icons/Ofa2.png" alt="OFA" style={{ width: '63px', height: '63px' }} />
                     </span>
                     <span style={{ fontSize: '14px', fontWeight: '600', whiteSpace: 'nowrap' }}>{t.about}</span>
-                </a>
+                </div>
             </div>
 
             <div className="menu-footer">

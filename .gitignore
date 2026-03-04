@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Development - About Modal
+src/components/AboutModal.jsx
+src/components/AboutModal.css
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

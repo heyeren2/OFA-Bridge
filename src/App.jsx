@@ -6,6 +6,7 @@ import Activity from './components/Activity';
 import HeaderMenu from './components/HeaderMenu';
 import LearnPopup from './components/LearnPopup';
 import SettingsPopup from './components/SettingsPopup';
+// import AboutModal from './components/AboutModal'; // Temporarily disabled for push
 import BackgroundIcons from './components/BackgroundIcons';
 import './App.css';
 
@@ -13,6 +14,7 @@ function App() {
     const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'bridge');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLearnOpen, setIsLearnOpen] = useState(false);
+    const [isAboutOpen, setIsAboutOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [currency, setCurrency] = useState('USD');
     const [language, setLanguage] = useState('English');
@@ -24,6 +26,10 @@ function App() {
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
     const toggleLearn = () => {
         setIsLearnOpen(!isLearnOpen);
+        setIsMenuOpen(false);
+    };
+    const toggleAbout = () => {
+        setIsAboutOpen(!isAboutOpen);
         setIsMenuOpen(false);
     };
 
@@ -160,12 +166,14 @@ function App() {
                             isOpen={isMenuOpen}
                             onClose={() => setIsMenuOpen(false)}
                             onOpenLearn={toggleLearn}
+                            onOpenAbout={toggleAbout}
                             language={language}
                         />
                     </div>
                 </div>
             </header>
             <LearnPopup isOpen={isLearnOpen} onClose={() => setIsLearnOpen(false)} />
+            {/* <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} /> */}
             <main className="app-main">
                 {activeTab === 'bridge' ? (
                     <div className="bridge-container">
