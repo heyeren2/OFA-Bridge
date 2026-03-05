@@ -322,7 +322,7 @@ export default function Activity({ setActiveTab }) {
                 {/* --- HEADER (Only for Mobile) --- */}
                 {isMobile && (
                     <div className="activity-header-section">
-                        <button className="activity-back-arrow" onClick={() => setActiveTab('bridge')} title="Back to Bridge">
+                        <button className="activity-back-arrow" onClick={() => setActiveTab('bridge')} data-tooltip="Back to Bridge" data-tooltip-pos="bottom">
                             <ArrowLeft size={22} />
                         </button>
                         <div className="title-area">
@@ -375,7 +375,7 @@ export default function Activity({ setActiveTab }) {
                                         className={`my-txn-pill ${myTxnFilter ? 'my-txn-active' : ''}`}
                                         onClick={() => setMyTxnFilter(!myTxnFilter)}
                                         disabled={!address}
-                                        title={address ? 'Show only my transactions' : 'Connect wallet first'}
+                                        data-tooltip={address ? 'Show only my transactions' : 'Connect wallet first'}
                                     >
                                         <Wallet size={14} />
                                         My Tx
@@ -528,7 +528,7 @@ export default function Activity({ setActiveTab }) {
                                             className={`my-txn-pill-desktop ${myTxnFilter ? 'my-txn-active' : ''}`}
                                             onClick={() => setMyTxnFilter(!myTxnFilter)}
                                             disabled={!address}
-                                            title={address ? 'Show only my transactions' : 'Connect wallet first'}
+                                            data-tooltip={address ? 'Show only my transactions' : 'Connect wallet first'}
                                         >
                                             <Wallet size={14} />
                                             My Tx

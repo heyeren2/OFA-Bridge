@@ -8,6 +8,8 @@ import LearnPopup from './components/LearnPopup';
 import SettingsPopup from './components/SettingsPopup';
 // import AboutModal from './components/AboutModal'; // Temporarily disabled for push
 import BackgroundIcons from './components/BackgroundIcons';
+import RecipientModal from './components/RecipientModal';
+import './components/RecipientModal.css';
 import './App.css';
 
 function App() {
@@ -18,6 +20,8 @@ function App() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [currency, setCurrency] = useState('USD');
     const [language, setLanguage] = useState('English');
+    const [customRecipient, setCustomRecipient] = useState('');
+    const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('activeTab', activeTab);
@@ -176,7 +180,7 @@ function App() {
             {/* <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} /> */}
             <main className="app-main">
                 {activeTab === 'bridge' ? (
-                    <div className="bridge-container">
+                    <div className="bridge-page-wrapper">
                         <div className="bridge-view-wrap">
                             <Bridge
                                 currency={currency}
@@ -187,6 +191,9 @@ function App() {
                                 setCurrency={setCurrency}
                                 setLanguage={setLanguage}
                                 setActiveTab={setActiveTab}
+                                customRecipient={customRecipient}
+                                setCustomRecipient={setCustomRecipient}
+                                onOpenRecipientModal={() => setIsRecipientModalOpen(true)}
                             />
                         </div>
                     </div>
@@ -201,6 +208,12 @@ function App() {
                 setCurrency={setCurrency}
                 language={language}
                 setLanguage={setLanguage}
+            />
+            <RecipientModal
+                isOpen={isRecipientModalOpen}
+                onClose={() => setIsRecipientModalOpen(false)}
+                onConfirm={(addr) => setCustomRecipient(addr)}
+                initialValue={customRecipient}
             />
             <footer className="app-footer">
                 <p>Powered by Circle CCTP V2 • Cross-Chain Bridge</p>

@@ -20,6 +20,11 @@ const formatTime = (totalSeconds) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+const truncateAddress = (addr) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 5)}...${addr.slice(-6)}`;
+};
+
 export default function TransactionModal({
     isOpen,
     onClose,
@@ -243,6 +248,10 @@ export default function TransactionModal({
                             <p>
                                 {amount} {selectedToken} arrived on {getShortenedChainName(toChain)}
                             </p>
+                            <div className="txm-recipient-display">
+                                <span className="label">Recipient:</span>
+                                <span className="address">{truncateAddress(destAddress)}</span>
+                            </div>
 
                             <div className="txm-network-grid">
                                 {/* Source Chain Box */}

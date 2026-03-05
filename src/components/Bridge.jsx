@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Settings, ChevronDown, ChevronRight, ArrowUpDown, ArrowDown, Clock, Zap } from 'lucide-react';
+import { Settings, ChevronDown, ChevronRight, ArrowUpDown, ArrowDown, Clock, Zap, X } from 'lucide-react';
 import { useAccount, useBalance } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import ChainSelector from './ChainSelector';
@@ -13,6 +13,7 @@ import { calculateFee, calculateForwardingFee, executeBridge } from '../services
 import { FORWARDING_CONFIG, DEFAULT_MINT_MODE, CHAINS_WITHOUT_FORWARDER_SUPPORT } from '../services/forwardingConfig';
 import { getSwapQuote, executeSwap } from '../services/swapService';
 import TransactionModal from './TransactionModal';
+// RecipientModal and its CSS are now imported in App.jsx
 
 const TRANSLATIONS = {
     English: {
@@ -113,7 +114,10 @@ export default function Bridge({
     onOpenSettings,
     isSettingsOpen,
     setIsSettingsOpen,
-    setActiveTab
+    setActiveTab,
+    customRecipient,
+    setCustomRecipient,
+    onOpenRecipientModal
 }) {
     const t = TRANSLATIONS[language] || TRANSLATIONS.English;
     const c = CURRENCY_DATA[currency] || CURRENCY_DATA.USD;
@@ -135,6 +139,7 @@ export default function Bridge({
     const [selectorTarget, setSelectorTarget] = useState('from'); // 'from' or 'to'
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [txData, setTxData] = useState({ approveHash: null, sourceHash: null, destHash: null });
+    // customRecipient and isRecipientModalOpen are now handled via props
 
     // ── Mint mode toggle ─────────────────────────────────────────────────────
     // 'manual' → user signs the mint on destination chain (default)
@@ -143,6 +148,13 @@ export default function Bridge({
     // forced to 'manual' regardless of what the user picks.
     const isDestForwarderBlocked = CHAINS_WITHOUT_FORWARDER_SUPPORT.displayNames.includes(toChainName);
     const [mintMode, setMintMode] = useState(DEFAULT_MINT_MODE);
+
+    // Auto-switch to 'auto' mode when a custom recipient is set
+    useEffect(() => {
+        if (customRecipient && !isDestForwarderBlocked && mintMode !== 'auto') {
+            setMintMode('auto');
+        }
+    }, [customRecipient, isDestForwarderBlocked]);
 
     // When the user picks a destination that blocks the forwarder, reset to manual
     useEffect(() => {
@@ -173,7 +185,7 @@ export default function Bridge({
     });
 
     const { data: destBalanceData } = useBalance({
-        address: currentAddress,
+        address: customRecipient || currentAddress,
         token: USDC_ADDRESSES[destChain.bridgeKitName],
         chainId: destChain.chainId,
         watch: true,
@@ -414,7 +426,7 @@ export default function Bridge({
                 fromChain: fromChainKit,
                 toChain: toChainKit,
                 amount: bridgeAmount,
-                recipientAddress: currentAddress,
+                recipientAddress: customRecipient || currentAddress,
                 forwardingFee,
                 isSwapRoute: isEthSwap,
                 mintMode,
@@ -652,7 +664,8 @@ export default function Bridge({
                         <button
                             className="settings-btn floating"
                             onClick={onOpenSettings}
-                            title="Settings"
+                            data-tooltip="Settings"
+                            data-tooltip-pos="left"
                         >
                             <Settings size={20} />
                         </button>
@@ -664,7 +677,8 @@ export default function Bridge({
                     <button
                         className="activity-btn-mobile"
                         onClick={() => setActiveTab('activity')}
-                        title="Activity"
+                        data-tooltip="Activity"
+                        data-tooltip-pos="bottom"
                     >
                         <Clock size={20} />
                     </button>
@@ -672,6 +686,8 @@ export default function Bridge({
                         className="settings-btn-mobile"
                         onClick={onOpenSettings}
                         title="Settings"
+                        data-tooltip="Settings"
+                        data-tooltip-pos="bottom"
                     >
                         <Settings size={20} />
                     </button>
@@ -816,78 +832,106 @@ export default function Bridge({
                         <div className="balance-info">
                             <span className="balance-label">{t.balance}: {destBalance}</span>
                         </div>
+                        {customRecipient && (
+                            <div
+                                className={`recipient-pill ${isDestForwarderBlocked ? 'pill--disabled' : ''}`}
+                                onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
+                            >
+                                <span className="pill-address">
+                                    {customRecipient.slice(0, 6)}...{customRecipient.slice(-4)}
+                                </span>
+                                <button
+                                    className="pill-clear"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCustomRecipient('');
+                                    }}
+                                    disabled={isDestForwarderBlocked}
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* CARD 3: INFO */}
-                <div className="bridge-card-relay info-card">
-                    <div className="info-row">
-                        <span className="info-label">{t.bridgeFee}</span>
-                        <div className="slippage-controls">
-                            <span className="val">0.3% ({c.symbol}{(parseFloat(fee) * c.rate).toFixed(2)})</span>
-                        </div>
-                    </div>
-
-                    {/* ── Mint Mode Toggle ───────────────────────────────────────────────
-                        Shows for all chains. For chains that block the forwarder (Arc),
-                        the toggle is locked on Manual with a tooltip explaining why.
-                        Default is Manual — user opts in to Auto (gasless).
-                    ──────────────────────────────────────────────────────────────────── */}
-                    <div className="info-row mint-mode-row">
-                        <span className="info-label">
-                            Mint Mode
-                            {isDestForwarderBlocked && (
-                                <span
-                                    className="mint-mode-locked-hint"
-                                    title={`${toChainName} doesn't support auto-minting`}
-                                >
-                                    {' '}🔒
-                                </span>
-                            )}
-                        </span>
-                        <div className={`mint-mode-toggle ${isDestForwarderBlocked ? 'mint-mode-toggle--locked' : ''}`} data-mode={mintMode}>
-                            <button
-                                className={`mint-mode-btn ${mintMode === 'manual' ? 'mint-mode-btn--active' : ''}`}
-                                onClick={() => !isDestForwarderBlocked && setMintMode('manual')}
-                                disabled={isDestForwarderBlocked}
-                                title="You sign the mint transaction on the destination chain"
-                            >
-                                Manual
-                            </button>
-                            <button
-                                className={`mint-mode-btn ${mintMode === 'auto' ? 'mint-mode-btn--active' : ''}`}
-                                onClick={() => !isDestForwarderBlocked && setMintMode('auto')}
-                                disabled={isDestForwarderBlocked}
-                                title={
-                                    isDestForwarderBlocked
-                                        ? `${toChainName} doesn't support auto-minting`
-                                        : 'Circle mints for you — no destination gas needed'
-                                }
-                            >
-                                Auto
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="info-row tokens-rate">
-                        <span className="rate-val">
-                            {isEthSwap
-                                ? `1 ETH = ${parseFloat(ethQuote).toLocaleString()} USDC`
-                                : `1 ${selectedToken} = 1.0000 ${selectedToken}`}
-                        </span>
-                        <div className="meta-stats">
-                            <div className="stat-item" title="Estimated Time">
-                                <Clock size={14} color="#10b981" />
-                                <span>{expectedTime}</span>
-                            </div>
-                            {isForwarderActive && (
-                                <div className="stat-item gasless-stat" title="Gasless Destination — Circle mints for you">
-                                    <Zap size={14} color="#fbbf24" />
-                                    <span>Gasless Dest.</span>
+                <div className="info-card-wrapper">
+                    <div className="bridge-card-relay info-card">
+                        <div className="info-row">
+                            <span className="info-label">{t.bridgeFee}</span>
+                            <div className="info-controls">
+                                <div className="slippage-controls">
+                                    <span className="val">0.3% ({c.symbol}{(parseFloat(fee) * c.rate).toFixed(2)})</span>
                                 </div>
-                            )}
+                            </div>
+                        </div>
+
+                        {/* ── Mint Mode Toggle ───────────────────────────────────────────────
+                            Shows for all chains. For chains that block the forwarder (Arc),
+                            the toggle is locked on Manual with a tooltip explaining why.
+                            Default is Manual — user opts in to Auto (gasless).
+                        ──────────────────────────────────────────────────────────────────── */}
+                        <div className="info-row mint-mode-row">
+                            <span className="info-label">
+                                Mint Mode
+                                {isDestForwarderBlocked && (
+                                    <span
+                                        className="mint-mode-locked-hint"
+                                    >
+                                        {' '}🔒
+                                    </span>
+                                )}
+                            </span>
+                            <div className={`mint-mode-toggle ${isDestForwarderBlocked ? 'mint-mode-toggle--locked' : ''}`} data-mode={mintMode}>
+                                <button
+                                    className={`mint-mode-btn ${mintMode === 'manual' ? 'mint-mode-btn--active' : ''}`}
+                                    onClick={() => !isDestForwarderBlocked && setMintMode('manual')}
+                                    disabled={isDestForwarderBlocked}
+                                    data-tooltip={!isDestForwarderBlocked ? "You sign the mint transaction on the destination chain" : undefined}
+                                >
+                                    Manual
+                                </button>
+                                <button
+                                    className={`mint-mode-btn ${mintMode === 'auto' ? 'mint-mode-btn--active' : ''}`}
+                                    onClick={() => !isDestForwarderBlocked && setMintMode('auto')}
+                                    disabled={isDestForwarderBlocked}
+                                    data-tooltip={!isDestForwarderBlocked ? "Circle mints for you - no destination gas needed" : undefined}
+                                >
+                                    Auto
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="info-row tokens-rate">
+                            <span className="rate-val">
+                                {isEthSwap
+                                    ? `1 ETH = ${parseFloat(ethQuote).toLocaleString()} USDC`
+                                    : `1 ${selectedToken} = 1.0000 ${selectedToken}`}
+                            </span>
+                            <div className="meta-stats">
+                                <div className="stat-item">
+                                    <Clock size={14} color="#10b981" />
+                                    <span>{expectedTime}</span>
+                                </div>
+                                {isForwarderActive && (
+                                    <div className="stat-item gasless-stat">
+                                        <Zap size={14} color="#fbbf24" />
+                                        <span>Gasless Dest.</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
+                    <button
+                        className={`recipient-trigger-btn ${isDestForwarderBlocked ? 'trigger--disabled' : ''}`}
+                        onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
+                        disabled={isDestForwarderBlocked}
+                        data-tooltip={isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
+                        data-tooltip-pos="left"
+                    >
+                        <img src="/icons/wallet.png" alt="Wallet" />
+                    </button>
                 </div>
 
                 {/* CARD 4: ACTION */}
@@ -906,7 +950,6 @@ export default function Bridge({
                         </button>
                     )}
                 </div>
-
             </div>
 
             <AssetSelectorModal
@@ -930,7 +973,7 @@ export default function Bridge({
                 selectedToken={selectedToken}
                 fromChain={fromChainName}
                 toChain={toChainName}
-                destAddress={currentAddress}
+                destAddress={customRecipient || currentAddress}
                 isSwapAndBridge={isEthSwap}
             />
         </>
