@@ -659,7 +659,7 @@ export default function Bridge({
         <>
             <div className="bridge-container">
                 {/* Top Floating Controls (Desktop/iPad) */}
-                <div className="bridge-top-controls desktop-only">
+                <div className="bridge-top-controls">
                     <div className="menu-container">
                         <button
                             className="settings-btn floating"
@@ -673,7 +673,7 @@ export default function Bridge({
                 </div>
 
                 {/* Cards Navigation Row (Mobile Only) */}
-                <div className="bridge-nav-row mobile-only">
+                <div className="bridge-nav-row">
                     <button
                         className="activity-btn-mobile"
                         onClick={() => setActiveTab('activity')}
@@ -923,15 +923,17 @@ export default function Bridge({
                             </div>
                         </div>
                     </div>
-                    <button
-                        className={`recipient-trigger-btn ${isDestForwarderBlocked ? 'trigger--disabled' : ''}`}
-                        onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
-                        disabled={isDestForwarderBlocked}
-                        data-tooltip={isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
-                        data-tooltip-pos="left"
-                    >
-                        <img src="/icons/wallet.png" alt="Wallet" />
-                    </button>
+                    <div className="desktop-only">
+                        <button
+                            className={`recipient-trigger-btn ${isDestForwarderBlocked ? 'trigger--disabled' : ''}`}
+                            onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
+                            disabled={isDestForwarderBlocked}
+                            data-tooltip={isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
+                            data-tooltip-pos="left"
+                        >
+                            <img src="/icons/wallet.png" alt="Wallet" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* CARD 4: ACTION */}
@@ -949,6 +951,18 @@ export default function Bridge({
                             {getButtonLabel()}
                         </button>
                     )}
+                </div>
+
+                <div className="mobile-only">
+                    <div className="mobile-recipient-wrap">
+                        <button
+                            className={`recipient-trigger-btn recipient-trigger-btn-mobile ${isDestForwarderBlocked ? 'trigger--disabled' : ''}`}
+                            onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
+                            disabled={isDestForwarderBlocked}
+                        >
+                            <img src="/icons/wallet.png" alt="Wallet" />
+                        </button>
+                    </div>
                 </div>
             </div>
 

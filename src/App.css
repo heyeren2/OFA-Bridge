@@ -186,6 +186,20 @@ body {
   overflow-x: hidden;
 }
 
+.mobile-only {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: inherit !important;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+}
+
 /* Removed radial gradients for cleaner solid theme */
 
 
@@ -267,6 +281,8 @@ body {
   background: var(--error);
   color: white;
 }
+
+
 
 .header-menu-btn {
   width: 42px;
@@ -980,6 +996,11 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border-color: var(--border-hover);
   transform: translateY(-1px);
+}
+
+.chain-selector-trigger.disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
 .chain-selector-trigger .chain-icon {
@@ -3523,7 +3544,7 @@ body {
 
 /* Action Card Relay */
 .action-card-relay {
-  margin-top: 4px;
+  margin-top: 10px;
 }
 
 .relay-main-btn {
@@ -5434,15 +5455,27 @@ body {
   }
 }
 
+@media (max-width: 768px) {
+  .bridge-top-controls {
+    display: none !important;
+  }
+}
+
 /* Mobile Navigation Refinement */
 .bridge-nav-row {
   display: none;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 4px;
-  margin-bottom: -12px;
-  /* Lowered significantly to be close to the card */
-  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .bridge-nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+    margin-bottom: -12px;
+    /* Lowered significantly to be close to the card */
+    width: 100%;
+  }
 }
 
 .activity-btn-mobile,
@@ -5470,6 +5503,32 @@ body {
 .info-card-wrapper {
   position: relative;
   width: 100%;
+}
+
+.mobile-recipient-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 0 4px;
+}
+
+.recipient-trigger-btn-mobile {
+  position: relative !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+.mobile-recipient-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--midnight-indigo);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+[data-theme='dark'] .mobile-recipient-label {
+  color: var(--vanilla-cream);
 }
 
 .recipient-trigger-btn {
