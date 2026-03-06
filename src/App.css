@@ -5842,3 +5842,24 @@ body {
 [data-tooltip-pos="right"]:hover::before {
   transform: translateY(50%) translateX(0);
 }
+
+/* Device-specific Tooltip Visibility */
+@media (max-width: 767px) {
+  /* Hide core logic tooltips on mobile to reduce clutter */
+  .mint-mode-btn[data-tooltip]::before,
+  .mint-mode-btn[data-tooltip]::after,
+  .activity-btn-mobile[data-tooltip]::before,
+  .activity-btn-mobile[data-tooltip]::after {
+    display: none !important;
+  }
+
+  /* Explicitly allow Settings and Recipient tooltips on mobile */
+  .settings-btn-mobile[data-tooltip]::before,
+  .settings-btn-mobile[data-tooltip]::after,
+  .recipient-trigger-btn-mobile[data-tooltip]::before,
+  .recipient-trigger-btn-mobile[data-tooltip]::after,
+  .recipient-trigger-btn[data-tooltip]::before,
+  .recipient-trigger-btn[data-tooltip]::after {
+    display: block !important;
+  }
+}
