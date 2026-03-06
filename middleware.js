@@ -1,5 +1,3 @@
-import { NextResponse } from 'next/server';
-
 // Basic list of known aggressive bots
 const BANNED_BOTS = [
     'petalbot',
@@ -14,24 +12,27 @@ const BANNED_BOTS = [
     'spbot',
 ];
 
-export function middleware(request) {
+export default function middleware(request) {
     const userAgent = request.headers.get('user-agent')?.toLowerCase() || '';
 
     // 1. Block known aggressive bots
     if (BANNED_BOTS.some(bot => userAgent.includes(bot))) {
-        return new NextResponse('Access Denied', { status: 403 });
+        return new Response('Access Denied', { status: 403 });
     }
 
     // 2. Prevent automated probing of non-existent sensitive files
-    const { pathname } = request.nextUrl;
+    const url = new URL(request.url);
+    const pathname = url.pathname;
     if (pathname.includes('.env') || pathname.includes('.git') || pathname.includes('.php')) {
-        return new NextResponse('Access Denied', { status: 403 });
+        return new Response('Access Denied', { status: 403 });
     }
 
-    return NextResponse.next();
+    // Standard way to continue in Vercel middleware without next/server
+    return;
 }
 
 // Only run on non-static assets to save execution time
 export const config = {
     matcher: '/((?!_next/static|_next/image|favicon.ico).*)',
 };
+
