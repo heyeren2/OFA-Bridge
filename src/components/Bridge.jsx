@@ -198,6 +198,19 @@ export default function Bridge({
         watch: true,
     });
 
+    // Native Gas Balances (for validation)
+    const { data: sourceNativeData } = useBalance({
+        address: currentAddress,
+        chainId: fromChain.chainId,
+        watch: true,
+    });
+
+    const { data: destNativeData } = useBalance({
+        address: customRecipient || currentAddress,
+        chainId: destChain.chainId,
+        watch: true,
+    });
+
     const sourceBalance = useMemo(() => {
         if (!isConnected) return '0';
         return sourceBalanceData ? parseFloat(sourceBalanceData.formatted).toFixed(6) : '0';
@@ -564,8 +577,7 @@ export default function Bridge({
 
             // Map specific error codes for production clarity
             if (err.code === 9002 || err.message?.includes('9002')) {
-                const currentChain = bridgeStep === 'mint' ? toChainName : fromChainName;
-                displayError = `Insufficient gas funds on ${currentChain}`;
+                displayError = `Insufficient gas funds on ${fromChainName}`;
             }
 
             // Fallback cancellation detection — in case bridgeService didn't catch it
@@ -608,9 +620,35 @@ export default function Bridge({
         return parseFloat(amount) > parseFloat(sourceBalance);
     }, [isConnected, amount, sourceBalance]);
 
+    // Simplified chain names for button labels
+    const getCleanChainName = (name) => {
+        if (!name) return '';
+        if (name === 'Ethereum Sepolia') return 'Sepolia';
+        if (name === 'Unichain Sepolia') return 'Uni';
+        // Remove Testnet and Sepolia suffixes
+        return name.replace(/\s+Testnet/i, '').replace(/\s+Sepolia/i, '').trim();
+    };
+
+    // Proactive Gas Validation
+    const hasInsufficientSourceGas = useMemo(() => {
+        if (!isConnected || isBridging) return false;
+        if (!sourceNativeData) return false;
+        // Basic threshold (e.g., 0.0001 native units)
+        return parseFloat(sourceNativeData.formatted) < 0.0001;
+    }, [isConnected, isBridging, sourceNativeData]);
+
+    const hasInsufficientDestGas = useMemo(() => {
+        if (!isConnected || isBridging || mintMode === 'auto') return false;
+        if (!destNativeData) return false;
+        // Manual mode requires destination gas
+        return parseFloat(destNativeData.formatted) < 0.0001;
+    }, [isConnected, isBridging, mintMode, destNativeData]);
+
     const getButtonLabel = () => {
         if (!isConnected) return t.connectWallet;
         if (isBridging) return t.bridging;
+        if (hasInsufficientSourceGas) return `Insufficient Gas on ${getCleanChainName(fromChainName)}`;
+        if (hasInsufficientDestGas) return `Insufficient Gas on ${getCleanChainName(toChainName)}`;
         if (hasInsufficientBalance) return t.insufficientBalance;
         if (isEthSwap) return `${t.swapAndBridge} ${amount || '0'} ETH`;
         return `${t.bridge} ${amount || '0'} USDC`;
@@ -966,7 +1004,7 @@ export default function Bridge({
                         <button
                             className="relay-main-btn"
                             onClick={handleBridge}
-                            disabled={isBridging || (!amount || parseFloat(amount) <= 0) || hasInsufficientBalance}
+                            disabled={isBridging || (!amount || parseFloat(amount) <= 0) || hasInsufficientBalance || hasInsufficientSourceGas || hasInsufficientDestGas}
                         >
                             {getButtonLabel()}
                         </button>
