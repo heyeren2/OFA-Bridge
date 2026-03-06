@@ -832,26 +832,28 @@ export default function Bridge({
                         <div className="balance-info">
                             <span className="balance-label">{t.balance}: {destBalance}</span>
                         </div>
-                        {customRecipient && (
-                            <div
-                                className={`recipient-pill ${isDestForwarderBlocked ? 'pill--disabled' : ''}`}
-                                onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
-                            >
-                                <span className="pill-address">
-                                    {customRecipient.slice(0, 6)}...{customRecipient.slice(-4)}
-                                </span>
-                                <button
-                                    className="pill-clear"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setCustomRecipient('');
-                                    }}
-                                    disabled={isDestForwarderBlocked}
+                        <div className={`recipient-pill-container ${customRecipient && mintMode === 'auto' ? 'pill-visible' : ''}`}>
+                            {customRecipient && (
+                                <div
+                                    className={`recipient-pill ${isDestForwarderBlocked ? 'pill--disabled' : ''}`}
+                                    onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
                                 >
-                                    <X size={12} />
-                                </button>
-                            </div>
-                        )}
+                                    <span className="pill-address">
+                                        {customRecipient.slice(0, 6)}...{customRecipient.slice(-4)}
+                                    </span>
+                                    <button
+                                        className="pill-clear"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setCustomRecipient('');
+                                        }}
+                                        disabled={isDestForwarderBlocked}
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -886,7 +888,12 @@ export default function Bridge({
                             <div className={`mint-mode-toggle ${isDestForwarderBlocked ? 'mint-mode-toggle--locked' : ''}`} data-mode={mintMode}>
                                 <button
                                     className={`mint-mode-btn ${mintMode === 'manual' ? 'mint-mode-btn--active' : ''}`}
-                                    onClick={() => !isDestForwarderBlocked && setMintMode('manual')}
+                                    onClick={() => {
+                                        if (!isDestForwarderBlocked) {
+                                            setMintMode('manual');
+                                            setCustomRecipient('');
+                                        }
+                                    }}
                                     disabled={isDestForwarderBlocked}
                                     data-tooltip={!isDestForwarderBlocked ? "You sign the mint transaction on the destination chain" : undefined}
                                 >
@@ -988,6 +995,7 @@ export default function Bridge({
                 fromChain={fromChainName}
                 toChain={toChainName}
                 destAddress={customRecipient || currentAddress}
+                walletAddress={currentAddress}
                 isSwapAndBridge={isEthSwap}
             />
         </>

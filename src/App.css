@@ -886,6 +886,7 @@ body {
   font-weight: 500;
   color: var(--text-muted);
   opacity: 0.6;
+  white-space: nowrap;
 }
 
 .receive-amount-display {
@@ -5589,6 +5590,21 @@ body {
   filter: brightness(0) invert(8%) sepia(21%) saturate(2421%) hue-rotate(204deg) brightness(95%) contrast(92%) !important;
 }
 
+.recipient-pill-container {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.recipient-pill-container.pill-visible {
+  max-width: 200px;
+  opacity: 1;
+}
+
 .recipient-pill {
   background: rgba(254, 243, 199, 0.15);
   /* Light yellow tint */
@@ -5600,7 +5616,7 @@ body {
   gap: 6px;
   cursor: pointer;
   transition: all 0.2s;
-  margin-left: auto;
+  white-space: nowrap;
 }
 
 .recipient-pill:hover {

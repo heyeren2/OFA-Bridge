@@ -38,6 +38,7 @@ export default function TransactionModal({
     fromChain,
     toChain,
     destAddress,
+    walletAddress,
     isSwapAndBridge
 }) {
     const [prevStep, setPrevStep] = useState(null);
@@ -248,10 +249,12 @@ export default function TransactionModal({
                             <p>
                                 {amount} {selectedToken} arrived on {getShortenedChainName(toChain)}
                             </p>
-                            <div className="txm-recipient-display">
-                                <span className="label">Recipient:</span>
-                                <span className="address">{truncateAddress(destAddress)}</span>
-                            </div>
+                            {destAddress?.toLowerCase() !== walletAddress?.toLowerCase() && (
+                                <div className="txm-recipient-display">
+                                    <span className="label">Recipient:</span>
+                                    <span className="address">{truncateAddress(destAddress)}</span>
+                                </div>
+                            )}
 
                             <div className="txm-network-grid">
                                 {/* Source Chain Box */}
