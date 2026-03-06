@@ -2933,7 +2933,7 @@ body {
   color: var(--vanilla-cream);
   animation: modalPop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
-  overflow: hidden;
+  /* Removed overflow: hidden to allow dropdowns to pop out */
 }
 
 .settings-header {
@@ -3042,29 +3042,84 @@ body {
   min-width: 120px;
 }
 
-.settings-select {
-  appearance: none;
+/* Custom Select Styling */
+.custom-select-container {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(240, 231, 213, 0.1);
   border-radius: 12px;
-  padding: 10px 32px 10px 16px;
+  padding: 10px 16px;
   color: var(--vanilla-cream);
-  font-family: inherit;
   font-size: 14px;
   font-weight: 600;
-  width: 100%;
-  outline: none;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
 }
 
-.select-arrow {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: rgba(240, 231, 213, 0.4);
-  pointer-events: none;
+.custom-select-trigger:hover {
+  border-color: rgba(240, 231, 213, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.custom-select-trigger .arrow {
   font-size: 10px;
+  color: rgba(240, 231, 213, 0.4);
+  transition: transform 0.2s ease;
+}
+
+.custom-select-container.open .custom-select-trigger .arrow {
+  transform: rotate(180deg);
+}
+
+.custom-select-options {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  /* Pop out upwards */
+  right: 0;
+  width: 100%;
+  background: #1a1f33;
+  border: 1px solid rgba(240, 231, 213, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 100;
+  box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.3);
+  animation: dropdownFadeUp 0.2s ease-out;
+}
+
+@keyframes dropdownFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-select-option {
+  padding: 10px 16px;
+  color: var(--vanilla-cream);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.custom-select-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.custom-select-option.selected {
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 600;
 }
 
 /* Relay-Style Bridge Redesign */
@@ -4442,12 +4497,20 @@ body {
 
   .settings-popup-content {
     width: 100%;
-    max-width: 300px;
-    /* Increased from 275px (+another ~10%) */
-    padding: 10px !important;
-    /* Reduced vertically from 12px (~15% reduction) */
-    gap: 7px !important;
-    /* Reduced from 8px (~12% reduction) */
+    max-width: 330px;
+    padding: 8px 10px !important;
+    /* Reduced vertical padding by 20% */
+    gap: 4px !important;
+    /* Reduced gap between elements */
+  }
+
+  .settings-header {
+    padding: 16px 16px 8px !important;
+    /* Compressed header */
+  }
+
+  .settings-body {
+    gap: 8px !important;
   }
 
   .settings-item {
@@ -5845,6 +5908,7 @@ body {
 
 /* Device-specific Tooltip Visibility */
 @media (max-width: 767px) {
+
   /* Hide core logic tooltips on mobile to reduce clutter */
   .mint-mode-btn[data-tooltip]::before,
   .mint-mode-btn[data-tooltip]::after,

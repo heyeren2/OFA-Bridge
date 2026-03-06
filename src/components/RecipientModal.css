@@ -13,7 +13,7 @@
 }
 
 .recipient-modal-content {
-    background: #1a152e;
+    background: #1a1f33;
     width: 90%;
     max-width: 440px;
     border-radius: 24px;
@@ -101,7 +101,7 @@
 
 .done-btn--active {
     background: #F0E7D5 !important;
-    color: #1a152e !important;
+    color: #1a1f33 !important;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
@@ -135,6 +135,15 @@
     font-size: 13px;
     line-height: 1.5;
     font-weight: 500;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 767px) {
+    .recipient-modal-overlay {
+        align-items: flex-start;
+        padding-top: 15vh;
+        /* Raise modal by ~20% of viewport height */
+    }
 }
 
 @keyframes fadeIn {

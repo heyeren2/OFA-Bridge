@@ -1,5 +1,45 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+
+const CustomSelect = ({ value, onChange, options, label }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (containerRef.current && !containerRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+        <div className={`custom-select-container ${isOpen ? 'open' : ''}`} ref={containerRef}>
+            <div className="custom-select-trigger" onClick={() => setIsOpen(!isOpen)}>
+                <span>{value}</span>
+                <span className="arrow">▼</span>
+            </div>
+            {isOpen && (
+                <div className="custom-select-options">
+                    {options.map((opt) => (
+                        <div
+                            key={typeof opt === 'string' ? opt : opt.code}
+                            className={`custom-select-option ${value === (typeof opt === 'string' ? opt : opt.code) ? 'selected' : ''}`}
+                            onClick={() => {
+                                onChange({ target: { value: typeof opt === 'string' ? opt : opt.code } });
+                                setIsOpen(false);
+                            }}
+                        >
+                            {typeof opt === 'string' ? opt : opt.code}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function SettingsPopup({
     isOpen,
@@ -88,18 +128,11 @@ export default function SettingsPopup({
                             </div>
                         </div>
                         <div className="settings-select-wrapper">
-                            <select
+                            <CustomSelect
                                 value={currency}
                                 onChange={(e) => setCurrency(e.target.value)}
-                                className="settings-select"
-                            >
-                                {currencies.map(c => (
-                                    <option key={c.code} value={c.code}>
-                                        {c.code}
-                                    </option>
-                                ))}
-                            </select>
-                            <span className="select-arrow">▾</span>
+                                options={currencies}
+                            />
                         </div>
                     </div>
 
@@ -118,16 +151,11 @@ export default function SettingsPopup({
                             </div>
                         </div>
                         <div className="settings-select-wrapper">
-                            <select
+                            <CustomSelect
                                 value={language}
                                 onChange={(e) => setLanguage(e.target.value)}
-                                className="settings-select"
-                            >
-                                {languages.map(lang => (
-                                    <option key={lang} value={lang}>{lang}</option>
-                                ))}
-                            </select>
-                            <span className="select-arrow">▾</span>
+                                options={languages}
+                            />
                         </div>
                     </div>
                 </div>

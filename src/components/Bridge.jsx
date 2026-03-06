@@ -149,19 +149,26 @@ export default function Bridge({
     const isDestForwarderBlocked = CHAINS_WITHOUT_FORWARDER_SUPPORT.displayNames.includes(toChainName);
     const [mintMode, setMintMode] = useState(DEFAULT_MINT_MODE);
 
+    // Enforce 5 USDC minimum for Auto mode when destination is Ethereum Sepolia
+    const isAutoModeRestricted = useMemo(() => {
+        if (toChainName !== 'Ethereum Sepolia') return false;
+        const amt = parseFloat(amount);
+        return isNaN(amt) || amt < 5;
+    }, [toChainName, amount]);
+
     // Auto-switch to 'auto' mode when a custom recipient is set
     useEffect(() => {
-        if (customRecipient && !isDestForwarderBlocked && mintMode !== 'auto') {
+        if (customRecipient && !isDestForwarderBlocked && !isAutoModeRestricted && mintMode !== 'auto') {
             setMintMode('auto');
         }
-    }, [customRecipient, isDestForwarderBlocked]);
+    }, [customRecipient, isDestForwarderBlocked, isAutoModeRestricted]);
 
-    // When the user picks a destination that blocks the forwarder, reset to manual
+    // When the user picks a destination that blocks the forwarder or has restricted amount, reset to manual
     useEffect(() => {
-        if (isDestForwarderBlocked) {
+        if (isDestForwarderBlocked || isAutoModeRestricted) {
             setMintMode('manual');
         }
-    }, [toChainName, isDestForwarderBlocked]);
+    }, [toChainName, isDestForwarderBlocked, isAutoModeRestricted]);
 
     // Whether the forwarder is actually active for the current route
     const isForwarderActive =
@@ -901,9 +908,15 @@ export default function Bridge({
                                 </button>
                                 <button
                                     className={`mint-mode-btn ${mintMode === 'auto' ? 'mint-mode-btn--active' : ''}`}
-                                    onClick={() => !isDestForwarderBlocked && setMintMode('auto')}
-                                    disabled={isDestForwarderBlocked}
-                                    data-tooltip={!isDestForwarderBlocked ? "Circle mints for you - no destination gas needed" : undefined}
+                                    onClick={() => !isDestForwarderBlocked && !isAutoModeRestricted && setMintMode('auto')}
+                                    disabled={isDestForwarderBlocked || isAutoModeRestricted}
+                                    data-tooltip={
+                                        isAutoModeRestricted
+                                            ? "Minimum 5 USDC required for Auto mode to Sepolia"
+                                            : !isDestForwarderBlocked
+                                                ? "Auto Mint by Circle, no destination gas needed"
+                                                : undefined
+                                    }
                                 >
                                     Auto
                                 </button>
