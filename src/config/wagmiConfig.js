@@ -10,6 +10,7 @@ import {
   baseSepolia,
   arbitrumSepolia,
   optimismSepolia,
+  avalancheFuji,
 } from 'wagmi/chains';
 import { http, defineChain } from 'viem';
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
@@ -149,6 +150,7 @@ export const config = getDefaultConfig({
     lineaSepolia,
     inkTestnet,
     plumeTestnet,
+    avalancheFuji,
   ],
   transports: {
     [sepolia.id]: http('https://ethereum-sepolia-rpc.publicnode.com'),
@@ -163,6 +165,7 @@ export const config = getDefaultConfig({
     [lineaSepolia.id]: http(),
     [inkTestnet.id]: http(),
     [plumeTestnet.id]: http(),
+    [avalancheFuji.id]: http('https://api.avax-test.network/ext/bc/C/rpc'),
   },
   ssr: true, // If your dApp uses server side rendering (SSR)
 });

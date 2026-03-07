@@ -23,7 +23,7 @@ export const getKit = () => {
 
 // Calculate 0.3% fee as a flat USDC amount
 export const calculateFee = (amount) => {
-    const fee = (parseFloat(amount) * FEE_PERCENTAGE).toFixed(2);
+    const fee = (parseFloat(amount) * FEE_PERCENTAGE).toFixed(6);
     return fee;
 };
 
@@ -298,7 +298,7 @@ export const executeBridge = async ({
     // Clear any pre-mint hook from a previous bridge run.
     clearPreMintHook();
     const effectiveFeeRate = isSwapRoute ? FEE_PERCENTAGE + SWAP_FEE_PERCENTAGE : FEE_PERCENTAGE;
-    const platformFee = (parseFloat(amount) * effectiveFeeRate).toFixed(2);
+    const platformFee = (parseFloat(amount) * effectiveFeeRate).toFixed(6);
 
     // Subtract fees from principal amount
     // bridgeAmount = totalInput - platformFee - forwardingFee
@@ -307,12 +307,7 @@ export const executeBridge = async ({
     const forwardingFeeDbl = parseFloat(forwardingFee);
     const bridgeAmount = (totalInputDbl - platformFeeDbl - forwardingFeeDbl).toFixed(6);
 
-    console.log('[BridgeService] Fee Deduction Logic:', {
-        totalInput: amount,
-        platformFee,
-        forwardingFee,
-        finalBridgeAmount: bridgeAmount
-    });
+    /* LOG REMOVED FOR PRIVACY */
 
     const STEP_ORDER = ['approve', 'burn', 'attestation', 'mint'];
     let lastStartedStep = 'approve';
@@ -490,20 +485,16 @@ export const executeBridge = async ({
             amount: bridgeAmount,
             config: {
                 transferSpeed: 'FAST',
-                customFee: {
-                    value: platformFee,
-                    recipientAddress: FEE_RECIPIENT,
-                },
+                ...(parseFloat(platformFee) > 0 ? {
+                    customFee: {
+                        value: platformFee,
+                        recipientAddress: FEE_RECIPIENT,
+                    },
+                } : {}),
             },
         };
 
-        console.log('[BridgeService] kit.bridge() params:', JSON.stringify({
-            from: { chain: fromChain },
-            to: { chain: toChain, recipientAddress, useForwarder: canUseForwarder },
-            transferSpeed: 'FAST',
-            amount: bridgeParams.amount,
-            config: bridgeParams.config,
-        }, null, 2));
+        /* LOG REMOVED FOR PRIVACY */
 
         const result = await kit.bridge(bridgeParams);
 
@@ -611,10 +602,16 @@ export const executeBridge = async ({
                 error: 'Transaction cancelled in wallet'
             });
         } else {
+            // Mask Ethereum addresses for privacy (0x... → 0x...abcd)
+            const maskAddress = (str) =>
+                str.replace(/0x[a-fA-F0-9]{40}/g, addr => `${addr.slice(0, 6)}...${addr.slice(-4)}`);
+
+            const cleanError = maskAddress(error.shortMessage || error.message || 'Bridge execution failed');
+
             onStatusUpdate?.({
                 step: 'error',
                 status: 'error',
-                error: error.shortMessage || error.message || 'Bridge execution failed'
+                error: cleanError
             });
         }
         throw error;

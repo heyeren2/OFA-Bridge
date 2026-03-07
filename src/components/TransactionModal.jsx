@@ -20,9 +20,10 @@ const formatTime = (totalSeconds) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-const truncateAddress = (addr) => {
-    if (!addr) return '';
-    return `${addr.slice(0, 5)}...${addr.slice(-6)}`;
+const formatAmount = (val) => {
+    if (!val || isNaN(parseFloat(val))) return '0.00';
+    const [int, frac] = val.toString().split('.');
+    return `${int}.${(frac || '00').padEnd(2, '0').slice(0, 2)}`;
 };
 
 export default function TransactionModal({
@@ -218,7 +219,7 @@ export default function TransactionModal({
                             <div className="txm-header-amount-pill-container">
                                 <div className="txm-header-amount-pill">
                                     <img src={TOKEN_INFO[selectedToken]?.icon || '/icons/usdc.png'} alt={selectedToken} width={16} height={16} />
-                                    <span>{amount} {selectedToken}</span>
+                                    <span>{formatAmount(amount)} {selectedToken}</span>
                                 </div>
                                 {isCancelled && (
                                     <div className="txm-cancelled-badge">
@@ -247,7 +248,7 @@ export default function TransactionModal({
 
                             <h1>Bridge Successful!</h1>
                             <p>
-                                {amount} {selectedToken} arrived on {getShortenedChainName(toChain)}
+                                {formatAmount(amount)} {selectedToken} arrived on {getShortenedChainName(toChain)}
                             </p>
                             {destAddress?.toLowerCase() !== walletAddress?.toLowerCase() && (
                                 <div className="txm-recipient-display">

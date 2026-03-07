@@ -170,6 +170,13 @@ export default function Bridge({
         }
     }, [toChainName, isDestForwarderBlocked, isAutoModeRestricted]);
 
+    // New effect to clear recipient when auto mode is restricted (Ethereum < 5 USDC OR blocked chains like Arc)
+    useEffect(() => {
+        if (isAutoModeRestricted || isDestForwarderBlocked) {
+            setCustomRecipient('');
+        }
+    }, [isAutoModeRestricted, isDestForwarderBlocked, setCustomRecipient]);
+
     // Whether the forwarder is actually active for the current route
     const isForwarderActive =
         FORWARDING_CONFIG.isForwardingEnabled &&
@@ -212,13 +219,15 @@ export default function Bridge({
     });
 
     const sourceBalance = useMemo(() => {
-        if (!isConnected) return '0';
-        return sourceBalanceData ? parseFloat(sourceBalanceData.formatted).toFixed(6) : '0';
+        if (!isConnected || !sourceBalanceData) return '0.00';
+        const [int, frac] = sourceBalanceData.formatted.split('.');
+        return `${int}.${(frac || '00').padEnd(2, '0').slice(0, 2)}`;
     }, [isConnected, sourceBalanceData]);
 
     const destBalance = useMemo(() => {
-        if (!isConnected) return '0';
-        return destBalanceData ? parseFloat(destBalanceData.formatted).toFixed(6) : '0';
+        if (!isConnected || !destBalanceData) return '0.00';
+        const [int, frac] = destBalanceData.formatted.split('.');
+        return `${int}.${(frac || '00').padEnd(2, '0').slice(0, 2)}`;
     }, [isConnected, destBalanceData]);
 
     const forwardingFee = useMemo(() => {
@@ -235,17 +244,23 @@ export default function Bridge({
         } else {
             baseFee = calculateFee(amount);
         }
-        return (parseFloat(baseFee) + parseFloat(forwardingFee)).toFixed(2);
+        return (parseFloat(baseFee) + parseFloat(forwardingFee)).toFixed(6);
     }, [amount, isEthSwap, swapQuote, forwardingFee]);
 
     const receiveAmount = useMemo(() => {
         if (!amount || isNaN(amount) || parseFloat(amount) <= 0) return '0.00';
+        let rawReceive;
         if (isEthSwap && swapQuote) {
             // Deduct displayed fee + hidden swap fee from swap output
-            const hiddenSwapFee = (parseFloat(swapQuote.amountOut) * SWAP_FEE_PERCENTAGE).toFixed(2);
-            return (parseFloat(swapQuote.amountOut) - parseFloat(fee) - parseFloat(hiddenSwapFee)).toFixed(2);
+            const hiddenSwapFee = (parseFloat(swapQuote.amountOut) * SWAP_FEE_PERCENTAGE).toFixed(6);
+            rawReceive = (parseFloat(swapQuote.amountOut) - parseFloat(fee) - parseFloat(hiddenSwapFee)).toString();
+        } else {
+            rawReceive = (parseFloat(amount) - parseFloat(fee)).toString();
         }
-        return (parseFloat(amount) - parseFloat(fee)).toFixed(2);
+
+        // Truncate to 2 decimals for display
+        const [int, frac] = rawReceive.split('.');
+        return `${int}.${(frac || '00').padEnd(2, '0').slice(0, 2)}`;
     }, [amount, fee, isEthSwap, swapQuote]);
 
     const expectedTime = useMemo(() => {
@@ -572,8 +587,12 @@ export default function Bridge({
                 cause: err.cause,
                 stack: err.stack,
             });
+            // Mask Ethereum addresses for privacy (0x... → 0x...abcd)
+            const maskAddress = (str) =>
+                typeof str === 'string' ? str.replace(/0x[a-fA-F0-9]{40}/g, addr => `${addr.slice(0, 6)}...${addr.slice(-4)}`) : str;
+
             // Determine user-facing error message
-            let displayError = err.shortMessage || err.message || 'Bridge execution failed';
+            let displayError = maskAddress(err.shortMessage || err.message || 'Bridge execution failed');
 
             // Map specific error codes for production clarity
             if (err.code === 9002 || err.message?.includes('9002')) {
@@ -880,8 +899,8 @@ export default function Bridge({
                         <div className={`recipient-pill-container ${customRecipient && mintMode === 'auto' ? 'pill-visible' : ''}`}>
                             {customRecipient && (
                                 <div
-                                    className={`recipient-pill ${isDestForwarderBlocked ? 'pill--disabled' : ''}`}
-                                    onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
+                                    className={`recipient-pill ${(isDestForwarderBlocked || isAutoModeRestricted) ? 'pill--disabled' : ''}`}
+                                    onClick={!(isDestForwarderBlocked || isAutoModeRestricted) ? onOpenRecipientModal : undefined}
                                 >
                                     <span className="pill-address">
                                         {customRecipient.slice(0, 6)}...{customRecipient.slice(-4)}
@@ -892,7 +911,7 @@ export default function Bridge({
                                             e.stopPropagation();
                                             setCustomRecipient('');
                                         }}
-                                        disabled={isDestForwarderBlocked}
+                                        disabled={isDestForwarderBlocked || isAutoModeRestricted}
                                     >
                                         <X size={12} />
                                     </button>
@@ -909,7 +928,7 @@ export default function Bridge({
                             <span className="info-label">{t.bridgeFee}</span>
                             <div className="info-controls">
                                 <div className="slippage-controls">
-                                    <span className="val">0.3% ({c.symbol}{(parseFloat(fee) * c.rate).toFixed(2)})</span>
+                                    <span className="val">0.3% ({c.symbol}{(parseFloat(fee) * c.rate).toFixed(4)})</span>
                                 </div>
                             </div>
                         </div>
@@ -922,7 +941,7 @@ export default function Bridge({
                         <div className="info-row mint-mode-row">
                             <span className="info-label">
                                 Mint Mode
-                                {isDestForwarderBlocked && (
+                                {(isDestForwarderBlocked || isAutoModeRestricted) && (
                                     <span
                                         className="mint-mode-locked-hint"
                                     >
@@ -930,23 +949,23 @@ export default function Bridge({
                                     </span>
                                 )}
                             </span>
-                            <div className={`mint-mode-toggle ${isDestForwarderBlocked ? 'mint-mode-toggle--locked' : ''}`} data-mode={mintMode}>
+                            <div className={`mint-mode-toggle ${(isDestForwarderBlocked || isAutoModeRestricted) ? 'mint-mode-toggle--locked' : ''}`} data-mode={mintMode}>
                                 <button
                                     className={`mint-mode-btn ${mintMode === 'manual' ? 'mint-mode-btn--active' : ''}`}
                                     onClick={() => {
-                                        if (!isDestForwarderBlocked) {
+                                        if (!(isDestForwarderBlocked || isAutoModeRestricted)) {
                                             setMintMode('manual');
                                             setCustomRecipient('');
                                         }
                                     }}
-                                    disabled={isDestForwarderBlocked}
-                                    data-tooltip={!isDestForwarderBlocked ? "You sign the mint transaction on the destination chain" : undefined}
+                                    disabled={isDestForwarderBlocked || isAutoModeRestricted}
+                                    data-tooltip={!(isDestForwarderBlocked || isAutoModeRestricted) ? "You sign the mint transaction on the destination chain" : undefined}
                                 >
                                     Manual
                                 </button>
                                 <button
                                     className={`mint-mode-btn ${mintMode === 'auto' ? 'mint-mode-btn--active' : ''}`}
-                                    onClick={() => !isDestForwarderBlocked && !isAutoModeRestricted && setMintMode('auto')}
+                                    onClick={() => !(isDestForwarderBlocked || isAutoModeRestricted) && setMintMode('auto')}
                                     disabled={isDestForwarderBlocked || isAutoModeRestricted}
                                     data-tooltip={
                                         isAutoModeRestricted
@@ -983,10 +1002,10 @@ export default function Bridge({
                     </div>
                     <div className="desktop-only">
                         <button
-                            className={`recipient-trigger-btn ${isDestForwarderBlocked ? 'trigger--disabled' : ''}`}
-                            onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
-                            disabled={isDestForwarderBlocked}
-                            data-tooltip={isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
+                            className={`recipient-trigger-btn ${(isDestForwarderBlocked || isAutoModeRestricted) ? 'trigger--disabled' : ''}`}
+                            onClick={!(isDestForwarderBlocked || isAutoModeRestricted) ? onOpenRecipientModal : undefined}
+                            disabled={isDestForwarderBlocked || isAutoModeRestricted}
+                            data-tooltip={isAutoModeRestricted ? "Minimum 5 USDC required for Ethereum Auto mode" : isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
                             data-tooltip-pos="left"
                         >
                             <img src="/icons/wallet.png" alt="Wallet" />
@@ -1014,9 +1033,9 @@ export default function Bridge({
                 <div className="mobile-only">
                     <div className="mobile-recipient-wrap">
                         <button
-                            className={`recipient-trigger-btn recipient-trigger-btn-mobile ${isDestForwarderBlocked ? 'trigger--disabled' : ''}`}
-                            onClick={!isDestForwarderBlocked ? onOpenRecipientModal : undefined}
-                            disabled={isDestForwarderBlocked}
+                            className={`recipient-trigger-btn recipient-trigger-btn-mobile ${(isDestForwarderBlocked || isAutoModeRestricted) ? 'trigger--disabled' : ''}`}
+                            onClick={!(isDestForwarderBlocked || isAutoModeRestricted) ? onOpenRecipientModal : undefined}
+                            disabled={isDestForwarderBlocked || isAutoModeRestricted}
                         >
                             <img src="/icons/wallet.png" alt="Wallet" />
                         </button>

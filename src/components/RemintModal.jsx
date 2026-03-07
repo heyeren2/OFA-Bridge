@@ -15,6 +15,17 @@ export const RemintModal = ({ isOpen, onClose, onConfirm, tx, isMinting }) => {
                     <X size={20} />
                 </button>
 
+                {/* Helper to show 2 decimal truncated amount */}
+                {(() => {
+                    const formatAmount = (val) => {
+                        if (!val || isNaN(parseFloat(val))) return '0.00';
+                        const [int, frac] = val.toString().split('.');
+                        return `${int}.${(frac || '00').padEnd(2, '0').slice(0, 2)}`;
+                    };
+                    tx.amountFormatted = formatAmount(tx.amountDisplay);
+                    return null;
+                })()}
+
                 <h3 className="modal-title">Complete Bridge</h3>
                 <p className="modal-subtitle">Your funds are burned on the source chain. Use this to mint them on the destination.</p>
 
@@ -33,7 +44,7 @@ export const RemintModal = ({ isOpen, onClose, onConfirm, tx, isMinting }) => {
                 <div className="remint-details">
                     <div className="detail-row">
                         <span>Amount</span>
-                        <span className="value">{tx.amountDisplay} USDC</span>
+                        <span className="value">{tx.amountFormatted} USDC</span>
                     </div>
                     <div className="detail-row">
                         <span>Transaction Hash</span>

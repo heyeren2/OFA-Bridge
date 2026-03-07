@@ -21,6 +21,7 @@ export const USDC_ADDRESSES = {
     Solana_Devnet: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
     Sui_Testnet: '0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC',
     Arc_Testnet: '0x3600000000000000000000000000000000000000',
+    Avalanche_Fuji: '0x5425890298aed601595a70AB815c96711a31Bc65',
 };
 
 // Uniswap V3 contracts on Ethereum Sepolia (for ETH → USDC swap)

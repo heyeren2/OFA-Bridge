@@ -292,9 +292,10 @@ export default function Activity({ setActiveTab }) {
         return `${displayAddr.slice(0, 6)}...${displayAddr.slice(-4)}`;
     };
     const formatAmount = (val) => {
-        const num = parseFloat(val);
-        if (isNaN(num) || num === 0) return '0.00';
-        return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+        if (!val || isNaN(parseFloat(val))) return '0.00';
+        const [int, frac] = val.toString().split('.');
+        const truncatedFrac = (frac || '00').padEnd(2, '0').slice(0, 2);
+        return `${parseInt(int).toLocaleString()}.${truncatedFrac}`;
     };
     const timeAgo = (ts) => {
         const seconds = Math.floor(Date.now() / 1000) - parseInt(ts);

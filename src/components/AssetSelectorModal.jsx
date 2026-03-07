@@ -24,7 +24,7 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
     }, [onClose]);
 
     const starredChains = useMemo(() => {
-        const starredNames = ['Arc Testnet', 'Ethereum Sepolia', 'Base Sepolia', 'Optimism Sepolia'];
+        const starredNames = ['Arc Testnet', 'Ethereum Sepolia', 'Avalanche Fuji', 'Base Sepolia', 'Optimism Sepolia'];
         return starredNames
             .map(name => SUPPORTED_CHAINS.find(c => c.name === name))
             .filter(Boolean)
@@ -45,7 +45,8 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
         if (name.includes('Ink Testnet')) return 'Ink';
         if (name.includes('Soneium Minato')) return 'Soneium';
         if (name.includes('Berachain Artio')) return 'Berachain';
-        return name.replace(' Testnet', '').replace(' Sepolia', '');
+        if (name.includes('Avalanche Fuji')) return 'Avalanche';
+        return name.replace(' Testnet', '').replace(' Sepolia', '').replace(' Fuji', '');
     };
 
     const tokensToDisplay = useMemo(() => {

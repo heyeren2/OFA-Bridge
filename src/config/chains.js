@@ -155,6 +155,18 @@ export const SUPPORTED_CHAINS = [
     hasSwap: false,
     type: 'evm',
   },
+  {
+    name: 'Avalanche Fuji',
+    bridgeKitName: 'Avalanche_Fuji',
+    chainId: 43113,
+    icon: '/icons/avalanche.png',
+    color: '#E84142',
+    tokens: ['USDC'],
+    rpc: 'https://api.avax-test.network/ext/bc/C/rpc',
+    explorer: 'https://testnet.snowscan.xyz',
+    hasSwap: false,
+    type: 'evm',
+  },
 ];
 
 export const getChainByName = (name) =>
