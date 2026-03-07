@@ -12,6 +12,7 @@ import { TOKEN_INFO, USDC_ADDRESSES, SWAP_FEE_PERCENTAGE } from '../config/contr
 import { calculateFee, calculateForwardingFee, executeBridge } from '../services/bridgeService';
 import { FORWARDING_CONFIG, DEFAULT_MINT_MODE, CHAINS_WITHOUT_FORWARDER_SUPPORT } from '../services/forwardingConfig';
 import { getSwapQuote, executeSwap } from '../services/swapService';
+import { getDestSwapQuote, executeDestSwap } from '../services/destSwapService';
 import TransactionModal from './TransactionModal';
 // RecipientModal and its CSS are now imported in App.jsx
 
@@ -128,17 +129,19 @@ export default function Bridge({
     const [fromChainName, setFromChainName] = useState('Ethereum Sepolia');
     const [toChainName, setToChainName] = useState('Arc Testnet');
     const [selectedToken, setSelectedToken] = useState('USDC');
+    const [destToken, setDestToken] = useState('USDC');
     const [amount, setAmount] = useState('');
     const [isBridging, setIsBridging] = useState(false);
     const [bridgeStep, setBridgeStep] = useState(null); // The current active/focus step
     const [stepStatuses, setStepStatuses] = useState({}); // Detailed status for each step: { 'approve': 'completed', ... }
     const [bridgeError, setBridgeError] = useState(null);
     const [swapQuote, setSwapQuote] = useState(null);
+    const [destSwapQuote, setDestSwapQuote] = useState(null);
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [selectorMode, setSelectorMode] = useState('chain');
     const [selectorTarget, setSelectorTarget] = useState('from'); // 'from' or 'to'
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
-    const [txData, setTxData] = useState({ approveHash: null, sourceHash: null, destHash: null });
+    const [txData, setTxData] = useState({ approveHash: null, sourceHash: null, destHash: null, swapHash: null, destSwapHash: null });
     // customRecipient and isRecipientModalOpen are now handled via props
 
     // ── Mint mode toggle ─────────────────────────────────────────────────────
@@ -177,6 +180,14 @@ export default function Bridge({
         }
     }, [isAutoModeRestricted, isDestForwarderBlocked, setCustomRecipient]);
 
+    // Safety: Ensure destToken is always supported on the destination chain
+    useEffect(() => {
+        const dest = getChainByName(toChainName);
+        if (dest && !dest.tokens.includes(destToken)) {
+            setDestToken('USDC');
+        }
+    }, [toChainName, destToken]);
+
     // Whether the forwarder is actually active for the current route
     const isForwarderActive =
         FORWARDING_CONFIG.isForwardingEnabled &&
@@ -200,7 +211,7 @@ export default function Bridge({
 
     const { data: destBalanceData } = useBalance({
         address: customRecipient || currentAddress,
-        token: USDC_ADDRESSES[destChain.bridgeKitName],
+        token: destToken === 'USDC' ? USDC_ADDRESSES[destChain.bridgeKitName] : undefined,
         chainId: destChain.chainId,
         watch: true,
     });
@@ -249,8 +260,11 @@ export default function Bridge({
 
     const receiveAmount = useMemo(() => {
         if (!amount || isNaN(amount) || parseFloat(amount) <= 0) return '0.00';
+
         let rawReceive;
-        if (isEthSwap && swapQuote) {
+        if (destToken === 'ETH' && destSwapQuote) {
+            rawReceive = destSwapQuote.amountOut;
+        } else if (isEthSwap && swapQuote) {
             // Deduct displayed fee + hidden swap fee from swap output
             const hiddenSwapFee = (parseFloat(swapQuote.amountOut) * SWAP_FEE_PERCENTAGE).toFixed(6);
             rawReceive = (parseFloat(swapQuote.amountOut) - parseFloat(fee) - parseFloat(hiddenSwapFee)).toString();
@@ -261,7 +275,7 @@ export default function Bridge({
         // Truncate to 2 decimals for display
         const [int, frac] = rawReceive.split('.');
         return `${int}.${(frac || '00').padEnd(2, '0').slice(0, 2)}`;
-    }, [amount, fee, isEthSwap, swapQuote]);
+    }, [amount, fee, isEthSwap, swapQuote, destToken, destSwapQuote]);
 
     const expectedTime = useMemo(() => {
         if (isForwarderActive) {
@@ -278,22 +292,25 @@ export default function Bridge({
             ? { key: 'mint', label: 'Circle Minting (Automatic)', icon: '⚡' }
             : { key: 'mint', label: 'Mint USDC', icon: '✨' };
 
+        const steps = [];
+
         if (isEthSwap) {
-            return [
-                { key: 'swap', label: 'Swap ETH → USDC', icon: '🔄' },
-                { key: 'approve', label: 'Approve USDC', icon: '✅' },
-                { key: 'burn', label: 'Burn USDC', icon: '🔥' },
-                { key: 'attestation', label: 'Attestation', icon: '📡' },
-                mintStep,
-            ];
+            steps.push({ key: 'swap', label: 'Swap ETH → USDC', icon: '🔄' });
         }
-        return [
+
+        steps.push(
             { key: 'approve', label: 'Approve USDC', icon: '✅' },
             { key: 'burn', label: 'Burn USDC', icon: '🔥' },
             { key: 'attestation', label: 'Attestation', icon: '📡' },
-            mintStep,
-        ];
-    }, [isEthSwap, isForwarderActive]);
+            mintStep
+        );
+
+        if (destToken === 'ETH' && toChainName === 'Ethereum Sepolia') {
+            steps.push({ key: 'swap_dest', label: 'Swap USDC → ETH', icon: '🔄' });
+        }
+
+        return steps;
+    }, [isEthSwap, isForwarderActive, destToken, toChainName]);
 
     const handleChainChange = useCallback((chainName) => {
         if (selectorTarget === 'from') {
@@ -314,6 +331,13 @@ export default function Bridge({
             const chain = getChainByName(chainName);
             if (chain && !chain.tokens.includes(selectedToken)) {
                 setSelectedToken('USDC');
+            }
+        } else {
+            // If changing destination chain, reset destToken to USDC
+            // Unless the new destination is Ethereum Sepolia and it was already ETH? 
+            // Actually, safe to just reset to USDC or keep if it's Sepolia.
+            if (chainName !== 'Ethereum Sepolia') {
+                setDestToken('USDC');
             }
         }
         setSwapQuote(null);
@@ -351,8 +375,12 @@ export default function Bridge({
                 }
             }
 
-            // NOTE: We do NOT change selectedToken when target is 'to'
-            // because our bridge logic is currently 'One Asset' (USDC) out.
+            // Update destToken if targeting 'to'
+            if (tokenSymbol === 'ETH' && chainName === 'Ethereum Sepolia') {
+                setDestToken('ETH');
+            } else {
+                setDestToken('USDC');
+            }
         }
 
         setSwapQuote(null);
@@ -388,25 +416,59 @@ export default function Bridge({
     const toggleDirection = useCallback(() => {
         const oldFrom = fromChainName;
         const oldTo = toChainName;
+        const oldSelected = selectedToken;
+        const oldDest = destToken;
+
         setFromChainName(oldTo);
         setToChainName(oldFrom);
+        setSelectedToken(oldDest);
+        setDestToken(oldSelected);
 
-        // Validate if the current token is supported on the NEW source chain
+        // Validate if the flipped tokens are supported on their new chains
         const newSource = getChainByName(oldTo);
-        if (newSource && !newSource.tokens.includes(selectedToken)) {
+        const newDest = getChainByName(oldFrom);
+
+        if (newSource && !newSource.tokens.includes(oldDest)) {
             setSelectedToken('USDC');
+        }
+        if (newDest && !newDest.tokens.includes(oldSelected)) {
+            setDestToken('USDC');
         }
 
         setSwapQuote(null);
         setBridgeStep(null);
         setBridgeError(null);
-    }, [fromChainName, toChainName, selectedToken]);
+    }, [fromChainName, toChainName, selectedToken, destToken]);
 
     const handleConnect = useCallback(() => {
         if (openConnectModal) {
             openConnectModal();
         }
     }, [openConnectModal]);
+
+    // ── Dest Swap Quote Effect ───────────────────────────────────────────────
+    useEffect(() => {
+        const fetchDestQuote = async () => {
+            if (destToken === 'ETH' && toChainName === 'Ethereum Sepolia' && amount && parseFloat(amount) > 0) {
+                try {
+                    // Fee is already deducted from amount for the bridge, so we swap (amount - fee)
+                    const bridgeAmount = (parseFloat(amount) - parseFloat(fee)).toString();
+                    if (parseFloat(bridgeAmount) <= 0) return;
+
+                    const quote = await getDestSwapQuote(bridgeAmount);
+                    setDestSwapQuote(quote);
+                } catch (err) {
+                    console.error('Failed to get dest swap quote:', err);
+                    setDestSwapQuote(null);
+                }
+            } else {
+                setDestSwapQuote(null);
+            }
+        };
+
+        const timer = setTimeout(fetchDestQuote, 500);
+        return () => clearTimeout(timer);
+    }, [destToken, toChainName, amount, fee]);
 
     const handleBridge = useCallback(async () => {
         if (!isConnected) {
@@ -471,9 +533,10 @@ export default function Bridge({
                 setStepStatuses(prev => ({ ...prev, swap: 'pending' }));
                 const swapResult = await executeSwap(amount, swapQuote?.amountOut || '0', currentAddress);
                 bridgeAmount = swapResult.usdcReceived;
+                setTxData(prev => ({ ...prev, swapHash: swapResult.hash }));
                 setBridgeStep('approve');
                 setStepStatuses(prev => ({ ...prev, swap: 'completed' }));
-                updateHistory({ lastStep: 'approve' });
+                updateHistory({ lastStep: 'approve', txHashes: { swap: swapResult.hash } });
             }
 
             const result = await executeBridge({
@@ -586,6 +649,22 @@ export default function Bridge({
                 console.log('[Bridge] No burn tx detected — treating as user cancellation');
                 isCancelledRef.current = true;
                 setBridgeError('CANCELLED');
+            }
+
+            // --- DESTINATION SWAP (USDC -> ETH) ---
+            if (destToken === 'ETH' && toChainName === 'Ethereum Sepolia') {
+                setBridgeStep('swap_dest');
+                setStepStatuses(prev => ({ ...prev, swap_dest: 'pending' }));
+
+                // Fetch fresh quote for final bridged amount (in case it changed slightly)
+                const bridgeAmount = (parseFloat(amount) - parseFloat(fee)).toString();
+                const quote = await getDestSwapQuote(bridgeAmount);
+
+                const swapResult = await executeDestSwap(bridgeAmount, quote.amountOut, currentAddress);
+                setTxData(prev => ({ ...prev, destSwapHash: swapResult.hash }));
+
+                setStepStatuses(prev => ({ ...prev, swap_dest: 'completed' }));
+                updateHistory({ txHashes: { destSwap: swapResult.hash } });
             }
 
             if (!isCancelledRef.current) {
@@ -896,14 +975,14 @@ export default function Bridge({
                             >
                                 <div className="token-icon-wrap">
                                     <img
-                                        src={TOKEN_INFO['USDC']?.icon}
+                                        src={TOKEN_INFO[destToken]?.icon}
                                         alt=""
                                         className="token-img"
                                     />
                                     <img src={destChain.icon} alt="" className="chain-badge-overlay" />
                                 </div>
                                 <div className="token-selector-info">
-                                    <span className="token-sym">USDC</span>
+                                    <span className="token-sym">{destToken}</span>
                                     <span className="chain-name-sub">{destChain.name.split(' ')[0]}</span>
                                 </div>
                                 <ChevronRight size={18} />
@@ -1081,6 +1160,8 @@ export default function Bridge({
                 txData={txData}
                 amount={amount}
                 selectedToken={selectedToken}
+                destToken={destToken}
+                destAmount={receiveAmount}
                 fromChain={fromChainName}
                 toChain={toChainName}
                 destAddress={customRecipient || currentAddress}

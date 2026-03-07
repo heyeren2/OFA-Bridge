@@ -26,6 +26,11 @@ const formatAmount = (val) => {
     return `${int}.${(frac || '00').padEnd(2, '0').slice(0, 2)}`;
 };
 
+const truncateAddress = (addr) => {
+    if (!addr) return '';
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+};
+
 export default function TransactionModal({
     isOpen,
     onClose,
@@ -40,7 +45,9 @@ export default function TransactionModal({
     toChain,
     destAddress,
     walletAddress,
-    isSwapAndBridge
+    isSwapAndBridge,
+    destToken,
+    destAmount
 }) {
     const [prevStep, setPrevStep] = useState(null);
     const prevStepRef = useRef(bridgeStep);
@@ -248,7 +255,13 @@ export default function TransactionModal({
 
                             <h1>Bridge Successful!</h1>
                             <p>
-                                {formatAmount(amount)} {selectedToken} arrived on {getShortenedChainName(toChain)}
+                                {isSwapAndBridge || destToken === 'ETH' ? (
+                                    <>
+                                        {formatAmount(amount)} {selectedToken} <ArrowRight size={14} style={{ display: 'inline', verticalAlign: 'middle', margin: '0 4px' }} /> {formatAmount(destAmount)} {destToken} received on {getShortenedChainName(toChain)}
+                                    </>
+                                ) : (
+                                    <>{formatAmount(amount)} {selectedToken} received on {getShortenedChainName(toChain)}</>
+                                )}
                             </p>
                             {destAddress?.toLowerCase() !== walletAddress?.toLowerCase() && (
                                 <div className="txm-recipient-display">
@@ -259,40 +272,54 @@ export default function TransactionModal({
 
                             <div className="txm-network-grid">
                                 {/* Source Chain Box */}
-                                <a
-                                    href={fromChainData?.explorer ? `${fromChainData.explorer}/tx/${txData.sourceHash}` : '#'}
-                                    target="_blank" rel="noreferrer"
-                                    className="txm-network-box"
-                                >
+                                <div className="txm-network-box txm-network-box--multi">
                                     <div className="txm-network-info">
                                         <div className="txm-network-icon-circle">
                                             <img src={fromChainData?.icon} alt="" width={20} height={20} />
                                         </div>
                                         <div className="txm-network-details">
-                                            <span className="txm-network-label">Source Chain</span>
-                                            <span className="txm-network-name">View on {getShortenedChainName(fromChain)}</span>
+                                            <span className="txm-network-label">SOURCE CHAIN</span>
+                                            <div className="txm-link-group">
+                                                <a href={fromChainData?.explorer ? `${fromChainData.explorer}/address/${walletAddress}` : '#'} target="_blank" rel="noreferrer" className="txm-chain-main-link">
+                                                    View on {getShortenedChainName(fromChain)}
+                                                </a>
+                                                {txData.swapHash && (
+                                                    <a href={`${fromChainData?.explorer}/tx/${txData.swapHash}`} target="_blank" rel="noreferrer" className="txm-sub-link">
+                                                        Swap <ArrowUpRight size={12} />
+                                                    </a>
+                                                )}
+                                                <a href={`${fromChainData?.explorer}/tx/${txData.sourceHash}`} target="_blank" rel="noreferrer" className="txm-sub-link">
+                                                    Burn <ArrowUpRight size={12} />
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
-                                    <ArrowUpRight size={18} className="txm-network-link-icon" />
-                                </a>
+                                </div>
 
                                 {/* Destination Chain Box */}
-                                <a
-                                    href={toChainData?.explorer ? `${toChainData.explorer}/tx/${txData.destHash}` : '#'}
-                                    target="_blank" rel="noreferrer"
-                                    className="txm-network-box"
-                                >
+                                <div className="txm-network-box txm-network-box--multi">
                                     <div className="txm-network-info">
                                         <div className="txm-network-icon-circle">
                                             <img src={toChainData?.icon} alt="" width={20} height={20} />
                                         </div>
                                         <div className="txm-network-details">
-                                            <span className="txm-network-label">Destination Chain</span>
-                                            <span className="txm-network-name">View on {getShortenedChainName(toChain)}</span>
+                                            <span className="txm-network-label">DESTINATION CHAIN</span>
+                                            <div className="txm-link-group">
+                                                <a href={toChainData?.explorer ? `${toChainData.explorer}/address/${destAddress}` : '#'} target="_blank" rel="noreferrer" className="txm-chain-main-link">
+                                                    View on {getShortenedChainName(toChain)}
+                                                </a>
+                                                <a href={`${toChainData?.explorer}/tx/${txData.destHash}`} target="_blank" rel="noreferrer" className="txm-sub-link">
+                                                    Mint <ArrowUpRight size={12} />
+                                                </a>
+                                                {txData.destSwapHash && (
+                                                    <a href={`${toChainData?.explorer}/tx/${txData.destSwapHash}`} target="_blank" rel="noreferrer" className="txm-sub-link">
+                                                        Swap <ArrowUpRight size={12} />
+                                                    </a>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                    <ArrowUpRight size={18} className="txm-network-link-icon" />
-                                </a>
+                                </div>
                             </div>
 
                             <button className="txm-primary-btn-v4" onClick={onClose}>

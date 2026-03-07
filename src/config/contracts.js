@@ -71,6 +71,23 @@ export const SWAP_ROUTER_ABI = [
         stateMutability: 'payable',
         type: 'function',
     },
+    {
+        inputs: [
+            { name: 'amountMinimum', type: 'uint256' },
+            { name: 'recipient', type: 'address' },
+        ],
+        name: 'unwrapWETH9',
+        outputs: [],
+        stateMutability: 'payable',
+        type: 'function',
+    },
+    {
+        inputs: [{ name: 'data', type: 'bytes[]' }],
+        name: 'multicall',
+        outputs: [{ name: 'results', type: 'bytes[]' }],
+        stateMutability: 'payable',
+        type: 'function',
+    },
 ];
 
 // QuoterV2 ABI (only for getting quotes)
