@@ -324,23 +324,35 @@ export default function Bridge({
 
     const handleAssetSelect = useCallback((chainName, tokenSymbol) => {
         if (selectorTarget === 'from') {
+            const oldFrom = fromChainName;
             setFromChainName(chainName);
             if (chainName === toChainName) {
-                setToChainName(fromChainName);
+                setToChainName(oldFrom);
+            }
+
+            // Only update selectedToken if selecting SOURCE
+            const chain = getChainByName(chainName);
+            if (chain && chain.tokens.includes(tokenSymbol)) {
+                setSelectedToken(tokenSymbol);
+            } else {
+                setSelectedToken('USDC');
             }
         } else {
+            // Changing destination
+            const oldTo = toChainName;
             setToChainName(chainName);
             if (chainName === fromChainName) {
-                setFromChainName(toChainName);
-            }
-        }
+                setFromChainName(oldTo);
 
-        // Only allow non-USDC if it's not Arc or if it's a specific supported route (e.g. ETH swap)
-        // For simplicity and matching current logic, we default to USDC for most things
-        if (chainName === ARC_CHAIN.name) {
-            setSelectedToken('USDC');
-        } else {
-            setSelectedToken(tokenSymbol);
+                // If we flipped, validate current source token for the new source chain
+                const newSource = getChainByName(oldTo);
+                if (newSource && !newSource.tokens.includes(selectedToken)) {
+                    setSelectedToken('USDC');
+                }
+            }
+
+            // NOTE: We do NOT change selectedToken when target is 'to'
+            // because our bridge logic is currently 'One Asset' (USDC) out.
         }
 
         setSwapQuote(null);
@@ -348,7 +360,7 @@ export default function Bridge({
         setStepStatuses({});
         setBridgeError(null);
         setIsSelectorOpen(false);
-    }, [selectorTarget, fromChainName, toChainName]);
+    }, [selectorTarget, fromChainName, toChainName, selectedToken]);
 
     const openSelector = useCallback((mode, target = 'from') => {
         setSelectorMode(mode);
@@ -375,13 +387,20 @@ export default function Bridge({
 
     const toggleDirection = useCallback(() => {
         const oldFrom = fromChainName;
-        setFromChainName(toChainName);
+        const oldTo = toChainName;
+        setFromChainName(oldTo);
         setToChainName(oldFrom);
-        setSelectedToken('USDC');
+
+        // Validate if the current token is supported on the NEW source chain
+        const newSource = getChainByName(oldTo);
+        if (newSource && !newSource.tokens.includes(selectedToken)) {
+            setSelectedToken('USDC');
+        }
+
         setSwapQuote(null);
         setBridgeStep(null);
         setBridgeError(null);
-    }, [fromChainName, toChainName]);
+    }, [fromChainName, toChainName, selectedToken]);
 
     const handleConnect = useCallback(() => {
         if (openConnectModal) {
