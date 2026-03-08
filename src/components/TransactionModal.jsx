@@ -130,7 +130,7 @@ export default function TransactionModal({
         approve: 'Waiting for wallet confirmation...',
         burn: 'Confirming burn transaction...',
         attestation: 'Circle is verifying attestation...',
-        mint: 'Circle is minting on destination...',
+        mint: 'Confirming mint transaction...',
     };
 
     const steps = (bridgeSteps || []).map((s, idx) => ({

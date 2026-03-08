@@ -293,8 +293,8 @@ export default function Bridge({
 
     const bridgeSteps = useMemo(() => {
         const mintStep = isForwarderActive
-            ? { key: 'mint', label: 'Circle Minting (Automatic)', icon: '⚡' }
-            : { key: 'mint', label: 'Mint USDC', icon: '✨' };
+            ? { key: 'mint', label: 'Circle Minting (Automatic)', icon: '⚡', activeDesc: 'Circle is minting on destination...' }
+            : { key: 'mint', label: 'Mint USDC', icon: '✨', activeDesc: 'Confirming mint transaction...' };
 
         const steps = [];
 
