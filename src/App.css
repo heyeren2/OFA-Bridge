@@ -5991,3 +5991,37 @@ body {
   0%, 100% { opacity: 0.3; }
   50%       { opacity: 0.9; }
 }
+
+/* Click tooltip bubble for HeaderMenu items */
+.hm-tooltip-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: var(--midnight-indigo, #1a152e);
+  color: var(--vanilla-cream, #F0E7D5);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 999;
+  animation: hmTooltipFade 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.hm-tooltip-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--midnight-indigo, #1a152e);
+}
+
+@keyframes hmTooltipFade {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

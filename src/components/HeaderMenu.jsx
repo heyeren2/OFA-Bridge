@@ -85,7 +85,13 @@ const TRANSLATIONS = {
 export default function HeaderMenu({ isOpen, onClose, onOpenLearn, onOpenAbout, language }) {
     const { theme, setTheme: onThemeChange } = useTheme();
     const [activeView, setActiveView] = useState('main');
+    const [activeTooltip, setActiveTooltip] = useState(null); // 'support' | 'about'
     const t = TRANSLATIONS[language] || TRANSLATIONS.English;
+
+    const showTooltip = (key) => {
+        setActiveTooltip(key);
+        setTimeout(() => setActiveTooltip(null), 2000);
+    };
 
     if (!isOpen) return null;
 
@@ -105,7 +111,16 @@ export default function HeaderMenu({ isOpen, onClose, onOpenLearn, onOpenAbout, 
             </div>
 
             <div className="menu-section">
-                <a href="#" className="menu-item section-only">{t.support}</a>
+                <div
+                    className="menu-item section-only hm-tooltip-wrap"
+                    onClick={(e) => { e.preventDefault(); showTooltip('support'); }}
+                    style={{ cursor: 'pointer', position: 'relative' }}
+                >
+                    {t.support}
+                    {activeTooltip === 'support' && (
+                        <span className="hm-tooltip-bubble">Soon!</span>
+                    )}
+                </div>
             </div>
 
             <div className="menu-section">
@@ -133,13 +148,17 @@ export default function HeaderMenu({ isOpen, onClose, onOpenLearn, onOpenAbout, 
 
             <div className="menu-section about-section" style={{ marginBottom: '4px', marginTop: '0px' }}>
                 <div
-                    className="menu-item"
-                    style={{ gap: '6px', padding: '4px 0', justifyContent: 'flex-start', cursor: 'default' }}
+                    className="menu-item hm-tooltip-wrap"
+                    style={{ gap: '6px', padding: '4px 0', justifyContent: 'flex-start', cursor: 'pointer', position: 'relative' }}
+                    onClick={() => showTooltip('about')}
                 >
                     <span className="platform-icon" style={{ width: '24px', height: '24px', background: 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <img src="/icons/Ofa2.png" alt="OFA" style={{ width: '63px', height: '63px' }} />
                     </span>
                     <span style={{ fontSize: '14px', fontWeight: '600', whiteSpace: 'nowrap' }}>{t.about}</span>
+                    {activeTooltip === 'about' && (
+                        <span className="hm-tooltip-bubble">Coming soon!</span>
+                    )}
                 </div>
             </div>
 
