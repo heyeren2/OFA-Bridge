@@ -340,7 +340,12 @@ export default function Bridge({
                 setDestToken('USDC');
             }
         }
-        setSwapQuote(null);
+        // Only reset the swap quote if the SOURCE chain changed —
+        // the ETH→USDC swap always happens on Sepolia so the quote
+        // is irrelevant to which destination chain the user picks.
+        if (selectorTarget === 'from') {
+            setSwapQuote(null);
+        }
         setBridgeStep(null);
         setBridgeError(null);
         setIsSelectorOpen(false);
@@ -383,7 +388,10 @@ export default function Bridge({
             }
         }
 
-        setSwapQuote(null);
+        // Only clear the swap quote if we're changing the SOURCE chain.
+        if (selectorTarget === 'from') {
+            setSwapQuote(null);
+        }
         setBridgeStep(null);
         setStepStatuses({});
         setBridgeError(null);
@@ -400,16 +408,7 @@ export default function Bridge({
         const val = e.target.value;
         if (val === '' || /^\d*\.?\d*$/.test(val)) {
             setAmount(val);
-            setSwapQuote(null);
-
-            if (val && parseFloat(val) > 0 && selectedToken === 'ETH') {
-                try {
-                    const quote = await getSwapQuote(val);
-                    setSwapQuote(quote);
-                } catch {
-                    setSwapQuote(null);
-                }
-            }
+            // Note: quote is debounced via useEffect — no need to clear it here
         }
     }, [selectedToken]);
 
@@ -529,9 +528,12 @@ export default function Bridge({
             const toChainKit = destChain.bridgeKitName;
 
             if (isEthSwap) {
+                if (!swapQuote?.amountOut || parseFloat(swapQuote.amountOut) <= 0) {
+                    throw new Error('Swap quote not ready. Please wait a moment and try again.');
+                }
                 setBridgeStep('swap');
                 setStepStatuses(prev => ({ ...prev, swap: 'pending' }));
-                const swapResult = await executeSwap(amount, swapQuote?.amountOut || '0', currentAddress);
+                const swapResult = await executeSwap(amount, swapQuote.amountOut, currentAddress);
                 bridgeAmount = swapResult.usdcReceived;
                 setTxData(prev => ({ ...prev, swapHash: swapResult.hash }));
                 setBridgeStep('approve');
@@ -802,12 +804,15 @@ export default function Bridge({
                 } catch (err) {
                     console.error('Quote fetch failed:', err);
                 }
-            } else {
+            } else if (!amount || parseFloat(amount) <= 0) {
+                // Only clear quote when the amount is empty/zero — NOT on chain/token switches
                 setSwapQuote(null);
             }
+            // If selectedToken !== 'ETH' we leave swapQuote as-is;
+            // it will be ignored by the UI since isEthSwap will be false.
         };
 
-        const timer = setTimeout(fetchQuote, 500); // Debounce
+        const timer = setTimeout(fetchQuote, 400); // Debounce
         return () => clearTimeout(timer);
     }, [selectedToken, amount, fromChainName]);
 
@@ -961,9 +966,23 @@ export default function Bridge({
 
                     <div className="relay-input-row">
                         <div className="input-group">
-                            <span className="relay-amount-display">{receiveAmount || '0'}</span>
+                            <span className="relay-amount-display">
+                                {isEthSwap && !swapQuote
+                                    ? <span className="quote-loading">…</span>
+                                    : (receiveAmount || '0')}
+                            </span>
                             <div className="relay-fiat-sub">
-                                <span className="fiat-val">{c.symbol}{(fiatValue * c.rate * 0.999).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (-0.01%)</span>
+                                {isEthSwap && swapQuote ? (
+                                    // For an ETH swap, the receive amount IS the USDC value;
+                                    // Its USD value is ~1:1, so just show it directly. 
+                                    <span className="fiat-val">
+                                        {c.symbol}{(parseFloat(receiveAmount) * c.rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                ) : (
+                                    <span className="fiat-val">
+                                        {c.symbol}{(fiatValue * c.rate * 0.999).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (-0.01%)
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -1026,7 +1045,7 @@ export default function Bridge({
                             <span className="info-label">{t.bridgeFee}</span>
                             <div className="info-controls">
                                 <div className="slippage-controls">
-                                    <span className="val">0.3% ({c.symbol}{(parseFloat(fee) * c.rate).toFixed(4)})</span>
+                                    <span className="val">0.3% ({c.symbol}{(parseFloat(fee) * c.rate).toFixed(2)})</span>
                                 </div>
                             </div>
                         </div>
@@ -1152,7 +1171,13 @@ export default function Bridge({
 
             <TransactionModal
                 isOpen={isTxModalOpen}
-                onClose={() => setIsTxModalOpen(false)}
+                onClose={() => {
+                    setIsTxModalOpen(false);
+                    // If the bridge fully completed, reset the form so it's fresh for the next tx
+                    if (txData.destHash) {
+                        resetBridge();
+                    }
+                }}
                 bridgeStep={bridgeStep}
                 stepStatuses={stepStatuses}
                 bridgeSteps={bridgeSteps}

@@ -2300,14 +2300,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--vanilla-cream);
-  text-decoration: none;
-  opacity: 0.8;
-  transition: opacity 0.2s;
-}
-
-.txm-chain-main-link:hover {
-  opacity: 1;
-  text-decoration: underline;
+  opacity: 0.7;
 }
 
 .txm-sub-link {
@@ -5987,4 +5980,14 @@ body {
   .recipient-trigger-btn[data-tooltip]::after {
     display: block !important;
   }
+}
+/* Quote loading placeholder in destination amount */
+.quote-loading {
+  opacity: 0.4;
+  animation: quotePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes quotePulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.9; }
 }

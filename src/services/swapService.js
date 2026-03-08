@@ -77,7 +77,7 @@ export const executeSwap = async (ethAmount, minUsdcOut, userAddress) => {
     const minOut = BigInt(Math.floor(parseFloat(minUsdcOut) * 0.99 * 1e6));
 
     try {
-        const { request } = await publicClient.simulateContract({
+        const { request, result: simulatedUsdcOut } = await publicClient.simulateContract({
             account: userAddress,
             address: UNISWAP_CONTRACTS.swapRouter02,
             abi: SWAP_ROUTER_ABI,
@@ -99,10 +99,14 @@ export const executeSwap = async (ethAmount, minUsdcOut, userAddress) => {
         const hash = await walletClient.writeContract(request);
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
+        // Use the actual simulated output (not the passed-in min) as the bridgeAmount.
+        // simulatedUsdcOut is the real return value of exactInputSingle (uint256 amountOut).
+        const actualUsdcOut = formatUnits(simulatedUsdcOut ?? 0n, 6);
+
         return {
             hash,
             receipt,
-            usdcReceived: minUsdcOut,
+            usdcReceived: actualUsdcOut,
         };
     } catch (error) {
         console.error('Swap execution failed:', error);

@@ -280,9 +280,9 @@ export default function TransactionModal({
                                         <div className="txm-network-details">
                                             <span className="txm-network-label">SOURCE CHAIN</span>
                                             <div className="txm-link-group">
-                                                <a href={fromChainData?.explorer ? `${fromChainData.explorer}/address/${walletAddress}` : '#'} target="_blank" rel="noreferrer" className="txm-chain-main-link">
+                                                <span className="txm-chain-main-link">
                                                     View on {getShortenedChainName(fromChain)}
-                                                </a>
+                                                </span>
                                                 {txData.swapHash && (
                                                     <a href={`${fromChainData?.explorer}/tx/${txData.swapHash}`} target="_blank" rel="noreferrer" className="txm-sub-link">
                                                         Swap <ArrowUpRight size={12} />
@@ -305,9 +305,9 @@ export default function TransactionModal({
                                         <div className="txm-network-details">
                                             <span className="txm-network-label">DESTINATION CHAIN</span>
                                             <div className="txm-link-group">
-                                                <a href={toChainData?.explorer ? `${toChainData.explorer}/address/${destAddress}` : '#'} target="_blank" rel="noreferrer" className="txm-chain-main-link">
+                                                <span className="txm-chain-main-link">
                                                     View on {getShortenedChainName(toChain)}
-                                                </a>
+                                                </span>
                                                 <a href={`${toChainData?.explorer}/tx/${txData.destHash}`} target="_blank" rel="noreferrer" className="txm-sub-link">
                                                     Mint <ArrowUpRight size={12} />
                                                 </a>
