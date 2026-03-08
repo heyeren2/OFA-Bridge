@@ -159,6 +159,10 @@ export default function Bridge({
         return isNaN(amt) || amt < 5;
     }, [toChainName, amount]);
 
+    const isEthDestNoRecipient = useMemo(() => {
+        return toChainName === 'Ethereum Sepolia' && destToken === 'ETH';
+    }, [toChainName, destToken]);
+
     // Auto-switch to 'auto' mode when a custom recipient is set
     useEffect(() => {
         if (customRecipient && !isDestForwarderBlocked && !isAutoModeRestricted && mintMode !== 'auto') {
@@ -1016,8 +1020,8 @@ export default function Bridge({
                         <div className={`recipient-pill-container ${customRecipient && mintMode === 'auto' ? 'pill-visible' : ''}`}>
                             {customRecipient && (
                                 <div
-                                    className={`recipient-pill ${(isDestForwarderBlocked || isAutoModeRestricted) ? 'pill--disabled' : ''}`}
-                                    onClick={!(isDestForwarderBlocked || isAutoModeRestricted) ? onOpenRecipientModal : undefined}
+                                    className={`recipient-pill ${(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? 'pill--disabled' : ''}`}
+                                    onClick={!(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? onOpenRecipientModal : undefined}
                                 >
                                     <span className="pill-address">
                                         {customRecipient.slice(0, 6)}...{customRecipient.slice(-4)}
@@ -1119,10 +1123,10 @@ export default function Bridge({
                     </div>
                     <div className="desktop-only">
                         <button
-                            className={`recipient-trigger-btn ${(isDestForwarderBlocked || isAutoModeRestricted) ? 'trigger--disabled' : ''}`}
-                            onClick={!(isDestForwarderBlocked || isAutoModeRestricted) ? onOpenRecipientModal : undefined}
-                            disabled={isDestForwarderBlocked || isAutoModeRestricted}
-                            data-tooltip={isAutoModeRestricted ? "Minimum 5 USDC required for Ethereum Auto mode" : isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
+                            className={`recipient-trigger-btn ${(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? 'trigger--disabled' : ''}`}
+                            onClick={!(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? onOpenRecipientModal : undefined}
+                            disabled={isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient}
+                            data-tooltip={isEthDestNoRecipient ? "Custom recipient not supported for ETH destination swaps" : isAutoModeRestricted ? "Minimum 5 USDC required for Ethereum Auto mode" : isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
                             data-tooltip-pos="left"
                         >
                             <img src="/icons/wallet.png" alt="Wallet" />
@@ -1150,9 +1154,9 @@ export default function Bridge({
                 <div className="mobile-only">
                     <div className="mobile-recipient-wrap">
                         <button
-                            className={`recipient-trigger-btn recipient-trigger-btn-mobile ${(isDestForwarderBlocked || isAutoModeRestricted) ? 'trigger--disabled' : ''}`}
-                            onClick={!(isDestForwarderBlocked || isAutoModeRestricted) ? onOpenRecipientModal : undefined}
-                            disabled={isDestForwarderBlocked || isAutoModeRestricted}
+                            className={`recipient-trigger-btn recipient-trigger-btn-mobile ${(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? 'trigger--disabled' : ''}`}
+                            onClick={!(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? onOpenRecipientModal : undefined}
+                            disabled={isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient}
                         >
                             <img src="/icons/wallet.png" alt="Wallet" />
                         </button>
