@@ -1,8 +1,8 @@
-# OFA Bridge 🚀
+# OFA Bridge
 
 OFA Bridge is a high-performance cross-chain bridging solution built for the modern multi-chain ecosystem, specifically optimized for secure and high-speed **USDC** transfers. It enables seamless asset transfers between **Arc Testnet**, **Ethereum Sepolia**, **Base Sepolia**, **Optimism Sepolia**, and **Arbitrum Sepolia** using Circle's CCTP and Bridge Kit.
 
-## ✨ Features
+## Features
 
 - **Bridging USDC**: Transfer USDC across 5+ major testnets with guaranteed settlement.
 - **Smart Swaps**: Integrated Uniswap V3 logic for automatic ETH → USDC conversions during the bridge process.
@@ -11,7 +11,7 @@ OFA Bridge is a high-performance cross-chain bridging solution built for the mod
 - **Dark Mode Optimized**: Pixel-perfect design for both light and dark themes.
 - **Secret Management**: Robust environment variable handling for RPCs and APIs.
 
-## 🛠️ Stack
+## Stack
 
 - **Frontend**: React + Vite
 - **Styling**: Vanilla CSS (High Performance)
@@ -20,7 +20,7 @@ OFA Bridge is a high-performance cross-chain bridging solution built for the mod
 - **Indexing**: Goldsky Subgraphs (GraphQL)
 - **Icons**: Lucide React
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Install dependencies
 ```bash
@@ -40,12 +40,12 @@ VITE_ARC_RPC_URL=...
 npm run dev
 ```
 
-## 🛡️ Security & Performance
+## Security & Performance
 
 - **Sanitized Secrets**: No hardcoded RPCs or API keys in the source code.
 - **Dependency Audit**: Regular security patches via `npm audit`.
 - **Responsive Layout**: Fully optimized for Desktop, Tablet, and Mobile devices.
 
-## 🌐 Links
+## X
 
 - **Twitter**: [@heyeren_](https://x.com/heyeren_)
