@@ -99,7 +99,7 @@ export const executeDestSwap = async (usdcAmount, minEthOut, userAddress) => {
                 functionName: 'approve',
                 args: [UNISWAP_CONTRACTS.swapRouter02, amountIn]
             });
-            await publicClient.waitForTransactionReceipt({ hash: approveHash });
+            await publicClient.waitForTransactionReceipt({ hash: approveHash, confirmations: 1, pollingInterval: 1_000 });
             console.log('[DestSwap] Approved.');
         }
 
@@ -136,7 +136,7 @@ export const executeDestSwap = async (usdcAmount, minEthOut, userAddress) => {
         });
 
         const hash = await walletClient.writeContract(request);
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, pollingInterval: 1_000 });
 
         return {
             hash,

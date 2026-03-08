@@ -97,7 +97,7 @@ export const executeSwap = async (ethAmount, minUsdcOut, userAddress) => {
         });
 
         const hash = await walletClient.writeContract(request);
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, pollingInterval: 1_000 });
 
         // Use the actual simulated output (not the passed-in min) as the bridgeAmount.
         // simulatedUsdcOut is the real return value of exactInputSingle (uint256 amountOut).
