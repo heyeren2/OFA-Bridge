@@ -47,7 +47,9 @@ export default function SettingsPopup({
     currency,
     setCurrency,
     language,
-    setLanguage
+    setLanguage,
+    slippage,
+    setSlippage
 }) {
     useEffect(() => {
         const handleEsc = (e) => {
@@ -106,9 +108,9 @@ export default function SettingsPopup({
                         <div className="slippage-input-wrapper">
                             <input
                                 type="text"
-                                defaultValue="1.5"
+                                value={slippage}
+                                onChange={(e) => setSlippage(e.target.value)}
                                 className="slippage-input"
-                                readOnly
                             />
                             <span className="unit">%</span>
                         </div>

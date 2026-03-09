@@ -68,13 +68,14 @@ export const getSwapQuote = async (ethAmount) => {
 };
 
 // Execute ETH → USDC swap via Uniswap SwapRouter02
-export const executeSwap = async (ethAmount, minUsdcOut, userAddress) => {
+export const executeSwap = async (ethAmount, minUsdcOut, userAddress, slippage = '1.0') => {
     const walletClient = await getWalletClient();
     const publicClient = getPublicClient();
     const amountIn = parseEther(ethAmount.toString());
 
-    // Calculate minimum USDC out with 1% slippage tolerance
-    const minOut = BigInt(Math.floor(parseFloat(minUsdcOut) * 0.99 * 1e6));
+    // Calculate minimum USDC out with user-defined slippage tolerance
+    const slippageMult = 1 - (parseFloat(slippage) / 100);
+    const minOut = BigInt(Math.floor(parseFloat(minUsdcOut) * slippageMult * 1e6));
 
     try {
         const { request, result: simulatedUsdcOut } = await publicClient.simulateContract({

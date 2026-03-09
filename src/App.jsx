@@ -20,6 +20,7 @@ function App() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [currency, setCurrency] = useState('USD');
     const [language, setLanguage] = useState('English');
+    const [slippage, setSlippage] = useState('1.0');
     const [customRecipient, setCustomRecipient] = useState('');
     const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
 
@@ -185,6 +186,7 @@ function App() {
                             <Bridge
                                 currency={currency}
                                 language={language}
+                                slippage={slippage}
                                 onOpenSettings={() => setIsSettingsOpen(true)}
                                 isSettingsOpen={isSettingsOpen}
                                 setIsSettingsOpen={setIsSettingsOpen}
@@ -208,6 +210,8 @@ function App() {
                 setCurrency={setCurrency}
                 language={language}
                 setLanguage={setLanguage}
+                slippage={slippage}
+                setSlippage={setSlippage}
             />
             <RecipientModal
                 isOpen={isRecipientModalOpen}

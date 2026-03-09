@@ -73,13 +73,14 @@ export const getDestSwapQuote = async (usdcAmount) => {
 /**
  * Execute USDC -> ETH swap
  */
-export const executeDestSwap = async (usdcAmount, minEthOut, userAddress) => {
+export const executeDestSwap = async (usdcAmount, minEthOut, userAddress, slippage = '1.0') => {
     const walletClient = await getWalletClient();
     const publicClient = getPublicClient();
     const amountIn = parseUnits(usdcAmount.toString(), 6);
 
-    // 1% slippage tolerance
-    const minOut = BigInt(Math.floor(parseFloat(minEthOut) * 0.99 * 1e18));
+    // Calculate minimum ETH out with user-defined slippage tolerance
+    const slippageMult = 1 - (parseFloat(slippage) / 100);
+    const minOut = BigInt(Math.floor(parseFloat(minEthOut) * slippageMult * 1e18));
 
     try {
         // 1. Check Allowance

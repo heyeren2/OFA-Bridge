@@ -118,7 +118,8 @@ export default function Bridge({
     setActiveTab,
     customRecipient,
     setCustomRecipient,
-    onOpenRecipientModal
+    onOpenRecipientModal,
+    slippage
 }) {
     const t = TRANSLATIONS[language] || TRANSLATIONS.English;
     const c = CURRENCY_DATA[currency] || CURRENCY_DATA.USD;
@@ -537,7 +538,7 @@ export default function Bridge({
                 }
                 setBridgeStep('swap');
                 setStepStatuses(prev => ({ ...prev, swap: 'pending' }));
-                const swapResult = await executeSwap(amount, swapQuote.amountOut, currentAddress);
+                const swapResult = await executeSwap(amount, swapQuote.amountOut, currentAddress, slippage);
                 bridgeAmount = swapResult.usdcReceived;
                 setTxData(prev => ({ ...prev, swapHash: swapResult.hash }));
                 setBridgeStep('approve');
@@ -553,6 +554,7 @@ export default function Bridge({
                 forwardingFee,
                 isSwapRoute: isEthSwap,
                 mintMode,
+                slippage,
                 onStatusUpdate: (update) => {
                     if (update.step === 'error') {
                         setBridgeError(update.error);
@@ -666,7 +668,7 @@ export default function Bridge({
                 const bridgeAmount = (parseFloat(amount) - parseFloat(fee)).toString();
                 const quote = await getDestSwapQuote(bridgeAmount);
 
-                const swapResult = await executeDestSwap(bridgeAmount, quote.amountOut, currentAddress);
+                const swapResult = await executeDestSwap(bridgeAmount, quote.amountOut, currentAddress, slippage);
                 setTxData(prev => ({ ...prev, destSwapHash: swapResult.hash }));
 
                 setStepStatuses(prev => ({ ...prev, swap_dest: 'completed' }));
