@@ -142,7 +142,6 @@
     .recipient-modal-overlay {
         align-items: flex-start;
         padding-top: 15vh;
-        /* Raise modal by ~20% of viewport height */
     }
 }
 

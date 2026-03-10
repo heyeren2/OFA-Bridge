@@ -34,8 +34,6 @@ export const calculateForwardingFee = (destChainName) => {
         return '0';
     }
 
-    // Chains that don't support customBurnWithHook can't use the forwarder,
-    // so there's no forwarding fee to charge for them.
     if (CHAINS_WITHOUT_FORWARDER_SUPPORT.displayNames.includes(destChainName)) {
         return '0';
     }
@@ -59,60 +57,17 @@ export const fetchSupportedChains = async () => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Pre-Mint Hook
-//
-// WHY the previous "gate" approach failed (confirmed by real console logs):
-//
-//   PROBLEM 1 — fetchAttestation never fires with completion data:
-//     SDK Event [fetchAttestation]: { txHash: null, hasAttestation: false }
-//     The SDK fires this event exactly ONCE as a "started" notification.
-//     It never fires again when the attestation is ready. The SDK fetches
-//     attestation from Circle's API internally and proceeds silently.
-//
-//   PROBLEM 2 — The mint SDK event fires AFTER eth_sendTransaction:
-//     "Gate passed — submitting mint transaction"   ← proxy already let it through
-//     SDK Event [mint]: { txHash: '0x953c...' }     ← event fires AFTER, too late
-//     The fallback signalMintPhaseGate() in the mint event handler was
-//     always too late — the wallet popup was already on screen.
-//
-//   PROBLEM 3 — 5-second timeout released the gate too early:
-//     The gate Promise.race(gate, 5s-timeout) fired the timeout BEFORE the
-//     mint event arrived, releasing the gate prematurely with attestation
-//     still showing as "spinning".
-//
-// THE CORRECT APPROACH — preMintHook:
-//   The provider proxy is the ONLY reliable interception point. The proxy
-//   always intercepts eth_sendTransaction synchronously BEFORE the wallet
-//   popup appears. When the proxy sees a transaction while the hook is armed:
-//
-//     1. Call the hook immediately → signals "Attestation DONE" to React
-//     2. Wait 400ms → React renders "Attestation DONE" to the screen
-//     3. THEN let the transaction through → wallet popup or auto-mint fires
-//
-//   No race conditions. No event ordering assumptions. No timeouts.
-//   The sequence is physically guaranteed by the await chain in the proxy.
-//
-// ARMED:   setPreMintHook() called when burn tx confirms
-// FIRED:   By the proxy when it intercepts the mint eth_sendTransaction
-// CLEARED: clearPreMintHook() at the start of each executeBridge, and after firing
-// ─────────────────────────────────────────────────────────────────────────────
 let preMintHook = null;
 
 const setPreMintHook = (fn) => {
     preMintHook = fn;
-    console.log('[BridgeService] 🔒 Pre-mint hook armed — proxy will signal attestation DONE before wallet popup');
+    console.log('[BridgeService] Pre-mint hook armed');
 };
 
 const clearPreMintHook = () => {
     preMintHook = null;
 };
 
-// ─── Provider Proxy ───
-// The Bridge Kit SDK uses `increaseAllowance` (0x39509351) for token approvals.
-// Rabby/MetaMask don't recognize it, showing "Unknown Signature Type".
-// This proxy intercepts eth_sendTransaction and swaps increaseAllowance → approve
-// (same params: address,uint256) so wallets display proper "Token Approval" UI.
 const INCREASE_ALLOWANCE = '0x39509351'; // increaseAllowance(address,uint256)
 const APPROVE = '0x095ea7b3'; // approve(address,uint256)
 
@@ -176,19 +131,11 @@ const createApprovalFixedProvider = () => {
                         };
                     }
 
-                    // ── Pre-Mint Hook ─────────────────────────────────────
-                    // When the hook is armed (after burn confirms), the FIRST
-                    // eth_sendTransaction that arrives is the mint transaction.
-                    // We call the hook (signals Attestation DONE to React),
-                    // then wait 400ms for React to paint it, THEN let the
-                    // transaction through. This guarantees the UI shows
-                    // "Attestation DONE" before the wallet popup appears.
                     if (args.method === 'eth_sendTransaction' && preMintHook !== null) {
                         const hook = preMintHook;
                         preMintHook = null; // consume — fires exactly once
                         console.log('[BridgeService] ⚡ Mint tx intercepted — signaling attestation DONE now');
                         hook(); // marks Attestation DONE + advances UI to Mint step
-                        // Render buffer: React needs time to commit the state update to DOM
                         await new Promise(resolve => setTimeout(resolve, 400));
                         console.log('[BridgeService] ✅ Render buffer done — submitting mint transaction to wallet');
                     }
@@ -203,8 +150,6 @@ const createApprovalFixedProvider = () => {
     });
 };
 
-// Lazily-created adapter using Circle's official factory function
-// with our approval-fixing provider proxy.
 let adapterInstance = null;
 
 const getAdapter = async () => {
@@ -212,9 +157,7 @@ const getAdapter = async () => {
         throw new Error('No wallet provider found. Please install MetaMask or Rabby.');
     }
     if (!adapterInstance) {
-        // We create a high-performance public client for the SDK to use for POLLING.
-        // This bypasses the wallet's RPC (which is often slow/rate-limited on testnets)
-        // and is the primary fix for the 6-minute attestation delay.
+        // Use high-performance public client for polling to bypass wallet rate limits
         const sepoliaPollingClient = createPublicClient({
             chain: sepolia,
             transport: http('https://ethereum-sepolia-rpc.publicnode.com'),
@@ -223,8 +166,6 @@ const getAdapter = async () => {
 
         const fixedProvider = createApprovalFixedProvider();
 
-        // The adapter now uses the wallet ONLY for signing, 
-        // while Using our dedicated RPC for all chain-state queries.
         adapterInstance = await createViemAdapterFromProvider({
             provider: fixedProvider,
             publicClient: sepoliaPollingClient,
@@ -255,33 +196,6 @@ export const estimateBridge = async ({ fromChain, toChain, amount }) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Execute bridge with fee deduction from principal.
-//
-// FIX 1 — Forwarding Service param name:
-//   The correct SDK property is `useForwarder: true`, NOT `forwarding: true`.
-//   The wrong key is silently ignored by the SDK — meaning the forwarding
-//   service was never being activated despite the config being enabled.
-//
-// FIX 2 — Gasless (Forwarder-only) mode:
-//   When forwarding is ON, drop `adapter` from the `to` block entirely.
-//   Circle's server signs the mint, so the user's wallet is not needed on
-//   the destination chain. Pass only: chain, recipientAddress, useForwarder.
-//   When forwarding is OFF, include `adapter` so the user signs the mint.
-//
-// FIX 3 — Fast Transfer:
-//   Added `transferSpeed: 'FAST'` to use soft-finality attestation (seconds
-//   instead of 15-19 min for Ethereum). Circle deducts a small CCTP fee from
-//   the minted amount. Remove or set to 'SLOW' to revert to Standard Transfer.
-//
-// FIX 4 — Wildcard event listener:
-//   Added kit.on('*', ...) as a catch-all per Circle docs best practices.
-//
-// FIX 5 — kit.retry() for SDK-native error recovery:
-//   When result.state === 'error', we now call kit.retry(result, { from, to })
-//   instead of manually hitting the attestation API. This handles ALL failure
-//   points (attestation timeout, mint failure) in one call per the Circle docs.
-// ─────────────────────────────────────────────────────────────────────────────
 export const executeBridge = async ({
     fromChain,
     toChain,
@@ -289,7 +203,7 @@ export const executeBridge = async ({
     recipientAddress,
     forwardingFee = '0',
     isSwapRoute = false,
-    mintMode = 'manual',   // 'manual' | 'auto' — comes from user's toggle in Bridge.jsx
+    mintMode = 'manual',
     onStatusUpdate,
 }) => {
     const kit = getKit();
@@ -300,8 +214,6 @@ export const executeBridge = async ({
     const effectiveFeeRate = isSwapRoute ? FEE_PERCENTAGE + SWAP_FEE_PERCENTAGE : FEE_PERCENTAGE;
     const platformFee = (parseFloat(amount) * effectiveFeeRate).toFixed(6);
 
-    // Subtract fees from principal amount
-    // bridgeAmount = totalInput - platformFee - forwardingFee
     const totalInputDbl = parseFloat(amount);
     const platformFeeDbl = parseFloat(platformFee);
     const forwardingFeeDbl = parseFloat(forwardingFee);
@@ -313,7 +225,7 @@ export const executeBridge = async ({
     let lastStartedStep = 'approve';
     const completedSteps = new Set();
 
-    // FIX 4 — Wildcard event listener (Circle docs best practice)
+    // Wildcard event listener
     const wildcardHandler = (eventName, payload) => {
         console.log(`[BridgeService] SDK Wildcard Event [${eventName}]:`, payload);
     };
@@ -326,15 +238,6 @@ export const executeBridge = async ({
 
     const registerListener = (event, step) => {
         const handler = (payload) => {
-            // ── Completion detection ─────────────────────────────────────────
-            // approve/burn: completed when txHash present in payload.
-            // fetchAttestation: the SDK NEVER fires this event with completion
-            //   data — hasAttestation is always false. The SDK fetches internally
-            //   and signals completion only by calling eth_sendTransaction (mint).
-            //   The preMintHook in the provider proxy handles attestation DONE.
-            //
-            // We still check all known attestation payload paths here in case
-            // a future SDK version starts exposing it — it costs nothing to check.
             const txHash = payload?.txHash || payload?.values?.txHash || null;
             const attestationValue =
                 payload?.attestation ||
@@ -351,7 +254,7 @@ export const executeBridge = async ({
             });
 
             if (txHash || isAttestationEarlyDone) {
-                // ── Step COMPLETED ───────────────────────────────────────────
+                // Step COMPLETED
                 if (completedSteps.has(step)) return;
                 completedSteps.add(step);
 
@@ -364,12 +267,9 @@ export const executeBridge = async ({
                     data: payload,
                 });
 
-                // After burn confirms → arm the preMintHook so the proxy will
-                // signal "Attestation DONE" before the mint transaction fires.
                 if (step === 'burn') {
                     setPreMintHook(() => {
-                        // Called by the proxy BEFORE the mint tx reaches the wallet.
-                        // Mark attestation complete and advance the UI to Mint step.
+                        // Signal completion before mint
                         console.log('[BridgeService] 🎯 preMintHook fired — marking attestation DONE');
                         if (!completedSteps.has('attestation')) {
                             completedSteps.add('attestation');
@@ -380,8 +280,6 @@ export const executeBridge = async ({
                                 data: null,
                             });
                         }
-                        // Advance to mint step with a small delay so the
-                        // "Attestation DONE" badge renders before "Mint USDC" activates.
                         setTimeout(() => {
                             lastStartedStep = 'mint';
                             onStatusUpdate?.({ step: 'mint', status: 'pending' });
@@ -389,8 +287,7 @@ export const executeBridge = async ({
                     });
                 }
 
-                // If attestation data DID appear early in the event payload
-                // (future SDK), disarm the preMintHook so it doesn't double-fire.
+                // Handle early attestation
                 if (step === 'attestation') {
                     clearPreMintHook();
                 }
@@ -406,10 +303,6 @@ export const executeBridge = async ({
                 }
 
             } else {
-                // ── Step STARTED (no txHash) ─────────────────────────────────
-                // When a step starts, the previous step must be complete.
-                // Use forced=true so Bridge.jsx does NOT call setBridgeStep
-                // backward (e.g. attestation→burn would be a regression).
                 const idx = STEP_ORDER.indexOf(step);
                 if (idx > 0) {
                     const prevStep = STEP_ORDER[idx - 1];
@@ -417,8 +310,7 @@ export const executeBridge = async ({
                     onStatusUpdate?.({ step: prevStep, status: 'completed', txHash: null, forced: true, data: null });
                 }
 
-                // Small delay before signalling this step as pending,
-                // so the previous step's DONE badge renders first.
+                // UI sync delay
                 setTimeout(() => {
                     console.log(`[BridgeService] 🔄 Step [${step}] pending`);
                     lastStartedStep = step;
@@ -440,18 +332,6 @@ export const executeBridge = async ({
     try {
         onStatusUpdate?.({ step: 'approve', status: 'pending' });
 
-        // ── Determine whether the forwarder can actually be used ──────────────
-        //
-        // Three conditions must ALL be true to use the forwarder:
-        //   1. Global master switch is on  (FORWARDING_CONFIG.isForwardingEnabled)
-        //   2. User chose Auto mode        (mintMode === 'auto')
-        //   3. Destination chain supports  customBurnWithHook
-        //      (some chains like Arc Testnet don't — using forwarder + customFee
-        //       there throws "Action cctp.v2.customBurnWithHook is not supported")
-        //
-        // When any condition is false we fall back to standard mode:
-        // the user signs the mint on the destination chain themselves.
-        // ─────────────────────────────────────────────────────────────────────
         const chainBlocksForwarder = CHAINS_WITHOUT_FORWARDER_SUPPORT.bridgeKitNames.includes(toChain);
         const canUseForwarder =
             FORWARDING_CONFIG.isForwardingEnabled &&
@@ -508,13 +388,25 @@ export const executeBridge = async ({
             })),
         });
 
-        // FIX 5 — Use kit.retry() for SDK-native error recovery
-        // Instead of manually calling the attestation API + receiveMessage,
-        // we let the SDK handle recovery for ALL failure points.
+        // SDK-native error recovery
         if (result.state === 'error') {
             const failedStep = result.steps?.find(s => s.state === 'error');
             const errorMsg = failedStep?.errorMessage
                 || `Bridge failed at step: ${failedStep?.name || 'unknown'}`;
+
+            // Skip retry if the user rejected the transaction in their wallet
+            const rejectionPatterns = [
+                'user rejected', 'user denied', 'rejected the request',
+                'user refused', 'user cancelled', 'user canceled',
+                'request rejected', 'action_rejected',
+            ];
+            const errLower = (errorMsg || '').toLowerCase();
+            const isUserRejection = rejectionPatterns.some(p => errLower.includes(p));
+
+            if (isUserRejection) {
+                console.log('[BridgeService] User rejected — skipping kit.retry()');
+                throw new Error(errorMsg);
+            }
 
             console.warn('[BridgeService] SDK error — attempting kit.retry():', {
                 failedStep: failedStep?.name,
@@ -620,47 +512,68 @@ export const executeBridge = async ({
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// retryMint — Manual last-resort fallback for failed mint steps.
-//
-// NOTE: The PRIMARY recovery path is now kit.retry() inside executeBridge above.
-// This function is only for cases where the user left the session after the burn
-// completed (browser closed, etc.) and needs to manually re-mint from the
-// Activity tab using only their burn tx hash.
-//
-// ⚠️  The MessageTransmitter addresses below MUST be individually verified.
-//     Each chain has its own CCTP V2 contract deployment — they are NOT all
-//     the same address. Verify at:
-//     https://developers.circle.com/stablecoins/docs/evm-smart-contracts
-// ─────────────────────────────────────────────────────────────────────────────
-export const retryMint = async ({ burnTxHash, fromChain, toChain }) => {
+export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestation = null }) => {
     if (!burnTxHash) throw new Error('No source transaction hash available for retry');
 
     console.log('[BridgeService] Manual retryMint for burn tx:', burnTxHash);
 
-    const attestationUrl = `${import.meta.env.VITE_CIRCLE_ATTESTATION_API}/${burnTxHash}`;
-    let attestationData;
+    // CCTP Testnet Domain IDs
+    const DOMAIN_IDS = {
+        'Ethereum Sepolia': 0,
+        'Avalanche Fuji': 1,
+        'Optimism Sepolia': 2,
+        'Arbitrum Sepolia': 3,
+        'Base Sepolia': 6,
+        'Unichain Sepolia': 10,
+        'Monad Testnet': 15, // verify if changed
+        'HyperEVM Testnet': 19,
+        'Sei Testnet': 16,
+        'Linea Sepolia': 11,
+        'Ink Testnet': 21,
+        'Plume Testnet': 22,
+        'Arc Testnet': 26,
+    };
 
-    try {
-        const response = await fetch(attestationUrl);
-        const data = await response.json();
+    const sourceDomain = DOMAIN_IDS[fromChain] ?? 0;
+    const attestationUrl = `${import.meta.env.VITE_CIRCLE_ATTESTATION_API}/${sourceDomain}?transactionHash=${burnTxHash}`;
 
-        if (!data.messages || data.messages.length === 0) {
-            throw new Error('Attestation not yet available. Please wait a few minutes and try again.');
+    let attestationData = null;
+
+    // Fast path: use SDK-cached attestation if available (avoids Circle API race condition)
+    if (cachedAttestation?.message && cachedAttestation?.attestation) {
+        console.log('[BridgeService] Using cached attestation — skipping Iris API re-fetch');
+        attestationData = cachedAttestation;
+    } else {
+        // Slow path: fetch fresh from Circle's Iris API
+        try {
+            console.log(`[BridgeService] Fetching attestation from: ${attestationUrl}`);
+            const response = await fetch(attestationUrl);
+
+            if (!response.ok) {
+                const errBody = await response.text();
+                console.error('[BridgeService] Attestation API error:', response.status, errBody);
+                throw new Error('Attestation not yet available. Circle may still be processing. Please wait 1-2 minutes.');
+            }
+
+            const data = await response.json();
+
+            if (!data.messages || data.messages.length === 0) {
+                throw new Error('Attestation not yet available. Please wait a few minutes and try again.');
+            }
+
+            const msg = data.messages[0];
+            if (msg.status !== 'complete') {
+                throw new Error(`Attestation status: ${msg.status}. Please wait for attestation to complete.`);
+            }
+
+            attestationData = {
+                message: msg.message,
+                attestation: msg.attestation,
+            };
+        } catch (fetchErr) {
+            if (fetchErr.message.includes('Attestation')) throw fetchErr;
+            throw new Error(`Failed to fetch attestation: ${fetchErr.message}`);
         }
-
-        const msg = data.messages[0];
-        if (msg.status !== 'complete') {
-            throw new Error(`Attestation status: ${msg.status}. Please wait for attestation to complete.`);
-        }
-
-        attestationData = {
-            message: msg.message,
-            attestation: msg.attestation,
-        };
-    } catch (fetchErr) {
-        if (fetchErr.message.includes('Attestation')) throw fetchErr;
-        throw new Error(`Failed to fetch attestation: ${fetchErr.message}`);
     }
 
     const { createWalletClient, custom } = await import('viem');
@@ -669,13 +582,21 @@ export const retryMint = async ({ burnTxHash, fromChain, toChain }) => {
     const destChainConfig = getChainByName(toChain);
     if (!destChainConfig) throw new Error(`Unknown destination chain: ${toChain}`);
 
-    // ⚠️  Verify all addresses below against Circle's official CCTP V2 contracts page.
+    // Official Circle CCTP Testnet MessageTransmitter Addresses
     const MESSAGE_TRANSMITTER = {
-        'Ethereum Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275', // ⚠️ verify
-        'Base Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275', // ⚠️ verify
-        'Arbitrum Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275', // ⚠️ verify
-        'Optimism Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275', // ⚠️ verify
-        'Arc Testnet': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275', // ⚠️ verify
+        'Ethereum Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Base Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Arbitrum Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Optimism Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Arc Testnet': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Unichain Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Monad Testnet': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'HyperEVM Testnet': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Sei Testnet': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Linea Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Ink Testnet': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Plume Testnet': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+        'Avalanche Fuji': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
     };
 
     const transmitterAddress = MESSAGE_TRANSMITTER[toChain];

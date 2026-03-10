@@ -6,7 +6,7 @@ import {
     CheckCircle2,
     Loader2,
     ArrowUpRight,
-    ShieldCheck,
+    RefreshCw,
     ArrowRight,
     Clock,
     Circle
@@ -47,12 +47,13 @@ export default function TransactionModal({
     walletAddress,
     isSwapAndBridge,
     destToken,
-    destAmount
+    destAmount,
+    onRemint,
+    isReminting
 }) {
     const [prevStep, setPrevStep] = useState(null);
     const prevStepRef = useRef(bridgeStep);
 
-    // ── Elapsed Timer ──
     const [totalElapsed, setTotalElapsed] = useState(0);
     const [stepElapsed, setStepElapsed] = useState(0);
     const bridgeStartRef = useRef(null);
@@ -157,17 +158,11 @@ export default function TransactionModal({
         const explicitStatus = stepStatuses?.[stepId];
         if (explicitStatus === 'error') return 'error';
 
-        // Position-based auto-completion: if bridgeStep has moved PAST this step,
-        // it is completed — regardless of what explicitStatus says.
-        // This is the key fix for fetchAttestation which has no txHash and
-        // can get stuck with explicitStatus='pending' even after Circle confirms.
         const targetIndex = stepOrder.indexOf(stepId);
         if (currentIndex > targetIndex) return 'completed';
 
-        // Explicit completed from stepStatuses
         if (explicitStatus === 'completed') return 'completed';
 
-        // Current step
         if (currentIndex === targetIndex) {
             if (error) return 'error';
             // pending/started = show spinner
@@ -175,16 +170,13 @@ export default function TransactionModal({
             return 'active'; // default for current step
         }
 
-        // Future step — always show as dimmed pending, never active
         return 'pending';
     };
 
     const progressPercent = isComplete ? 100 : ((currentIndex) / steps.length) * 100;
 
-    // Remaining time estimate — includes Forwarder auto-steps
     const remainingSeconds = Math.max(0, 90 - totalElapsed);
 
-    // ── Render ──
     return createPortal(
         <div className="tx-modal-overlay" onClick={onClose}>
             <div className="txm-modal" onClick={(e) => e.stopPropagation()}>
@@ -247,7 +239,6 @@ export default function TransactionModal({
                 {/* Body */}
                 <div className="txm-body">
                     {isComplete ? (
-                        /* ── Bridge Success V4 (Minimalist) ── */
                         <div className="txm-success-v4">
                             <div className="success-hero-icon">
                                 <Check size={40} strokeWidth={3} />
@@ -271,7 +262,6 @@ export default function TransactionModal({
                             )}
 
                             <div className="txm-network-grid">
-                                {/* Source Chain Box */}
                                 <div className="txm-network-box txm-network-box--multi">
                                     <div className="txm-network-info">
                                         <div className="txm-network-icon-circle">
@@ -296,7 +286,6 @@ export default function TransactionModal({
                                     </div>
                                 </div>
 
-                                {/* Destination Chain Box */}
                                 <div className="txm-network-box txm-network-box--multi">
                                     <div className="txm-network-info">
                                         <div className="txm-network-icon-circle">
@@ -332,7 +321,6 @@ export default function TransactionModal({
                             </div>
                         </div>
                     ) : (
-                        /* ── Step List ── */
                         <div className="txm-step-list-v2">
                             {steps.map((step) => {
                                 const status = getStepStatus(step.id);
@@ -341,9 +329,12 @@ export default function TransactionModal({
                                         key={step.id}
                                         className={`txm-step-v2 ${status}`}
                                     >
-                                        {/* Step indicator */}
                                         <div className="txm-step-indicator-v2">
-                                            {isCancelled && step.id === bridgeStep ? (
+                                            {isReminting && step.id === 'mint' ? (
+                                                <div className="txm-step-circle active">
+                                                    <div className="rolling-circle" />
+                                                </div>
+                                            ) : isCancelled && step.id === bridgeStep ? (
                                                 <div className="txm-step-circle error">
                                                     <X size={16} />
                                                 </div>
@@ -364,17 +355,17 @@ export default function TransactionModal({
                                             ) : (
                                                 <div className="txm-step-circle pending" />
                                             )}
-                                            {/* Connector line */}
                                             {step.index < steps.length - 1 && (
                                                 <div className={`txm-step-line-v2 ${status === 'completed' ? 'done' : ''}`} />
                                             )}
                                         </div>
 
-                                        {/* Step content */}
                                         <div className="txm-step-content-v2">
                                             <div className="txm-step-row-v2">
                                                 <span className={`txm-step-label-v2 ${status}`}>
-                                                    {step.label}
+                                                    {isReminting && step.id === 'mint'
+                                                        ? 'Remint USDC'
+                                                        : step.label}
                                                 </span>
                                                 {status === 'completed' && (
                                                     <span className="txm-step-badge-done">DONE</span>
@@ -383,7 +374,11 @@ export default function TransactionModal({
                                                     <span className="txm-step-timer-v2">{formatTime(stepElapsed)}</span>
                                                 )}
                                             </div>
-                                            {isCancelled && step.id === bridgeStep && (
+                                            {isReminting && step.id === 'mint' ? (
+                                                <span className="txm-step-description-v2">
+                                                    Confirm remint transaction .....
+                                                </span>
+                                            ) : isCancelled && step.id === bridgeStep && (
                                                 <span className="txm-step-label-cancelled-sub">TRANSACTION REJECTED</span>
                                             )}
                                             {status === 'active' && !isCancelled && (
@@ -398,8 +393,41 @@ export default function TransactionModal({
 
                     {error && !isCancelled && (
                         <div className="txm-error-v2">
-                            <X color="#ef4444" size={16} />
-                            <p>{error}</p>
+                            <div className="txm-error-content-v2">
+                                <X color="#ef4444" size={16} />
+                                <p>{error}</p>
+                            </div>
+                            {bridgeStep === 'mint' && (
+                                <button
+                                    className="txm-remint-btn-v2"
+                                    onClick={onRemint}
+                                    disabled={isReminting}
+                                >
+                                    {isReminting ? (
+                                        <Loader2 size={16} className="spin" />
+                                    ) : (
+                                        <RefreshCw size={14} />
+                                    )}
+                                    <span>{isReminting ? 'Reminting...' : 'Remint Transaction'}</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {isCancelled && bridgeStep === 'mint' && (
+                        <div className="txm-remint-container-v2">
+                            <button
+                                className="txm-remint-btn-v2"
+                                onClick={onRemint}
+                                disabled={isReminting}
+                            >
+                                {isReminting ? (
+                                    <Loader2 size={16} className="spin" />
+                                ) : (
+                                    <RefreshCw size={14} />
+                                )}
+                                <span>{isReminting ? 'Reminting...' : 'Remint Transaction'}</span>
+                            </button>
                         </div>
                     )}
                 </div>

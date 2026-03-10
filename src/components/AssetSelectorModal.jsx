@@ -125,7 +125,7 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
                 </header>
 
                 <div className="modal-layout">
-                    {/* Mobile View: Chain Grid (only in 'tokens' sub-view) */}
+                    {/* Mobile View: Chain Grid */}
                     {isMobile && mobileSubView === 'tokens' && (
                         <div className="mobile-chain-grid">
                             <button
@@ -154,7 +154,7 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
                         </div>
                     )}
 
-                    {/* Left Sidebar: Chains (Desktop only or Chain selection view on mobile) */}
+                    {/* Left Sidebar: Chains */}
                     {(!isMobile || mobileSubView === 'chains') && (
                         <aside className="modal-sidebar">
                             <div className="search-container">
@@ -235,7 +235,7 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
                         </aside>
                     )}
 
-                    {/* Right Content: Tokens (Hidden on mobile if in 'chains' sub-view) */}
+                    {/* Right Content: Tokens */}
                     {(!isMobile || mobileSubView === 'tokens') && (
                         <main className="modal-content">
                             {isMobile && (

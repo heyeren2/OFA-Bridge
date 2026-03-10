@@ -1,10 +1,10 @@
 export default function BridgeStatus({ currentStep, steps, error }) {
     const defaultSteps = [
-        { key: 'swap', label: 'Swap ETH → USDC', icon: '🔄' },
-        { key: 'approve', label: 'Approve USDC', icon: '✅' },
-        { key: 'burn', label: 'Burn on Source', icon: '🔥' },
-        { key: 'attestation', label: 'Attestation', icon: '📡' },
-        { key: 'mint', label: 'Mint on Arc', icon: '✨' },
+        { key: 'swap', label: 'Swap ETH → USDC' },
+        { key: 'approve', label: 'Approve USDC' },
+        { key: 'burn', label: 'Burn on Source' },
+        { key: 'attestation', label: 'Attestation' },
+        { key: 'mint', label: 'Mint on Arc' },
     ];
 
     const displaySteps = steps || defaultSteps;
@@ -43,7 +43,6 @@ export default function BridgeStatus({ currentStep, steps, error }) {
                                 {status === 'pending' && <span className="step-number">{index + 1}</span>}
                             </div>
                             <div className="step-info">
-                                <span className="step-icon">{step.icon}</span>
                                 <span className="step-label">{step.label}</span>
                             </div>
                             {index < displaySteps.length - 1 && (
@@ -55,12 +54,12 @@ export default function BridgeStatus({ currentStep, steps, error }) {
             </div>
             {error && (
                 <div className="status-error">
-                    <span>⚠️</span> {error}
+                    {error}
                 </div>
             )}
             {currentStep === 'complete' && (
                 <div className="status-success">
-                    <span>🎉</span> Bridge completed successfully!
+                    Bridge completed successfully!
                 </div>
             )}
         </div>

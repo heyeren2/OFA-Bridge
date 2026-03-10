@@ -59,9 +59,6 @@ export default function Activity({ setActiveTab }) {
                 orderBy: 'timestamp',
                 orderDirection: 'desc',
                 where: {
-                    // isOFA: true  ← removed. The JS filter below handles this correctly.
-                    // Destination-chain completion records have isOFA: false and must be
-                    // fetched so the merge can set status: "completed" on the source record.
                     ...(debouncedSearch ? {
                         or: [
                             { sender: debouncedSearch },
@@ -174,10 +171,6 @@ export default function Activity({ setActiveTab }) {
 
     // Initial fetch + polling every 10 seconds
     useEffect(() => {
-        // Disabled while Activity tab is "Coming Soon" and subgraphs are offline
-        // fetchAllChainData();
-        // const interval = setInterval(fetchAllChainData, 10000);
-        // return () => clearInterval(interval);
     }, [fetchAllChainData]);
 
     // Refetch helper for remint
@@ -334,9 +327,7 @@ export default function Activity({ setActiveTab }) {
                 )}
 
                 {isMobile ? (
-                    /* =========================================
-                       MOBILE VIEW (HIGH-FIDELITY CARDS)
-                       ========================================= */
+                    /* MOBILE VIEW */
                     <div className="mobile-activity-layout">
                         <div className="coming-soon-wrapper">
                             <div className="blur-content">
@@ -467,9 +458,7 @@ export default function Activity({ setActiveTab }) {
                         </div>
                     </div>
                 ) : (
-                    /* =========================================
-                       DESKTOP VIEW (ORIGINAL TABLE LAYOUT)
-                       ========================================= */
+                    /* DESKTOP VIEW */
                     <div className="desktop-activity-layout">
                         <div className="coming-soon-wrapper">
                             <div className="blur-content">

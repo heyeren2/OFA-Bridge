@@ -36,9 +36,7 @@ const getWalletClient = async () => {
     });
 };
 
-/**
- * Get quote for USDC -> ETH
- */
+// Get quote for USDC -> ETH
 export const getDestSwapQuote = async (usdcAmount) => {
     const publicClient = getPublicClient();
     const amountIn = parseUnits(usdcAmount.toString(), 6);
@@ -70,20 +68,18 @@ export const getDestSwapQuote = async (usdcAmount) => {
     }
 };
 
-/**
- * Execute USDC -> ETH swap
- */
+// Execute USDC -> ETH swap
 export const executeDestSwap = async (usdcAmount, minEthOut, userAddress, slippage = '1.0') => {
     const walletClient = await getWalletClient();
     const publicClient = getPublicClient();
     const amountIn = parseUnits(usdcAmount.toString(), 6);
 
-    // Calculate minimum ETH out with user-defined slippage tolerance
+    // Slippage calculation
     const slippageMult = 1 - (parseFloat(slippage) / 100);
     const minOut = BigInt(Math.floor(parseFloat(minEthOut) * slippageMult * 1e18));
 
     try {
-        // 1. Check Allowance
+        // Check Allowance
         const allowance = await publicClient.readContract({
             address: USDC_ADDRESSES.Ethereum_Sepolia,
             abi: ERC20_ABI,
@@ -104,7 +100,7 @@ export const executeDestSwap = async (usdcAmount, minEthOut, userAddress, slippa
             console.log('[DestSwap] Approved.');
         }
 
-        // 2. Encode Multi-Call (Swap + Unwrap)
+        // Swap + Unwrap
         const swapData = encodeFunctionData({
             abi: SWAP_ROUTER_ABI,
             functionName: 'exactInputSingle',
@@ -127,7 +123,7 @@ export const executeDestSwap = async (usdcAmount, minEthOut, userAddress, slippa
             args: [minOut, userAddress], // Unwrap and send native ETH to user
         });
 
-        // 3. Execute Multicall
+        // Execute
         const { request } = await publicClient.simulateContract({
             account: userAddress,
             address: UNISWAP_CONTRACTS.swapRouter02,

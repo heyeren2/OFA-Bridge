@@ -1,4 +1,3 @@
-// Uniswap swap service for ETH → USDC on Sepolia
 import { createPublicClient, createWalletClient, http, parseEther, formatUnits, custom } from 'viem';
 import { sepolia } from 'viem/chains';
 import {
@@ -18,7 +17,6 @@ const getPublicClient = () => {
 const getWalletClient = async () => {
     if (!window.ethereum) throw new Error('No wallet found');
 
-    // Ensure wallet is on Sepolia before executing swap
     try {
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
@@ -35,7 +33,6 @@ const getWalletClient = async () => {
     });
 };
 
-// Get a quote for how much USDC you'll receive for a given ETH amount
 export const getSwapQuote = async (ethAmount) => {
     const publicClient = getPublicClient();
     const amountIn = parseEther(ethAmount.toString());
@@ -67,13 +64,11 @@ export const getSwapQuote = async (ethAmount) => {
     }
 };
 
-// Execute ETH → USDC swap via Uniswap SwapRouter02
 export const executeSwap = async (ethAmount, minUsdcOut, userAddress, slippage = '1.0') => {
     const walletClient = await getWalletClient();
     const publicClient = getPublicClient();
     const amountIn = parseEther(ethAmount.toString());
 
-    // Calculate minimum USDC out with user-defined slippage tolerance
     const slippageMult = 1 - (parseFloat(slippage) / 100);
     const minOut = BigInt(Math.floor(parseFloat(minUsdcOut) * slippageMult * 1e6));
 
@@ -94,14 +89,12 @@ export const executeSwap = async (ethAmount, minUsdcOut, userAddress, slippage =
                     sqrtPriceLimitX96: 0n,
                 },
             ],
-            value: amountIn, // Send ETH with the transaction
+            value: amountIn,
         });
 
         const hash = await walletClient.writeContract(request);
         const receipt = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, pollingInterval: 1_000 });
 
-        // Use the actual simulated output (not the passed-in min) as the bridgeAmount.
-        // simulatedUsdcOut is the real return value of exactInputSingle (uint256 amountOut).
         const actualUsdcOut = formatUnits(simulatedUsdcOut ?? 0n, 6);
 
         return {

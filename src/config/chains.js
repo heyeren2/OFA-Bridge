@@ -1,10 +1,9 @@
-// Chain configuration for the cross-chain bridge
-// Maps each supported chain to its Circle Bridge Kit name, chainId, tokens, etc.
+
 
 export const BRIDGE_DIRECTION = {
   ANY: 'ANY',
-  TO_ARC: 'TO_ARC', // Legacy support
-  FROM_ARC: 'FROM_ARC', // Legacy support
+  TO_ARC: 'TO_ARC',
+  FROM_ARC: 'FROM_ARC',
 };
 
 const ARC_CHAIN_DATA = {

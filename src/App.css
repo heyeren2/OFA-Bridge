@@ -153,7 +153,7 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* Background UI UI Elements */
+/* Background UI Elements */
 [data-theme='dark'] .settings-btn.floating {
   background: rgba(240, 231, 213, 0.05);
   border-color: rgba(240, 231, 213, 0.1);
@@ -1871,7 +1871,7 @@ body {
   }
 }
 
-/* Global Modal Overlay - Premium Standard */
+/* Modals */
 .modal-overlay,
 .settings-popup-overlay,
 .tx-modal-overlay {
@@ -2167,7 +2167,7 @@ body {
   /* Replaced by token-address-col */
 }
 
-/* ── Minimalist Bridge Success (V4) ── */
+/* Success State Styles */
 .txm-success-v4 {
   padding: 4px 0 2px;
   /* Further reduced from 8px/4px */
@@ -2466,9 +2466,7 @@ body {
 }
 
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   TRANSACTION MODAL STYLES (MATCHING V2 MARKUP)
-   ───────────────────────────────────────────────────────────────────────────── */
+/* TRANSACTION MODAL STYLES */
 .tx-modal-overlay {
   position: fixed;
   inset: 0;
@@ -3571,7 +3569,7 @@ body {
   /* Muted vanilla for Auto text */
 }
 
-/* ────── Dark Mode Overrides ────── */
+/* Dark Mode Overrides */
 [data-theme='dark'] .mint-mode-toggle--locked {
   background: rgba(240, 231, 213, 0.12) !important;
   /* Visible pill container in dark mode */
@@ -3690,20 +3688,11 @@ body {
   box-shadow: none;
 }
 
-/* --- MOBILE RESPONSIVENESS --- */
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVENESS OVERHAUL
-   Targeting: 375px, 428px, 768px (Tablets & Phones)
-   ═══════════════════════════════════════════════════════════════ */
-
-/* ═══════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVENESS OVERHAUL - FINAL (80% SCALE FIX)
-   Targeting: 375px, 428px, 768px (Tablets & Phones)
-   ═══════════════════════════════════════════════════════════════ */
+/* MOBILE RESPONSIVENESS */
 
 @media (max-width: 768px) {
 
-  /* ─── Global Resets & Typography ─── */
+  /* Global Resets & Typography */
   html,
   body {
     overflow-y: auto;
@@ -3758,7 +3747,7 @@ body {
     margin-right: 0 !important;
   }
 
-  /* ─── Bridge Container & Card ─── */
+  /* Bridge Container & Card */
   .bridge-container {
     padding: 10px 0px !important;
     /* Set to 0 to allow card expansion */
@@ -3956,7 +3945,7 @@ body {
     margin-top: 8px;
   }
 
-  /* ─── 1. Transaction Modal ─── */
+  /* Transaction Modal */
   .tx-modal-overlay {
     padding: 0;
     align-items: flex-end;
@@ -4175,7 +4164,7 @@ body {
     font-size: 10px !important;
   }
 
-  /* ─── 3. Token Selector Modal ─── */
+  /* Token Selector Modal */
   .asset-selector-modal {
     width: 100% !important;
     height: 85vh;
@@ -4543,7 +4532,7 @@ body {
     background: #12162a;
   }
 
-  /* ─── 4. Settings Popup ─── */
+  /* Settings Popup */
   .settings-popup-overlay {
     padding: 16px;
     align-items: center;
@@ -4580,7 +4569,7 @@ body {
     padding: 6px;
   }
 
-  /* ─── 5. Bridge Complete Modal ─── */
+  /* Bridge Complete Modal */
   .txm-complete-screen {
     padding: 10px 13px !important;
     /* Reduced from 16px */
@@ -4698,7 +4687,7 @@ body {
     line-height: 1 !important;
   }
 
-  /* ─── 6. Learn Popup ─── */
+  /* Learn Popup */
   .learn-popup-content {
     max-width: 98% !important;
     /* Final expansion (another ~10% of total width) */
@@ -4784,7 +4773,7 @@ body {
     text-overflow: ellipsis;
   }
 
-  /* ─── 7. Wallet Modal ─── */
+  /* Wallet Modal */
   div[data-rk] [role="dialog"] {
     transform: scale(0.9) !important;
     transform-origin: center center !important;
@@ -4794,9 +4783,7 @@ body {
 
 
 
-/* ═══════════════════════════════════════════════════════════════
-   TRANSACTION MODAL — Card-Stack Animation Design
-   ═══════════════════════════════════════════════════════════════ */
+/* TRANSACTION MODAL ANIMATIONS */
 
 .txm-modal {
   background: #12162a;
@@ -4916,7 +4903,7 @@ body {
   flex-direction: column;
 }
 
-/* ─── Refined Transaction Modal ─── */
+/* Refined Transaction Modal */
 .tx-modal-overlay {
   position: fixed;
   inset: 0;
@@ -5051,7 +5038,7 @@ body {
   }
 }
 
-/* ─── Step List V2 ─── */
+/* Transaction Steps */
 .txm-step-list-v2 {
   display: flex;
   flex-direction: column;
@@ -5161,12 +5148,16 @@ body {
 }
 
 .txm-step-description-v2 {
-  font-size: 13px;
-  color: rgba(240, 231, 213, 0.3);
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(240, 231, 213, 0.4);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   margin: 4px 0 0;
+  display: block;
 }
 
-/* ─── Complete Screen V3 ─── */
+/* Success Screen */
 .txm-complete-screen {
   padding: 8px 32px 16px;
   /* Optimized 20% shrink */
@@ -5416,19 +5407,81 @@ body {
 /* Error */
 .txm-error-v2 {
   margin: 0 32px 16px;
-  padding: 12px 16px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 12px;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.txm-error-content-v2 {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .txm-error-v2 p {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: #fca5a5;
   margin: 0;
+  line-height: 1.4;
+}
+
+.txm-remint-container-v2 {
+  margin: 0 32px 16px;
+}
+
+.txm-remint-btn-v2 {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.txm-remint-btn-v2:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+.txm-remint-btn-v2:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.txm-remint-btn-v2:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  box-shadow: none;
+}
+
+.txm-remint-btn-v2 .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .txm-cancelled-badge {
@@ -5455,6 +5508,7 @@ body {
   font-weight: 800;
   color: #ef4444;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
   margin-top: 2px;
   display: block;
 }
@@ -5981,6 +6035,7 @@ body {
     display: block !important;
   }
 }
+
 /* Quote loading placeholder in destination amount */
 .quote-loading {
   opacity: 0.4;
@@ -5988,8 +6043,15 @@ body {
 }
 
 @keyframes quotePulse {
-  0%, 100% { opacity: 0.3; }
-  50%       { opacity: 0.9; }
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
 }
 
 /* Click tooltip bubble for HeaderMenu items */
@@ -6008,7 +6070,7 @@ body {
   pointer-events: none;
   z-index: 999;
   animation: hmTooltipFade 0.15s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .hm-tooltip-bubble::after {
@@ -6022,6 +6084,13 @@ body {
 }
 
 @keyframes hmTooltipFade {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }

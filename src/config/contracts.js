@@ -1,9 +1,9 @@
-// Contract addresses for the bridge
 
-// Fee configuration
+
+
 export const FEE_RECIPIENT = import.meta.env.VITE_FEE_RECIPIENT;
 export const FEE_PERCENTAGE = 0.003; // 0.3%
-export const SWAP_FEE_PERCENTAGE = 0.003; // 0.3% hidden swap fee for ETH swap+bridge routes
+export const SWAP_FEE_PERCENTAGE = 0.003; // 0.3% swap fee for ETH swap+bridge routes
 
 // USDC addresses per chain (testnet)
 export const USDC_ADDRESSES = {
@@ -18,8 +18,6 @@ export const USDC_ADDRESSES = {
     Linea_Sepolia: '0xFEce4462D57bD51A6A552365A011b95f0E16d9B7',
     Ink_Testnet: '0xFabab97dCE620294D2B0b0e46C68964e326300Ac',
     Plume_Testnet: '0xcB5f30e335672893c7eb944B374c196392C19D18',
-    Solana_Devnet: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-    Sui_Testnet: '0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC',
     Arc_Testnet: '0x3600000000000000000000000000000000000000',
     Avalanche_Fuji: '0x5425890298aed601595a70AB815c96711a31Bc65',
 };
@@ -29,7 +27,7 @@ export const UNISWAP_CONTRACTS = {
     swapRouter02: '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E',
     quoterV2: '0xEd1f6473345F45b75F8179591dd5bA1888cf2FB3',
     weth: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
-    poolFee: 500, // 0.05% fee tier (has ~$694K liquidity on Sepolia vs ~$12K in 0.3%)
+    poolFee: 500, // 0.05% fee tier (uniswap poolfee)
 };
 
 // Token metadata

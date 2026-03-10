@@ -9,7 +9,7 @@ import SettingsPopup from './SettingsPopup';
 import BridgeStatus from './BridgeStatus';
 import { SUPPORTED_CHAINS, ARC_CHAIN, BRIDGE_DIRECTION, getChainByName } from '../config/chains';
 import { TOKEN_INFO, USDC_ADDRESSES, SWAP_FEE_PERCENTAGE } from '../config/contracts';
-import { calculateFee, calculateForwardingFee, executeBridge } from '../services/bridgeService';
+import { calculateFee, calculateForwardingFee, executeBridge, retryMint } from '../services/bridgeService';
 import { FORWARDING_CONFIG, DEFAULT_MINT_MODE, CHAINS_WITHOUT_FORWARDER_SUPPORT } from '../services/forwardingConfig';
 import { getSwapQuote, executeSwap } from '../services/swapService';
 import { getDestSwapQuote, executeDestSwap } from '../services/destSwapService';
@@ -141,19 +141,15 @@ export default function Bridge({
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [selectorMode, setSelectorMode] = useState('chain');
     const [selectorTarget, setSelectorTarget] = useState('from'); // 'from' or 'to'
+    const [isReminting, setIsReminting] = useState(false);
+    const [cachedAttestation, setCachedAttestation] = useState(null); // stored from SDK event
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [txData, setTxData] = useState({ approveHash: null, sourceHash: null, destHash: null, swapHash: null, destSwapHash: null });
     // customRecipient and isRecipientModalOpen are now handled via props
 
-    // ── Mint mode toggle ─────────────────────────────────────────────────────
-    // 'manual' → user signs the mint on destination chain (default)
-    // 'auto'   → Circle's Forwarding Service mints automatically (gasless)
-    // Arc Testnet and other chains without customBurnWithHook support are always
-    // forced to 'manual' regardless of what the user picks.
     const isDestForwarderBlocked = CHAINS_WITHOUT_FORWARDER_SUPPORT.displayNames.includes(toChainName);
     const [mintMode, setMintMode] = useState(DEFAULT_MINT_MODE);
 
-    // Enforce 5 USDC minimum for Auto mode when destination is Ethereum Sepolia
     const isAutoModeRestricted = useMemo(() => {
         if (toChainName !== 'Ethereum Sepolia') return false;
         const amt = parseFloat(amount);
@@ -164,28 +160,24 @@ export default function Bridge({
         return toChainName === 'Ethereum Sepolia' && destToken === 'ETH';
     }, [toChainName, destToken]);
 
-    // Auto-switch to 'auto' mode when a custom recipient is set
     useEffect(() => {
         if (customRecipient && !isDestForwarderBlocked && !isAutoModeRestricted && mintMode !== 'auto') {
             setMintMode('auto');
         }
     }, [customRecipient, isDestForwarderBlocked, isAutoModeRestricted]);
 
-    // When the user picks a destination that blocks the forwarder or has restricted amount, reset to manual
     useEffect(() => {
         if (isDestForwarderBlocked || isAutoModeRestricted) {
             setMintMode('manual');
         }
     }, [toChainName, isDestForwarderBlocked, isAutoModeRestricted]);
 
-    // New effect to clear recipient when auto mode is restricted (Ethereum < 5 USDC OR blocked chains like Arc)
     useEffect(() => {
         if (isAutoModeRestricted || isDestForwarderBlocked) {
             setCustomRecipient('');
         }
     }, [isAutoModeRestricted, isDestForwarderBlocked, setCustomRecipient]);
 
-    // Safety: Ensure destToken is always supported on the destination chain
     useEffect(() => {
         const dest = getChainByName(toChainName);
         if (dest && !dest.tokens.includes(destToken)) {
@@ -193,19 +185,16 @@ export default function Bridge({
         }
     }, [toChainName, destToken]);
 
-    // Whether the forwarder is actually active for the current route
     const isForwarderActive =
         FORWARDING_CONFIG.isForwardingEnabled &&
         mintMode === 'auto' &&
         !isDestForwarderBlocked;
-    // ────────────────────────────────────────────────────────────────────────
 
     const fromChain = useMemo(() => getChainByName(fromChainName), [fromChainName]);
     const destChain = useMemo(() => getChainByName(toChainName), [toChainName]);
 
     const isEthSwap = selectedToken === 'ETH' && fromChainName === 'Ethereum Sepolia';
 
-    // Real Balances
 
     const { data: sourceBalanceData } = useBalance({
         address: currentAddress,
@@ -221,7 +210,6 @@ export default function Bridge({
         watch: true,
     });
 
-    // Native Gas Balances (for validation)
     const { data: sourceNativeData } = useBalance({
         address: currentAddress,
         chainId: fromChain.chainId,
@@ -294,24 +282,24 @@ export default function Bridge({
 
     const bridgeSteps = useMemo(() => {
         const mintStep = isForwarderActive
-            ? { key: 'mint', label: 'Circle Minting (Automatic)', icon: '⚡', activeDesc: 'Circle is minting on destination...' }
-            : { key: 'mint', label: 'Mint USDC', icon: '✨', activeDesc: 'Confirming mint transaction...' };
+            ? { key: 'mint', label: 'Circle Minting (Automatic)', activeDesc: 'Circle is minting on destination...' }
+            : { key: 'mint', label: 'Mint USDC', activeDesc: 'Confirming mint transaction...' };
 
         const steps = [];
 
         if (isEthSwap) {
-            steps.push({ key: 'swap', label: 'Swap ETH → USDC', icon: '🔄' });
+            steps.push({ key: 'swap', label: 'Swap ETH → USDC' });
         }
 
         steps.push(
-            { key: 'approve', label: 'Approve USDC', icon: '✅' },
-            { key: 'burn', label: 'Burn USDC', icon: '🔥' },
-            { key: 'attestation', label: 'Attestation', icon: '📡' },
+            { key: 'approve', label: 'Approve USDC' },
+            { key: 'burn', label: 'Burn USDC' },
+            { key: 'attestation', label: 'Attestation' },
             mintStep
         );
 
         if (destToken === 'ETH' && toChainName === 'Ethereum Sepolia') {
-            steps.push({ key: 'swap_dest', label: 'Swap USDC → ETH', icon: '🔄' });
+            steps.push({ key: 'swap_dest', label: 'Swap USDC → ETH' });
         }
 
         return steps;
@@ -338,16 +326,10 @@ export default function Bridge({
                 setSelectedToken('USDC');
             }
         } else {
-            // If changing destination chain, reset destToken to USDC
-            // Unless the new destination is Ethereum Sepolia and it was already ETH? 
-            // Actually, safe to just reset to USDC or keep if it's Sepolia.
             if (chainName !== 'Ethereum Sepolia') {
                 setDestToken('USDC');
             }
         }
-        // Only reset the swap quote if the SOURCE chain changed —
-        // the ETH→USDC swap always happens on Sepolia so the quote
-        // is irrelevant to which destination chain the user picks.
         if (selectorTarget === 'from') {
             setSwapQuote(null);
         }
@@ -450,7 +432,7 @@ export default function Bridge({
         }
     }, [openConnectModal]);
 
-    // ── Dest Swap Quote Effect ───────────────────────────────────────────────
+    // Dest Swap Quote Effect
     useEffect(() => {
         const fetchDestQuote = async () => {
             if (destToken === 'ETH' && toChainName === 'Ethereum Sepolia' && amount && parseFloat(amount) > 0) {
@@ -487,6 +469,7 @@ export default function Bridge({
         setStepStatuses({});
         setIsTxModalOpen(true);
         setTxData({ approveHash: null, sourceHash: null, destHash: null });
+        setCachedAttestation(null); // clear any previous cached attestation
 
         const hasBurnTxRef = { current: false };
         const isCancelledRef = { current: false };
@@ -510,7 +493,6 @@ export default function Bridge({
             sourceTxHash: null, // for re-mint
         };
 
-        // Helper to update this entry in localStorage
         const updateHistory = (updates) => {
             const history = JSON.parse(localStorage.getItem('bridgeHistory') || '[]');
             const idx = history.findIndex(h => h.id === txId);
@@ -520,7 +502,6 @@ export default function Bridge({
                 history.unshift({ ...historyEntry, ...updates });
             }
             localStorage.setItem('bridgeHistory', JSON.stringify(history.slice(0, 50)));
-            // Dispatch storage event so Activity tab updates in real-time
             window.dispatchEvent(new Event('storage'));
         };
 
@@ -571,12 +552,9 @@ export default function Bridge({
                         // All done — handled after executeBridge resolves
 
                     } else if (update.status === 'completed') {
-                        // ── Step finished ──
+                        // Step finished
                         console.log(`[Bridge] ✅ Step [${update.step}] COMPLETED (forced=${!!update.forced}, txHash=${update.txHash})`);
                         setStepStatuses(prev => ({ ...prev, [update.step]: 'completed' }));
-                        // IMPORTANT: Only advance bridgeStep for REAL completions (txHash present).
-                        // Forced completions (prevStep fallback, txHash=null) must NOT call setBridgeStep
-                        // because that pulls the UI BACKWARD (e.g. 'attestation' → 'burn') and resets the timer.
                         if (!update.forced) {
                             setBridgeStep(update.step);
                         }
@@ -601,9 +579,19 @@ export default function Bridge({
                                 updateHistory({ txHashes: { dest: update.txHash }, lastStep: 'complete' });
                             }
                         }
+                        // Cache the attestation payload so Remint can bypass the re-fetch
+                        if (update.step === 'attestation' && update.data) {
+                            const payload = update.data;
+                            const msg = payload?.message || payload?.values?.message || null;
+                            const att = payload?.attestation || payload?.values?.attestation || null;
+                            if (msg && att) {
+                                console.log('[Bridge] Caching attestation data for potential Remint');
+                                setCachedAttestation({ message: msg, attestation: att });
+                            }
+                        }
 
                     } else if (update.status === 'pending' || update.status === 'started') {
-                        // ── Next step starting ──
+                        // Next step starting
                         if (!isCancelledRef.current) {
                             console.log(`[Bridge] 🔄 Step [${update.step}] starting`);
                             setStepStatuses(prev => {
@@ -612,7 +600,6 @@ export default function Bridge({
                                 return { ...prev, [update.step]: 'pending' };
                             });
 
-                            // REGRESSION GUARD & STEP FORWARDER
                             setBridgeStep(current => {
                                 const stepOrder = ['approve', 'burn', 'attestation', 'mint'];
                                 const currentIndex = stepOrder.indexOf(current);
@@ -620,8 +607,6 @@ export default function Bridge({
 
                                 // Always advance, never pull back
                                 if (nextIndex > currentIndex) {
-                                    // SWEEP: When advancing, ensure all steps BEFORE the new step 
-                                    // are marked as completed too (just in case signals were missed)
                                     setStepStatuses(prev => {
                                         const nextStatuses = { ...prev };
                                         for (let i = 0; i < nextIndex; i++) {
@@ -644,22 +629,18 @@ export default function Bridge({
                 },
             });
 
-            // Log SDK result for debugging
             console.log('[Bridge] executeBridge resolved:', {
                 resultState: result.state,
                 isActuallyCancelled: isCancelledRef.current,
                 hasBurnTx: hasBurnTxRef.current
             });
 
-            // If the SDK resolved but no burn tx was recorded,
-            // the user cancelled and the SDK swallowed the error
             if (!hasBurnTxRef.current && !isCancelledRef.current && result.state !== 'completed') {
                 console.log('[Bridge] No burn tx detected — treating as user cancellation');
                 isCancelledRef.current = true;
                 setBridgeError('CANCELLED');
             }
 
-            // --- DESTINATION SWAP (USDC -> ETH) ---
             if (destToken === 'ETH' && toChainName === 'Ethereum Sepolia') {
                 setBridgeStep('swap_dest');
                 setStepStatuses(prev => ({ ...prev, swap_dest: 'pending' }));
@@ -697,10 +678,10 @@ export default function Bridge({
             const maskAddress = (str) =>
                 typeof str === 'string' ? str.replace(/0x[a-fA-F0-9]{40}/g, addr => `${addr.slice(0, 6)}...${addr.slice(-4)}`) : str;
 
-            // Determine user-facing error message
+            // User-facing error message
             let displayError = maskAddress(err.shortMessage || err.message || 'Bridge execution failed');
 
-            // Map specific error codes for production clarity
+            // Map error codes
             if (err.code === 9002 || err.message?.includes('9002')) {
                 displayError = `Insufficient gas funds on ${fromChainName}`;
             }
@@ -722,7 +703,7 @@ export default function Bridge({
             if (wasCancelled) {
                 isActuallyCancelled = true;
                 setBridgeError('CANCELLED');
-                const finalStatus = hasBurnTx ? 'mint_failed' : 'cancelled';
+                const finalStatus = hasBurnTxRef.current ? 'mint_failed' : 'cancelled';
                 updateHistory({ status: finalStatus });
             } else {
                 setBridgeError(displayError);
@@ -731,7 +712,45 @@ export default function Bridge({
         } finally {
             setIsBridging(false);
         }
-    }, [isConnected, amount, fromChainName, toChainName, fromChain, destChain, isEthSwap, swapQuote, currentAddress, selectedToken, fee, receiveAmount, forwardingFee, mintMode, handleConnect]);
+    }, [isConnected, amount, currentAddress, fromChainName, toChainName, selectedToken, destToken, fee, receiveAmount, isEthSwap, swapQuote, fromChain, destChain, customRecipient, mintMode, slippage, handleConnect]);
+
+    const handleRemint = useCallback(async () => {
+        if (!txData.sourceHash) return;
+
+        setIsReminting(true);
+        setBridgeError(null);
+
+        try {
+            const result = await retryMint({
+                burnTxHash: txData.sourceHash,
+                fromChain: fromChainName,
+                toChain: toChainName,
+                cachedAttestation,
+            });
+
+            if (result.mintTxHash) {
+                setTxData(prev => ({ ...prev, destHash: result.mintTxHash }));
+                setBridgeStep('complete');
+                setStepStatuses(prev => ({ ...prev, mint: 'completed' }));
+
+                // Update history
+                const history = JSON.parse(localStorage.getItem('bridgeHistory') || '[]');
+                const idx = history.findIndex(h => h.sourceTxHash === txData.sourceHash);
+                if (idx >= 0) {
+                    history[idx].txHashes.dest = result.mintTxHash;
+                    history[idx].status = 'processing'; // It will eventually be picked up as completed if polled, or we just set it now
+                    history[idx].lastStep = 'complete';
+                    localStorage.setItem('bridgeHistory', JSON.stringify(history.slice(0, 50)));
+                    window.dispatchEvent(new Event('storage'));
+                }
+            }
+        } catch (err) {
+            console.error('[Bridge] Remint failed:', err);
+            setBridgeError(err.message || 'Remint failed');
+        } finally {
+            setIsReminting(false);
+        }
+    }, [txData.sourceHash, fromChainName, toChainName]);
 
     const resetBridge = () => {
         setBridgeStep(null);
@@ -754,7 +773,6 @@ export default function Bridge({
         return name.replace(/\s+Testnet/i, '').replace(/\s+Sepolia/i, '').trim();
     };
 
-    // Proactive Gas Validation
     const hasInsufficientSourceGas = useMemo(() => {
         if (!isConnected || isBridging) return false;
         if (!sourceNativeData) return false;
@@ -814,8 +832,6 @@ export default function Bridge({
                 // Only clear quote when the amount is empty/zero — NOT on chain/token switches
                 setSwapQuote(null);
             }
-            // If selectedToken !== 'ETH' we leave swapQuote as-is;
-            // it will be ignored by the UI since isEthSwap will be false.
         };
 
         const timer = setTimeout(fetchQuote, 400); // Debounce
@@ -979,8 +995,6 @@ export default function Bridge({
                             </span>
                             <div className="relay-fiat-sub">
                                 {isEthSwap && swapQuote ? (
-                                    // For an ETH swap, the receive amount IS the USDC value;
-                                    // Its USD value is ~1:1, so just show it directly. 
                                     <span className="fiat-val">
                                         {c.symbol}{(parseFloat(receiveAmount) * c.rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
@@ -1056,11 +1070,7 @@ export default function Bridge({
                             </div>
                         </div>
 
-                        {/* ── Mint Mode Toggle ───────────────────────────────────────────────
-                            Shows for all chains. For chains that block the forwarder (Arc),
-                            the toggle is locked on Manual with a tooltip explaining why.
-                            Default is Manual — user opts in to Auto (gasless).
-                        ──────────────────────────────────────────────────────────────────── */}
+                        {/* Mint Mode Toggle */}
                         <div className="info-row mint-mode-row">
                             <span className="info-label">
                                 Mint Mode
@@ -1198,6 +1208,8 @@ export default function Bridge({
                 destAddress={customRecipient || currentAddress}
                 walletAddress={currentAddress}
                 isSwapAndBridge={isEthSwap}
+                onRemint={handleRemint}
+                isReminting={isReminting}
             />
         </>
     );

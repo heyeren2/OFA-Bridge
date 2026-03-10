@@ -16,13 +16,11 @@ export default function RecipientModal({ isOpen, onClose, onConfirm, initialValu
     }, [isOpen, initialValue]);
 
     useEffect(() => {
-        // Basic EVM address validation
         const isEvmAddress = /^0x[a-fA-F0-9]{40}$/.test(address);
         const isDomain = address.includes('.') && address.length > 3;
         const valid = isEvmAddress || isDomain;
         setIsValid(valid);
 
-        // Show warning if address is entered/pasted and doesn't match connected wallet
         if (address && connectedAddress && valid) {
             setShowWarning(address.toLowerCase() !== connectedAddress.toLowerCase());
         } else {

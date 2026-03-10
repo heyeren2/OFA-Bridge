@@ -6,7 +6,7 @@ import {
 } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import {
-  sepolia as sepoliaDefault, // aliased so we can override the RPC below
+  sepolia as sepoliaDefault,
   baseSepolia,
   arbitrumSepolia,
   optimismSepolia,
@@ -15,8 +15,7 @@ import {
 import { http, defineChain } from 'viem';
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 
-// Override Sepolia RPC to avoid DRPC free-tier rate limits (408 timeouts)
-// that kill the attestation polling step.
+// Override Sepolia RPC to avoid rate limits
 const sepolia = {
   ...sepoliaDefault,
   rpcUrls: {
@@ -25,7 +24,7 @@ const sepolia = {
   },
 };
 
-// Define Arc Testnet
+// Arc Testnet
 export const arcTestnet = defineChain({
   id: 5042002,
   name: 'Arc Testnet',
@@ -39,7 +38,6 @@ export const arcTestnet = defineChain({
   testnet: true,
 });
 
-// Define missing chains reported by user
 export const unichainSepolia = defineChain({
   id: 1301,
   name: 'Unichain Sepolia',
