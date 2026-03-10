@@ -7,9 +7,9 @@ OFA Bridge is a high-performance cross-chain bridging solution built for the mod
 - **Bridging USDC**: Transfer USDC across 5+ major testnets with guaranteed settlement.
 - **Smart Swaps**: Integrated Uniswap V3 logic for automatic ETH → USDC conversions during the bridge process.
 - **Real-Time Analytics**: Full bridge activity history powered by Goldsky subgraphs.
-- **Micro-Interactions**: Premium, glassmorphic UI with smooth transitions and status updates.
-- **Dark Mode Optimized**: Pixel-perfect design for both light and dark themes.
-- **Secret Management**: Robust environment variable handling for RPCs and APIs.
+- **Remint Recovery**: Advanced error recovery with SDK attestation caching for failed mint transactions.
+- **Custom Recipient**: Flexible bridging with support for sending assets to any destination address.
+- **Flexible Minting**: Seamless toggle between Manual (user-signed) and Auto (gasless) minting modes.
 
 ## Stack
 
