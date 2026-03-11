@@ -28,7 +28,7 @@ const sepolia = {
 export const arcTestnet = defineChain({
   id: 5042002,
   name: 'Arc Testnet',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  nativeCurrency: { name: 'Arc', symbol: 'USDC', decimals: 18 },
   rpcUrls: {
     default: { http: [import.meta.env.VITE_ARC_RPC_URL] },
   },
@@ -119,7 +119,7 @@ export const inkTestnet = defineChain({
 export const plumeTestnet = defineChain({
   id: 98867,
   name: 'Plume Testnet',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  nativeCurrency: { name: 'Plume', symbol: 'PLUME', decimals: 18 },
   rpcUrls: {
     default: { http: ['https://testnet-rpc.plume.org'] },
   },

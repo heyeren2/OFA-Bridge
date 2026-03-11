@@ -16,7 +16,7 @@ const ARC_CHAIN_DATA = {
   rpc: 'https://rpc.testnet.arc.network',
   tokens: ['USDC'],
   type: 'evm',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  nativeCurrency: { name: 'Arc', symbol: 'USDC', decimals: 18 },
 };
 
 export const ARC_CHAIN = ARC_CHAIN_DATA;
@@ -164,7 +164,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://testnet-explorer.plume.org',
     hasSwap: false,
     type: 'evm',
-    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    nativeCurrency: { name: 'Plume', symbol: 'PLUME', decimals: 18 },
   },
   {
     name: 'Avalanche Fuji',
