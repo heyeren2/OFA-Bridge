@@ -117,7 +117,7 @@ export const inkTestnet = defineChain({
 });
 
 export const plumeTestnet = defineChain({
-  id: 98864,
+  id: 98867,
   name: 'Plume Testnet',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: {

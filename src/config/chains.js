@@ -145,7 +145,7 @@ export const SUPPORTED_CHAINS = [
   {
     name: 'Plume Testnet',
     bridgeKitName: 'Plume_Testnet',
-    chainId: 98864,
+    chainId: 98867,
     icon: '/icons/plume.png',
     color: '#E8D5B7',
     tokens: ['USDC'],
