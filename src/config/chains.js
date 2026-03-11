@@ -16,6 +16,7 @@ const ARC_CHAIN_DATA = {
   rpc: 'https://rpc.testnet.arc.network',
   tokens: ['USDC'],
   type: 'evm',
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
 };
 
 export const ARC_CHAIN = ARC_CHAIN_DATA;
@@ -33,6 +34,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://sepolia.etherscan.io',
     hasSwap: true,
     type: 'evm',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
     name: 'Base Sepolia',
@@ -45,6 +47,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://sepolia.basescan.org',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
     name: 'Arbitrum Sepolia',
@@ -57,6 +60,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://sepolia.arbiscan.io',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
     name: 'Optimism Sepolia',
@@ -69,6 +73,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://sepolia-optimism.etherscan.io',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
     name: 'Unichain Sepolia',
@@ -81,6 +86,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://sepolia.uniscan.xyz',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
     name: 'Monad Testnet',
@@ -93,6 +99,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://testnet.monadexplorer.com',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'MONAD', symbol: 'MONAD', decimals: 18 },
   },
   {
     name: 'HyperEVM Testnet',
@@ -105,6 +112,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://testnet.purrsec.com',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
   },
   {
     name: 'Sei Testnet',
@@ -117,6 +125,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://testnet.seiscan.io/',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'SEI', symbol: 'SEI', decimals: 18 },
   },
   {
     name: 'Linea Sepolia',
@@ -129,6 +138,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://sepolia.lineascan.build',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
     name: 'Ink Testnet',
@@ -141,6 +151,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://explorer-sepolia.inkonchain.com',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
     name: 'Plume Testnet',
@@ -153,6 +164,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://testnet-explorer.plume.org',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   },
   {
     name: 'Avalanche Fuji',
@@ -165,6 +177,7 @@ export const SUPPORTED_CHAINS = [
     explorer: 'https://testnet.snowscan.xyz',
     hasSwap: false,
     type: 'evm',
+    nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
   },
 ];
 

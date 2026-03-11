@@ -97,7 +97,7 @@ const createApprovalFixedProvider = () => {
                                             params: [{
                                                 chainId: chainIdHex,
                                                 chainName: chainConfig.name,
-                                                nativeCurrency: {
+                                                nativeCurrency: chainConfig.nativeCurrency || {
                                                     name: 'Ether',
                                                     symbol: 'ETH',
                                                     decimals: 18,
