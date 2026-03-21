@@ -18,7 +18,7 @@
     "@circle-fin/bridge-kit": "^1.6.0",
     "@rainbow-me/rainbowkit": "^2.2.4",
     "@tanstack/react-query": "^5.90.20",
-    "bridge-id-sdk": "^0.5.3",
+    "bridge-id-sdk": "^0.5.4",
     "graphql": "^16.12.0",
     "lucide-react": "^0.473.0",
     "react": "^19.0.0",
