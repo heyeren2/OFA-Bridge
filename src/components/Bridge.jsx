@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Settings, ChevronDown, ChevronRight, ArrowUpDown, ArrowDown, Clock, Zap, X } from 'lucide-react';
 import { useAccount, useBalance } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
@@ -14,6 +14,7 @@ import { FORWARDING_CONFIG, DEFAULT_MINT_MODE, CHAINS_WITHOUT_FORWARDER_SUPPORT 
 import { getSwapQuote, executeSwap } from '../services/swapService';
 import { getDestSwapQuote, executeDestSwap } from '../services/destSwapService';
 import TransactionModal from './TransactionModal';
+import { sdk } from '../services/analyticsService';
 // RecipientModal and its CSS are now imported in App.jsx
 
 const TRANSLATIONS = {
@@ -473,6 +474,7 @@ export default function Bridge({
 
         const hasBurnTxRef = { current: false };
         const isCancelledRef = { current: false };
+        const burnTxHashRef = { current: null };
 
         // Create a processing entry in history immediately
         const txId = Date.now();
@@ -573,10 +575,27 @@ export default function Bridge({
                             if (update.step === 'burn') {
                                 setTxData(prev => ({ ...prev, sourceHash: update.txHash }));
                                 updateHistory({ txHashes: { source: update.txHash }, sourceTxHash: update.txHash, lastStep: 'attestation' });
+                                // Track burn with SDK → sends to backend
+                                sdk.trackBurn({
+                                    burnTxHash: update.txHash,
+                                    wallet: currentAddress,
+                                    amount: bridgeAmount,
+                                    sourceChain: fromChainName,
+                                    destinationChain: toChainName,
+                                }).catch(err => console.warn('[Bridge] trackBurn failed:', err.message));
+                                // Store burn hash in ref to avoid stale closure
+                                burnTxHashRef.current = update.txHash;
                             }
                             if (update.step === 'mint') {
                                 setTxData(prev => ({ ...prev, destHash: update.txHash }));
                                 updateHistory({ txHashes: { dest: update.txHash }, lastStep: 'complete' });
+                                // Track successful mint with SDK → sends to backend
+                                sdk.trackMint({
+                                    burnTxHash: burnTxHashRef.current,
+                                    mintTxHash: update.txHash,
+                                    amountReceived: receiveAmount,
+                                    success: true,
+                                }).catch(err => console.warn('[Bridge] trackMint failed:', err.message));
                             }
                         }
                         // Cache the attestation payload so Remint can bypass the re-fetch
@@ -588,6 +607,13 @@ export default function Bridge({
                                 console.log('[Bridge] Caching attestation data for potential Remint');
                                 setCachedAttestation({ message: msg, attestation: att });
                             }
+                        }
+                        // Track attestation completion with SDK → sends to backend
+                        if (update.step === 'attestation') {
+                            sdk.trackAttestation({
+                                burnTxHash: burnTxHashRef.current,
+                                success: true,
+                            }).catch(err => console.warn('[Bridge] trackAttestation failed:', err.message));
                         }
 
                     } else if (update.status === 'pending' || update.status === 'started') {
@@ -701,7 +727,7 @@ export default function Bridge({
                 errCause.includes('user rejected');
 
             if (wasCancelled) {
-                isActuallyCancelled = true;
+                isCancelledRef.current = true;
                 setBridgeError('CANCELLED');
                 const finalStatus = hasBurnTxRef.current ? 'mint_failed' : 'cancelled';
                 updateHistory({ status: finalStatus });
@@ -743,6 +769,14 @@ export default function Bridge({
                     localStorage.setItem('bridgeHistory', JSON.stringify(history.slice(0, 50)));
                     window.dispatchEvent(new Event('storage'));
                 }
+
+                // Track successful remint with SDK → sends to backend
+                sdk.trackMint({
+                    burnTxHash: txData.sourceHash,
+                    mintTxHash: result.mintTxHash,
+                    amountReceived: receiveAmount,
+                    success: true,
+                }).catch(err => console.warn('[Bridge] trackMint (remint) failed:', err.message));
             }
         } catch (err) {
             console.error('[Bridge] Remint failed:', err);

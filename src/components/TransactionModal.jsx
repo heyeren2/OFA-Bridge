@@ -251,7 +251,7 @@ export default function TransactionModal({
                                         {formatAmount(amount)} {selectedToken} <ArrowRight size={14} style={{ display: 'inline', verticalAlign: 'middle', margin: '0 4px' }} /> {formatAmount(destAmount)} {destToken} received on {getShortenedChainName(toChain)}
                                     </>
                                 ) : (
-                                    <>{formatAmount(amount)} {selectedToken} received on {getShortenedChainName(toChain)}</>
+                                    <>{formatAmount(destAmount)} {selectedToken} received on {getShortenedChainName(toChain)}</>
                                 )}
                             </p>
                             {destAddress?.toLowerCase() !== walletAddress?.toLowerCase() && (
