@@ -178,12 +178,15 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
-  overflow-x: hidden;
 }
 
 .mobile-only {
@@ -230,11 +233,27 @@ body {
   width: 100%;
 }
 
-/* Ensure Activity tab still scrolls */
+/* Ensure Activity tab still scrolls — only the BROWSER scrollbar, no in-app one */
 .activity-active {
   min-height: 100vh;
-  overflow-y: auto;
+  overflow: visible;
 }
+
+/* Desktop only — remove flex constraints when activity is active */
+@media (min-width: 821px) {
+  .activity-active {
+    display: block;
+  }
+
+  .activity-active .app-main {
+    flex: unset;
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+}
+
 
 .app-header {
   display: flex;
@@ -243,11 +262,15 @@ body {
   padding: 0px 24px;
   background: var(--midnight-indigo);
   border-bottom: 1px solid rgba(240, 231, 213, 0.1);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 100;
   color: var(--text-on-indigo);
 }
+
 
 .wallet-controls {
   display: flex;
@@ -677,9 +700,10 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 10px 16px 0 16px;
-  /* Keeping top padding, removed bottom */
+  padding: 85px 16px 0 16px;
+  /* Fixed header padding (header is ~73px + border) */
 }
+
 
 .app-footer {
   text-align: center;
@@ -1813,7 +1837,6 @@ body {
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
 }
 
 /* Responsive */

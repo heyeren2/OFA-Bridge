@@ -48,66 +48,87 @@ export default function Activity({ setActiveTab }) {
         return () => clearTimeout(timer);
     }, [searchAddress]);
 
-    // SDK-based data fetcher
-    const fetchData = useCallback(async () => {
-        if (!address) {
-            setAllTransactions([]);
-            return;
+    // Helper to map raw transaction data to UI shape
+    const mapTransactions = (transactions) => {
+        return (transactions || []).map((tx, i) => {
+            const searchName = (name) => {
+                const clean = (s) => s?.toLowerCase().replace(/_/g, ' ') || '';
+                const target = clean(name);
+                return SUPPORTED_CHAINS.find(c =>
+                    clean(c.name).includes(target) || target.includes(clean(c.name))
+                )?.name || name;
+            };
+            return {
+                id: tx.burnTxHash || String(i),
+                sender: tx.wallet,
+                receiver: tx.wallet,
+                amountDisplay: tx.amount,
+                amountReceived: tx.amountReceived || null,
+                fromChain: searchName(tx.sourceChain),
+                toChain: searchName(tx.destinationChain),
+                sourceTxHash: tx.burnTxHash,
+                destTxHash: tx.mintTxHash || null,
+                status: tx.status === 'minted' ? 'completed'
+                    : tx.status === 'completed' ? 'completed'
+                    : tx.status === 'attested' ? 'processing'
+                    : tx.status === 'burned' ? 'processing'
+                    : tx.status === 'failed' ? 'failed'
+                    : 'processing',
+                timestamp: tx.timestamp
+                    ? String(Math.floor(new Date(tx.timestamp).getTime() / 1000))
+                    : String(Math.floor(Date.now() / 1000)),
+                isOFA: true,
+            };
+        });
+    };
+
+    // Fetch global stats independently (always runs)
+    const fetchStats = useCallback(async () => {
+        try {
+            const res = await fetch(import.meta.env.VITE_ANALYTICS_URL + `/analytics/stats?bridgeId=${import.meta.env.VITE_BRIDGE_ID}`);
+            const data = await res.json();
+            if (data && !data.error) setGlobalStats(data);
+        } catch (err) {
+            console.warn('[Activity] Stats fetch failed:', err.message);
         }
+    }, []);
+
+    // Fetch activity data
+    const fetchData = useCallback(async () => {
         setTxLoading(true);
         try {
-            const [activity, statsRes] = await Promise.all([
-                sdk.getUserActivity(address),
-                fetch(import.meta.env.VITE_ANALYTICS_URL + `/analytics/stats?bridgeId=${import.meta.env.VITE_BRIDGE_ID}`)
-                    .then(r => r.json())
-                    .catch(() => null),
-            ]);
-
-            // Map SDK transactions to the shape the existing UI expects
-            const mapped = (activity?.transactions || []).map((tx, i) => {
-                const searchName = (name) => {
-                    const clean = (s) => s?.toLowerCase().replace(/_/g, ' ') || '';
-                    const target = clean(name);
-                    return SUPPORTED_CHAINS.find(c =>
-                        clean(c.name).includes(target) || target.includes(clean(c.name))
-                    )?.name || name;
-                };
-
-                return {
-                    id: tx.burnTxHash || String(i),
-                    sender: tx.wallet,
-                    receiver: tx.wallet,
-                    amountDisplay: tx.amount,
-                    fromChain: searchName(tx.sourceChain),
-                    toChain: searchName(tx.destinationChain),
-                    sourceTxHash: tx.burnTxHash,
-                    destTxHash: tx.mintTxHash || null,
-                    status: tx.status === 'minted' ? 'completed'
-                        : tx.status === 'completed' ? 'completed'
-                            : tx.status === 'attested' ? 'processing'
-                                : tx.status === 'burned' ? 'processing'
-                                    : tx.status === 'failed' ? 'failed'
-                                        : 'processing',
-                    timestamp: tx.timestamp
-                        ? String(Math.floor(new Date(tx.timestamp).getTime() / 1000))
-                        : String(Math.floor(Date.now() / 1000)),
-                    isOFA: true,
-                };
-            });
-
-            setAllTransactions(mapped);
-
-            if (statsRes) {
-                setGlobalStats(statsRes);
+            if (myTxnFilter && address) {
+                // "My Tx" mode: fetch only the connected wallet's transactions via SDK
+                const activity = await sdk.getUserActivity(address);
+                setAllTransactions(mapTransactions(activity?.transactions));
+            } else {
+                // "All" mode: fetch global activity directly from backend
+                const res = await fetch(import.meta.env.VITE_ANALYTICS_URL + '/activity/all');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAllTransactions(mapTransactions(data?.transactions));
+                } else {
+                    // Fallback: if /activity/all isn't available yet, try wallet
+                    if (address) {
+                        const activity = await sdk.getUserActivity(address);
+                        setAllTransactions(mapTransactions(activity?.transactions));
+                    } else {
+                        setAllTransactions([]);
+                    }
+                }
             }
         } catch (err) {
-            console.warn('[Activity] fetch failed:', err.message);
+            console.warn('[Activity] activity fetch failed:', err.message);
+            setAllTransactions([]);
         } finally {
             setTxLoading(false);
         }
-    }, [address]);
+    }, [address, myTxnFilter]);
 
-    // Fetch on mount and when address changes
+    // Fetch stats on mount (once)
+    useEffect(() => { fetchStats(); }, [fetchStats]);
+
+    // Fetch activity on mount and when mode/address changes
     useEffect(() => { fetchData(); }, [fetchData]);
 
     // Refetch helper for remint
@@ -121,7 +142,7 @@ export default function Activity({ setActiveTab }) {
     }), [globalStats]);
 
 
-    // Filtered Transactions (Chain + Search filters)
+    // Filtered Transactions (Chain + Search filters only — My Tx filtering is handled by fetchData)
     const filteredTxs = useMemo(() => {
         if (!allTransactions.length) return [];
         return allTransactions.filter(tx => {
@@ -132,12 +153,9 @@ export default function Activity({ setActiveTab }) {
                 tx.receiver?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
                 tx.sourceTxHash?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
                 tx.destTxHash?.toLowerCase().includes(debouncedSearch.toLowerCase());
-            const matchesMyTxn = !myTxnFilter || !address ||
-                tx.sender?.toLowerCase().endsWith(address.toLowerCase()) ||
-                tx.receiver?.toLowerCase().endsWith(address.toLowerCase());
-            return matchesFrom && matchesTo && matchesSearch && matchesMyTxn;
+            return matchesFrom && matchesTo && matchesSearch;
         });
-    }, [allTransactions, fromChainFilter, toChainFilter, debouncedSearch, myTxnFilter, address]);
+    }, [allTransactions, fromChainFilter, toChainFilter, debouncedSearch]);
 
     // --- Dynamic Sizing ---
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 820);
@@ -272,15 +290,23 @@ export default function Activity({ setActiveTab }) {
                                     onChange={(e) => setSearchAddress(e.target.value)}
                                 />
                             </div>
-                            <button
-                                className={`my-txn-pill ${myTxnFilter ? 'my-txn-active' : ''}`}
-                                onClick={() => setMyTxnFilter(!myTxnFilter)}
-                                disabled={!address}
-                                data-tooltip={address ? 'Show only my transactions' : 'Connect wallet first'}
-                            >
-                                <Wallet size={14} />
-                                My Tx
-                            </button>
+                            <div className="activity-toggle-group">
+                                <button
+                                    className={`toggle-pill ${!myTxnFilter ? 'toggle-active' : ''}`}
+                                    onClick={() => setMyTxnFilter(false)}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    className={`toggle-pill ${myTxnFilter ? 'toggle-active' : ''}`}
+                                    onClick={() => { if (address) setMyTxnFilter(true); }}
+                                    disabled={!address}
+                                    data-tooltip={!address ? 'Connect wallet first' : ''}
+                                >
+                                    <Wallet size={14} />
+                                    My Tx
+                                </button>
+                            </div>
                         </div>
 
                         <div className="transactions-section-header">
@@ -440,15 +466,23 @@ export default function Activity({ setActiveTab }) {
                                         onChange={(e) => setSearchAddress(e.target.value)}
                                     />
                                 </div>
-                                <button
-                                    className={`my-txn-pill-desktop ${myTxnFilter ? 'my-txn-active' : ''}`}
-                                    onClick={() => setMyTxnFilter(!myTxnFilter)}
-                                    disabled={!address}
-                                    data-tooltip={address ? 'Show only my transactions' : 'Connect wallet first'}
-                                >
-                                    <Wallet size={14} />
-                                    My Tx
-                                </button>
+                                <div className="activity-toggle-group-desktop">
+                                    <button
+                                        className={`toggle-pill-desktop ${!myTxnFilter ? 'toggle-active' : ''}`}
+                                        onClick={() => setMyTxnFilter(false)}
+                                    >
+                                        All
+                                    </button>
+                                    <button
+                                        className={`toggle-pill-desktop ${myTxnFilter ? 'toggle-active' : ''}`}
+                                        onClick={() => { if (address) setMyTxnFilter(true); }}
+                                        disabled={!address}
+                                        data-tooltip={!address ? 'Connect wallet first' : ''}
+                                    >
+                                        <Wallet size={14} />
+                                        My Tx
+                                    </button>
+                                </div>
                             </div>
                             <div className="toolbar-right">
                                 <div className="live-indicator">
@@ -517,6 +551,7 @@ export default function Activity({ setActiveTab }) {
                                                                 </div>
                                                                 <span className="t-amount">{formatAmount(tx.amountReceived || tx.amountDisplay)}</span>
                                                                 <span className="t-token">USDC</span>
+
                                                             </div>
                                                             <div className="t-sub-info">
                                                                 <span className="t-sub-label">Destination:</span>
