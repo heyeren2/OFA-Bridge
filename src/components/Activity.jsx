@@ -70,10 +70,12 @@ export default function Activity({ setActiveTab }) {
                 destTxHash: tx.mintTxHash || null,
                 status: tx.status === 'minted' ? 'completed'
                     : tx.status === 'completed' ? 'completed'
-                    : tx.status === 'attested' ? 'processing'
-                    : tx.status === 'burned' ? 'processing'
-                    : tx.status === 'failed' ? 'failed'
-                    : 'processing',
+                        : tx.status === 'attested' ? 'mint_failed'
+                            : tx.status === 'burned' ? 'processing'
+                                : tx.status === 'attestation_failed' ? 'failed'
+                                    : tx.status === 'failed' ? 'failed'
+                                        : tx.status === 'mint_failed' ? 'mint_failed'
+                                            : 'processing',
                 timestamp: tx.timestamp
                     ? String(Math.floor(new Date(tx.timestamp).getTime() / 1000))
                     : String(Math.floor(Date.now() / 1000)),

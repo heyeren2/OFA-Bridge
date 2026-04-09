@@ -4070,7 +4070,6 @@ body {
   .txm-body {
     padding: 8px 16px 24px;
     min-height: auto;
-    overflow-y: auto;
   }
 
   .txm-step-list-v2 {
