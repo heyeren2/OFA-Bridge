@@ -538,7 +538,7 @@ export default function Bridge({
                 isSwapRoute: isEthSwap,
                 mintMode,
                 slippage,
-                onStatusUpdate: (update) => {
+                onStatusUpdate: async (update) => {
                     if (update.step === 'error') {
                         setBridgeError(update.error);
                     } else if (update.step === 'cancelled') {
@@ -547,6 +547,56 @@ export default function Bridge({
                             setBridgeStep(update.failedStep);
                             setStepStatuses(prev => ({ ...prev, [update.failedStep]: 'error' }));
                             updateHistory({ lastStep: update.failedStep });
+
+                            // Track the specific failure in the SDK
+                            if (update.failedStep === 'attestation') {
+                                sdk.trackAttestation({ burnTxHash: burnTxHashRef.current, success: false, error: 'User cancelled or timeout' }).catch(() => {});
+                            } else if (update.failedStep === 'mint') {
+                                // Mint was cancelled AFTER successful attestation.
+                                // First ensure attestation is marked done (in case trackAttestation was missed),
+                                // then mark the mint as failed — so status becomes 'mint_failed' (Action Needed).
+                                if (!burnTxHashRef.current) {
+                                    console.warn('[Bridge] Cancel tracking: burnTxHashRef is empty, SDK update may be lost');
+                                }
+                                sdk.trackAttestation({
+                                    burnTxHash: burnTxHashRef.current,
+                                    success: true,
+                                }).catch(() => {});
+                                sdk.trackMint({
+                                    burnTxHash: burnTxHashRef.current,
+                                    success: false,
+                                    error: 'User cancelled or timeout'
+                                }).catch(() => {});
+
+                                // RELIABLE FALLBACK: Call our backend directly, bypassing SDK.
+                                // This ensures the status is always set even if the SDK calls fail.
+                                if (burnTxHashRef.current) {
+                                    const analyticsUrl = import.meta.env.VITE_ANALYTICS_URL;
+                                    const bridgeId = import.meta.env.VITE_BRIDGE_ID;
+                                    // First mark as attested, then mint_failed
+                                    fetch(`${analyticsUrl}/track/status`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            burnTxHash: burnTxHashRef.current,
+                                            bridgeId,
+                                            status: 'attested',
+                                        }),
+                                    })
+                                    .then(() => fetch(`${analyticsUrl}/track/status`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            burnTxHash: burnTxHashRef.current,
+                                            bridgeId,
+                                            status: 'mint_failed',
+                                        }),
+                                    }))
+                                    .then(() => console.log('[Bridge] Direct status update: mint_failed ✅'))
+                                    .catch(err => console.warn('[Bridge] Direct status update failed:', err.message));
+                                }
+                            }
+
                         }
                         setBridgeError('CANCELLED');
 
@@ -576,7 +626,7 @@ export default function Bridge({
                                 setTxData(prev => ({ ...prev, sourceHash: update.txHash }));
                                 updateHistory({ txHashes: { source: update.txHash }, sourceTxHash: update.txHash, lastStep: 'attestation' });
                                 // Track burn with SDK → sends to backend
-                                sdk.trackBurn({
+                                await sdk.trackBurn({
                                     burnTxHash: update.txHash,
                                     wallet: currentAddress,
                                     amount: bridgeAmount,
@@ -590,7 +640,7 @@ export default function Bridge({
                                 setTxData(prev => ({ ...prev, destHash: update.txHash }));
                                 updateHistory({ txHashes: { dest: update.txHash }, lastStep: 'complete' });
                                 // Track successful mint with SDK → sends to backend
-                                sdk.trackMint({
+                                await sdk.trackMint({
                                     burnTxHash: burnTxHashRef.current,
                                     mintTxHash: update.txHash,
                                     amountReceived: receiveAmount,
@@ -610,7 +660,7 @@ export default function Bridge({
                         }
                         // Track attestation completion with SDK → sends to backend
                         if (update.step === 'attestation') {
-                            sdk.trackAttestation({
+                            await sdk.trackAttestation({
                                 burnTxHash: burnTxHashRef.current,
                                 success: true,
                             }).catch(err => console.warn('[Bridge] trackAttestation failed:', err.message));
@@ -731,9 +781,19 @@ export default function Bridge({
                 setBridgeError('CANCELLED');
                 const finalStatus = hasBurnTxRef.current ? 'mint_failed' : 'cancelled';
                 updateHistory({ status: finalStatus });
+
+                // If it was a mint failure, report it
+                if (hasBurnTxRef.current) {
+                   sdk.trackMint({ burnTxHash: burnTxHashRef.current, success: false, error: 'Cancelled' }).catch(() => {});
+                }
             } else {
                 setBridgeError(displayError);
                 updateHistory({ status: 'failed' });
+                
+                // Track backend failure
+                if (hasBurnTxRef.current) {
+                    sdk.trackMint({ burnTxHash: burnTxHashRef.current, success: false, error: displayError }).catch(() => {});
+                }
             }
         } finally {
             setIsBridging(false);

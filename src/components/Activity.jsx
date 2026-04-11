@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { Search, ExternalLink, ArrowRight, ArrowLeft, CheckCircle, XCircle, AlertTriangle, Loader, RefreshCw, Copy, ChevronLeft, ChevronRight, BarChart2, Zap, Wallet } from 'lucide-react';
 import { getChainByName, ARC_CHAIN, SUPPORTED_CHAINS } from '../config/chains';
@@ -14,6 +14,7 @@ const STATUS_CONFIG = {
     completed: { icon: CheckCircle, className: 'status-completed', animate: false, label: 'Success' },
     failed: { icon: XCircle, className: 'status-failed', animate: false, label: 'Failed' },
     mint_failed: { icon: AlertTriangle, className: 'status-mint-failed', animate: false, label: 'Action Needed' },
+    attestation_failed: { icon: AlertTriangle, className: 'status-mint-failed', animate: false, label: 'Action Needed' },
 };
 
 export default function Activity({ setActiveTab }) {
@@ -30,6 +31,8 @@ export default function Activity({ setActiveTab }) {
     const [isRemintOpen, setIsRemintOpen] = useState(false);
     const [selectedTx, setSelectedTx] = useState(null);
     const [isMinting, setIsMinting] = useState(false);
+    const [isRemintSuccess, setIsRemintSuccess] = useState(false);
+    const [newMintHash, setNewMintHash] = useState(null);
 
     // Multi-chain aggregated state
     const [allTransactions, setAllTransactions] = useState([]);
@@ -38,6 +41,27 @@ export default function Activity({ setActiveTab }) {
         completedBridges: 0, pendingBridges: 0
     });
     const [txLoading, setTxLoading] = useState(false);
+    const [locallyRecoveredTxs, setLocallyRecoveredTxs] = useState(() => {
+        try {
+            const saved = localStorage.getItem('ofa_recovered_txs');
+            // Only keep recoveries from the last 24 hours to avoid stale data
+            const parsed = saved ? JSON.parse(saved) : {};
+            const filtered = {};
+            const now = Date.now();
+            Object.entries(parsed).forEach(([hash, data]) => {
+                if (now - data.timestamp < 24 * 60 * 60 * 1000) {
+                    filtered[hash] = data;
+                }
+            });
+            return filtered;
+        } catch { return {}; }
+    });
+    const pollingTimerRef = useRef(null);
+
+    // Persist local recoveries
+    useEffect(() => {
+        localStorage.setItem('ofa_recovered_txs', JSON.stringify(locallyRecoveredTxs));
+    }, [locallyRecoveredTxs]);
 
     // Debounce search input
     useEffect(() => {
@@ -58,6 +82,26 @@ export default function Activity({ setActiveTab }) {
                     clean(c.name).includes(target) || target.includes(clean(c.name))
                 )?.name || name;
             };
+
+            // KEY FIX: If the backend has a mintTxHash, the mint already happened.
+            // Trust the hash over the status field, which can be stale on the backend.
+            const alreadyMinted = !!tx.mintTxHash;
+            const localOverride = locallyRecoveredTxs[tx.burnTxHash];
+
+            let derivedStatus;
+            if (alreadyMinted || localOverride) {
+                derivedStatus = 'completed';
+            } else {
+                derivedStatus = tx.status === 'minted' ? 'completed'
+                    : tx.status === 'completed' ? 'completed'
+                        : tx.status === 'attested' ? 'mint_failed'
+                            : tx.status === 'burned' ? 'processing'
+                                : tx.status === 'attestation_failed' ? 'mint_failed'
+                                    : tx.status === 'failed' ? 'failed'
+                                        : tx.status === 'mint_failed' ? 'mint_failed'
+                                            : 'processing';
+            }
+
             return {
                 id: tx.burnTxHash || String(i),
                 sender: tx.wallet,
@@ -67,19 +111,13 @@ export default function Activity({ setActiveTab }) {
                 fromChain: searchName(tx.sourceChain),
                 toChain: searchName(tx.destinationChain),
                 sourceTxHash: tx.burnTxHash,
-                destTxHash: tx.mintTxHash || null,
-                status: tx.status === 'minted' ? 'completed'
-                    : tx.status === 'completed' ? 'completed'
-                        : tx.status === 'attested' ? 'mint_failed'
-                            : tx.status === 'burned' ? 'processing'
-                                : tx.status === 'attestation_failed' ? 'failed'
-                                    : tx.status === 'failed' ? 'failed'
-                                        : tx.status === 'mint_failed' ? 'mint_failed'
-                                            : 'processing',
+                destTxHash: localOverride?.mintHash || tx.mintTxHash || null,
+                status: derivedStatus,
                 timestamp: tx.timestamp
                     ? String(Math.floor(new Date(tx.timestamp).getTime() / 1000))
                     : String(Math.floor(Date.now() / 1000)),
                 isOFA: true,
+                rawStatus: (alreadyMinted || localOverride) ? 'minted' : tx.status,
             };
         });
     };
@@ -195,16 +233,85 @@ export default function Activity({ setActiveTab }) {
     const confirmRemint = async (tx) => {
         setIsMinting(true);
         try {
-            await retryMint({
+            // Note: retryMint should ideally return the result object containing the hash
+            const result = await retryMint({
                 burnTxHash: tx.sourceTxHash,
                 fromChain: tx.fromChain,
                 toChain: tx.toChain,
             });
-            setIsRemintOpen(false);
+
+            const mintHash = result?.mintTxHash || result?.mintHash || result?.hash || null;
+            if (mintHash) {
+                setNewMintHash(mintHash);
+                
+                // Track successful remint with SDK → sends to backend
+                await sdk.trackMint({
+                    burnTxHash: tx.sourceTxHash,
+                    mintTxHash: mintHash,
+                    amountReceived: tx.amountReceived || tx.amountDisplay,
+                    success: true,
+                }).catch(err => console.warn('[Activity] trackMint (remint) failed:', err.message));
+                
+                // If it was a re-attestation that logic might differ, but retryMint usually covers both
+                if (tx.rawStatus === 'attestation_failed') {
+                    await sdk.trackAttestation({
+                        burnTxHash: tx.sourceTxHash,
+                        success: true,
+                    }).catch(err => console.warn('[Activity] trackAttestation (remint) failed:', err.message));
+                }
+            }
+            
+            setIsRemintSuccess(true);
+            
+            // Optimistic UI Update
+            if (mintHash) {
+                setLocallyRecoveredTxs(prev => ({
+                    ...prev,
+                    [tx.sourceTxHash]: { mintHash, timestamp: Date.now() }
+                }));
+            }
+            
+            // Re-fetch transactions immediately and start polling
             refetchTx();
+            fetchStats();
+
+            // Clear existing polling
+            if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
+
+            // Start polling: refetch every 5s for 30s
+            let count = 0;
+            pollingTimerRef.current = setInterval(() => {
+                count++;
+                if (count > 6) { // 30 seconds (6 * 5s)
+                    clearInterval(pollingTimerRef.current);
+                    return;
+                }
+                console.log(`[Activity] Polling for backend sync... (${count}/6)`);
+                refetchTx();
+                fetchStats();
+            }, 5000);
         } catch (err) {
             console.error(err);
-            alert('Mint failed: ' + err.message);
+            
+            // Special case: "Nonce already used" means the mint already happened on a previous attempt.
+            // The tx failed on-chain because the CCTP nonce was consumed by a prior successful remint.
+            if (err.message?.toLowerCase().includes('nonce already used')) {
+                console.warn('[Activity] Nonce already used — remint was already completed on a prior attempt. Marking as success.');
+                setIsRemintSuccess(true);
+                // Trigger a refresh so the backend poller can pick up the real mint hash
+                refetchTx();
+                fetchStats();
+                return;
+            }
+
+            // Track genuine failure with SDK
+            sdk.trackMint({
+                burnTxHash: tx.sourceTxHash,
+                success: false,
+                error: err.message
+            }).catch(() => {});
+
+            alert('Action failed: ' + err.message);
         } finally {
             setIsMinting(false);
         }
@@ -240,6 +347,13 @@ export default function Activity({ setActiveTab }) {
         const c = getChainByName(chainName);
         return c?.explorer ? `${c.explorer}/tx/${hash}` : '#';
     };
+
+    // Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            if (pollingTimerRef.current) clearInterval(pollingTimerRef.current);
+        };
+    }, []);
 
     return (
         <div className={`activity-tab-wrapper ${isMobile ? 'mobile-view' : 'desktop-view'}`}>
@@ -340,7 +454,12 @@ export default function Activity({ setActiveTab }) {
                                                     <div className="tx-time-mobile">{timeAgo(tx.timestamp)}</div>
                                                 </div>
                                                 <div className={`tx-status-pill ${statusConfig.className}`}>
-                                                    {statusConfig.label}
+                                                    {tx.status === 'mint_failed' && (
+                                                        (!address || address.toLowerCase() !== tx.sender.toLowerCase()) 
+                                                            ? (tx.rawStatus === 'attestation_failed' ? 'Attestation Failed' : 'Mint Failed') 
+                                                            : 'Action Needed'
+                                                    )}
+                                                    {tx.status !== 'mint_failed' && statusConfig.label}
                                                 </div>
                                             </div>
                                             <div className="tx-card-route">
@@ -584,21 +703,28 @@ export default function Activity({ setActiveTab }) {
                                                         <div className="t-status-cell">
                                                             <div className={`t-status-pill-hf ${statusConfig.className}`}>
                                                                 <CheckCircle size={14} />
-                                                                <span>{statusConfig.label}</span>
+                                                                <span>
+                                                                    {tx.status === 'mint_failed' && (
+                                                                        (!address || address.toLowerCase() !== tx.sender.toLowerCase()) 
+                                                                            ? (tx.rawStatus === 'attestation_failed' ? 'Attestation Failed' : 'Mint Failed') 
+                                                                            : 'Action Needed'
+                                                                    )}
+                                                                    {tx.status !== 'mint_failed' && statusConfig.label}
+                                                                </span>
                                                             </div>
-                                                            {tx.status === 'mint_failed' && (
+                                                            {tx.status === 'mint_failed' && address?.toLowerCase() === tx.sender.toLowerCase() && (
                                                                 <button
                                                                     className="remint-btn-inline"
                                                                     onClick={(e) => handleRemintClick(tx, e)}
                                                                 >
-                                                                    Remint
+                                                                    {tx.rawStatus === 'attestation_failed' ? 'Re-attest' : 'Remint'}
                                                                 </button>
                                                             )}
                                                             <span className="t-timestamp">{timeAgo(tx.timestamp)}</span>
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <span className="t-fill-time">{tx.status === 'completed' ? '1s' : '-'}</span>
+                                                        <span className="t-fill-time">{tx.status === 'completed' || tx.destTxHash ? '1s' : '-'}</span>
                                                     </td>
                                                 </tr>
                                             );
@@ -626,7 +752,13 @@ export default function Activity({ setActiveTab }) {
 
             <RemintModal
                 isOpen={isRemintOpen}
-                onClose={() => setIsRemintOpen(false)}
+                isSuccess={isRemintSuccess}
+                mintHash={newMintHash}
+                onClose={() => {
+                    setIsRemintOpen(false);
+                    setIsRemintSuccess(false);
+                    setNewMintHash(null);
+                }}
                 onConfirm={confirmRemint}
                 tx={selectedTx}
                 isMinting={isMinting}

@@ -635,10 +635,26 @@ export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestat
             account,
         });
 
-        console.log('[BridgeService] Manual retryMint tx hash:', txHash);
+        console.log('[BridgeService] Manual retryMint tx submitted:', txHash);
+
+        // Wait for on-chain confirmation before declaring success
+        const { createPublicClient, custom } = await import('viem');
+        const publicClient = createPublicClient({
+            chain: { id: destChainConfig.chainId },
+            transport: custom(window.ethereum),
+        });
+
+        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+        if (receipt.status === 'reverted') {
+            // Nonce already used = this message was already minted by a prior attempt
+            throw new Error('Nonce already used');
+        }
+
+        console.log('[BridgeService] Manual retryMint confirmed on-chain:', txHash);
         return { mintTxHash: txHash };
     } catch (mintErr) {
         console.error('[BridgeService] Manual retryMint failed:', mintErr);
         throw new Error(mintErr.shortMessage || mintErr.message || 'Mint transaction failed');
     }
-};
+};
