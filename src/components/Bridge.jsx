@@ -548,56 +548,61 @@ export default function Bridge({
                             setStepStatuses(prev => ({ ...prev, [update.failedStep]: 'error' }));
                             updateHistory({ lastStep: update.failedStep });
 
-                            // Track the specific failure in the SDK
+                            // SDK tracking calls (best-effort, may fail silently)
                             if (update.failedStep === 'attestation') {
-                                sdk.trackAttestation({ burnTxHash: burnTxHashRef.current, success: false, error: 'User cancelled or timeout' }).catch(() => {});
+                                sdk.trackAttestation({ burnTxHash: burnTxHashRef.current, success: false, error: 'User cancelled' }).catch(() => {});
                             } else if (update.failedStep === 'mint') {
-                                // Mint was cancelled AFTER successful attestation.
-                                // First ensure attestation is marked done (in case trackAttestation was missed),
-                                // then mark the mint as failed — so status becomes 'mint_failed' (Action Needed).
-                                if (!burnTxHashRef.current) {
-                                    console.warn('[Bridge] Cancel tracking: burnTxHashRef is empty, SDK update may be lost');
-                                }
-                                sdk.trackAttestation({
-                                    burnTxHash: burnTxHashRef.current,
-                                    success: true,
-                                }).catch(() => {});
-                                sdk.trackMint({
-                                    burnTxHash: burnTxHashRef.current,
-                                    success: false,
-                                    error: 'User cancelled or timeout'
-                                }).catch(() => {});
-
-                                // RELIABLE FALLBACK: Call our backend directly, bypassing SDK.
-                                // This ensures the status is always set even if the SDK calls fail.
-                                if (burnTxHashRef.current) {
-                                    const analyticsUrl = import.meta.env.VITE_ANALYTICS_URL;
-                                    const bridgeId = import.meta.env.VITE_BRIDGE_ID;
-                                    // First mark as attested, then mint_failed
-                                    fetch(`${analyticsUrl}/track/status`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                            burnTxHash: burnTxHashRef.current,
-                                            bridgeId,
-                                            status: 'attested',
-                                        }),
-                                    })
-                                    .then(() => fetch(`${analyticsUrl}/track/status`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                            burnTxHash: burnTxHashRef.current,
-                                            bridgeId,
-                                            status: 'mint_failed',
-                                        }),
-                                    }))
-                                    .then(() => console.log('[Bridge] Direct status update: mint_failed ✅'))
-                                    .catch(err => console.warn('[Bridge] Direct status update failed:', err.message));
-                                }
+                                sdk.trackAttestation({ burnTxHash: burnTxHashRef.current, success: true }).catch(() => {});
+                                sdk.trackMint({ burnTxHash: burnTxHashRef.current, success: false, error: 'User cancelled' }).catch(() => {});
                             }
-
                         }
+
+                        // ── RELIABLE FALLBACK ─────────────────────────────────────────────
+                        // Call backend /track/status DIRECTLY, outside of failedStep checks.
+                        // This fires for ANY cancellation as long as we have a burn hash.
+                        // Covers: null failedStep, Circle auto-mode, HMR edge cases, etc.
+                        // ──────────────────────────────────────────────────────────────────
+                        if (burnTxHashRef.current) {
+                            const analyticsUrl = import.meta.env.VITE_ANALYTICS_URL;
+                            const bridgeId = import.meta.env.VITE_BRIDGE_ID;
+                            const cancelledAtAttestation = update.failedStep === 'attestation';
+                            const targetStatus = cancelledAtAttestation ? 'attestation_failed' : 'mint_failed';
+
+                            console.log(`[Bridge] Cancel detected — updating backend status to: ${targetStatus} for ${burnTxHashRef.current}`);
+
+                            const doStatusUpdate = () => {
+                                if (cancelledAtAttestation) {
+                                    // Just mark attestation as failed
+                                    return fetch(`${analyticsUrl}/track/status`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ burnTxHash: burnTxHashRef.current, bridgeId, status: 'attestation_failed' }),
+                                    });
+                                } else {
+                                    // Mint was cancelled — first ensure attested, then mint_failed
+                                    return fetch(`${analyticsUrl}/track/status`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ burnTxHash: burnTxHashRef.current, bridgeId, status: 'attested' }),
+                                    }).then(() => fetch(`${analyticsUrl}/track/status`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ burnTxHash: burnTxHashRef.current, bridgeId, status: 'mint_failed' }),
+                                    }));
+                                }
+                            };
+
+                            doStatusUpdate()
+                                .then(() => console.log(`[Bridge] ✅ Direct status update: ${targetStatus}`))
+                                .catch(err => {
+                                    console.warn('[Bridge] Direct status update failed, retrying in 3s...', err.message);
+                                    // Retry once after 3 seconds (handles cold Render start)
+                                    setTimeout(() => doStatusUpdate().catch(() => {}), 3000);
+                                });
+                        } else {
+                            console.warn('[Bridge] cancel: burnTxHashRef is empty — cannot update backend status');
+                        }
+
                         setBridgeError('CANCELLED');
 
                     } else if (update.step === 'complete') {

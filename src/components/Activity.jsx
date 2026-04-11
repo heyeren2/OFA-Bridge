@@ -6,6 +6,7 @@ import { TOKEN_INFO } from '../config/contracts';
 import { retryMint } from '../services/bridgeService';
 import { sdk } from '../services/analyticsService';
 import { RemintModal } from './RemintModal';
+import { useStuckTxChecker } from '../hooks/useStuckTxChecker';
 import './Activity.css';
 
 const STATUS_CONFIG = {
@@ -170,6 +171,9 @@ export default function Activity({ setActiveTab }) {
 
     // Fetch activity on mount and when mode/address changes
     useEffect(() => { fetchData(); }, [fetchData]);
+
+    // Auto-recover stuck "Processing" transactions for the connected wallet
+    useStuckTxChecker(allTransactions, address, fetchData);
 
     // Refetch helper for remint
     const refetchTx = fetchData;
