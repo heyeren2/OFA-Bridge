@@ -2516,6 +2516,104 @@ body {
   animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   ULTRA-AGGRESSIVE COMPACT MODE (CANCELLED) - TOTAL 20% HEIGHT REDUCTION
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Bottom 10% Reduction Area */
+.txm-modal.cancelled {
+  padding-bottom: 0px !important; /* Eliminated to shrink modal base */
+}
+
+/* Top 10% Reduction Area */
+.txm-modal.cancelled .txm-header {
+  padding: 4px 32px 0px !important; /* -10% vertical from header total area */
+}
+
+.txm-modal.cancelled .txm-close {
+  top: 8px !important; /* Moved up to clear USDC pill */
+}
+
+.txm-modal.cancelled .txm-header h2 {
+  font-size: 22px !important; /* +10% Scale for prominence */
+}
+
+.txm-modal.cancelled .txm-header-route {
+  margin-top: 1px !important;
+  font-size: 13.5px !important; 
+}
+
+/* Middle Spacing Refinements */
+.txm-modal.cancelled .txm-progress-section {
+  padding: 0 32px 2px !important;
+}
+
+.txm-modal.cancelled .txm-progress-bar-container {
+  margin-bottom: 2px !important;
+}
+
+.txm-modal.cancelled .txm-header-amount-pill {
+  padding: 5px 14px !important; /* +10% Scale */
+  font-size: 13.5px !important;
+}
+
+.txm-modal.cancelled .txm-cancelled-badge {
+  padding: 4px 10px !important; /* Width reduction of pill */
+}
+
+.txm-modal.cancelled .txm-step-list-v2 {
+  margin-top: 0px !important;
+}
+
+.txm-modal.cancelled .txm-step-v2 {
+  padding: 2px 0 !important; 
+  gap: 12px !important;
+}
+
+.txm-modal.cancelled .txm-step-indicator-v2 {
+  width: 32px !important; /* +10% Scale */
+}
+
+.txm-modal.cancelled .txm-step-circle {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.txm-modal.cancelled .txm-step-circle svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.txm-modal.cancelled .txm-step-label-v2 {
+  font-size: 15.5px !important;
+}
+
+.txm-modal.cancelled .txm-step-description-v2 {
+  font-size: 12px !important;
+  margin-top: 0px !important;
+}
+
+.txm-modal.cancelled .txm-remint-container-v2 {
+  margin-top: 0px !important; /* Eliminated space above Remint button */
+}
+
+.txm-modal.cancelled .txm-remint-btn-v2 {
+  padding: 12px !important; 
+  font-size: 15.5px !important;
+  margin: 0px 0 0px !important;
+}
+
+/* Bottom 10% Reduction Area Continued */
+.txm-modal.cancelled .txm-footer-v2 {
+  padding-top: 4px !important;  /* 15% reduction (5px → 4px) */
+  padding-bottom: 4px !important; /* Matches top exactly for perfect symmetry */
+}
+
+.txm-modal.cancelled .txm-powered-by {
+  font-size: 10px !important;
+  margin-top: 2px !important;
+}
+
 /* Mobile Adjustments: W+5%, H-5%, No scroll */
 @media (max-width: 640px) {
   .txm-modal {
@@ -2527,6 +2625,23 @@ body {
     /* Eliminate scrollable parts */
     padding-bottom: 14px;
     /* Further reduced from 20px */
+  }
+
+  .txm-modal.cancelled {
+    max-height: 55vh; /* Extremely tight for cancelled mobile */
+    padding-bottom: 4px;
+  }
+
+  .txm-modal.cancelled .txm-header {
+    padding: 4px 20px 2px;
+  }
+
+  .txm-modal.cancelled .txm-progress-section {
+    padding: 0 20px 2px;
+  }
+
+  .txm-modal.cancelled .txm-body {
+    padding: 0 20px;
   }
 }
 

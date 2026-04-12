@@ -179,7 +179,7 @@ export default function TransactionModal({
 
     return createPortal(
         <div className="tx-modal-overlay" onClick={onClose}>
-            <div className="txm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className={`txm-modal ${isCancelled ? 'cancelled' : ''}`} onClick={(e) => e.stopPropagation()}>
                 <button className="txm-close" onClick={onClose}>
                     <X size={18} />
                 </button>
@@ -222,7 +222,6 @@ export default function TransactionModal({
                                 </div>
                                 {isCancelled && (
                                     <div className="txm-cancelled-badge">
-                                        <X size={12} />
                                         <span>Cancelled</span>
                                     </div>
                                 )}
@@ -405,10 +404,8 @@ export default function TransactionModal({
                                 >
                                     {isReminting ? (
                                         <Loader2 size={16} className="spin" />
-                                    ) : (
-                                        <RefreshCw size={14} />
-                                    )}
-                                    <span>{isReminting ? 'Reminting...' : 'Remint Transaction'}</span>
+                                    ) : null}
+                                    <span>{isReminting ? 'Reminting...' : 'Remint USDC'}</span>
                                 </button>
                             )}
                         </div>
@@ -423,10 +420,8 @@ export default function TransactionModal({
                             >
                                 {isReminting ? (
                                     <Loader2 size={16} className="spin" />
-                                ) : (
-                                    <RefreshCw size={14} />
-                                )}
-                                <span>{isReminting ? 'Reminting...' : 'Remint Transaction'}</span>
+                                ) : null}
+                                <span>{isReminting ? 'Reminting...' : 'Remint USDC'}</span>
                             </button>
                         </div>
                     )}
@@ -436,11 +431,11 @@ export default function TransactionModal({
                     <>
                         <div className="txm-divider-v3" />
                         {/* Footer */}
-                        <div className="txm-footer-v2" style={{ border: 'none', paddingTop: 6, paddingBottom: 10 }}>
+                        <div className="txm-footer-v2" style={{ border: 'none', paddingTop: 4, paddingBottom: 4 }}>
                             <button className="txm-footer-btn-v2" onClick={onClose}>
                                 {isCancelled ? 'Back to Bridge' : 'Close'}
                             </button>
-                            <div className="txm-powered-by" style={{ fontSize: '9px' }}>
+                            <div className="txm-powered-by">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <img src="/icons/circle.png" alt="Circle" width={12} height={12} />
                                     <span>Powered by Circle CCTP</span>
