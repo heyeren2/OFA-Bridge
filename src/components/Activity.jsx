@@ -13,7 +13,7 @@ import './Activity.css';
 const STATUS_CONFIG = {
     processing: { icon: Loader, className: 'status-processing', animate: true, label: 'Processing' },
     minting: { icon: Loader, className: 'status-processing', animate: true, label: 'Minting' },
-    completed: { icon: CheckCircle, className: 'status-completed', animate: false, label: 'Success' },
+    completed: { icon: CheckCircle, className: 'status-completed', animate: false, label: 'Completed' },
     failed: { icon: XCircle, className: 'status-failed', animate: false, label: 'Failed' },
     mint_failed: { icon: AlertTriangle, className: 'status-mint-failed', animate: false, label: 'Action Needed' },
     attestation_failed: { icon: AlertTriangle, className: 'status-mint-failed', animate: false, label: 'Action Needed' },
