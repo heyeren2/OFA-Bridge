@@ -2527,7 +2527,7 @@ body {
 
 /* Top 10% Reduction Area */
 .txm-modal.cancelled .txm-header {
-  padding: 4px 32px 0px !important; /* -10% vertical from header total area */
+  padding: 19px 32px 0px !important; /* +3% Top Spacing (Increased from 4px) */
 }
 
 .txm-modal.cancelled .txm-close {
@@ -2566,12 +2566,12 @@ body {
 }
 
 .txm-modal.cancelled .txm-step-v2 {
-  padding: 2px 0 !important; 
-  gap: 12px !important;
+  padding: 1px 0 !important; /* Extremely tight */
+  gap: 10px !important;
 }
 
 .txm-modal.cancelled .txm-step-indicator-v2 {
-  width: 32px !important; /* +10% Scale */
+  width: 32px !important; /* Scaled up by 10% */
 }
 
 .txm-modal.cancelled .txm-step-circle {
@@ -2589,8 +2589,8 @@ body {
 }
 
 .txm-modal.cancelled .txm-step-description-v2 {
-  font-size: 12px !important;
-  margin-top: 0px !important;
+  font-size: 11.5px !important; /* Slightly smaller for height cut */
+  margin-top: -2px !important; /* Pulled up */
 }
 
 .txm-modal.cancelled .txm-remint-container-v2 {
@@ -2605,31 +2605,38 @@ body {
 
 /* Bottom 10% Reduction Area Continued */
 .txm-modal.cancelled .txm-footer-v2 {
-  padding-top: 4px !important;  /* 15% reduction (5px → 4px) */
-  padding-bottom: 4px !important; /* Matches top exactly for perfect symmetry */
+  padding-top: 10px !important;  /* Raised Upward & Balanced */
+  padding-bottom: 10px !important; /* Symmetric with top gap */
+  margin-top: -4px !important; /* Shifted upward to raise position */
 }
 
 .txm-modal.cancelled .txm-powered-by {
   font-size: 10px !important;
-  margin-top: 2px !important;
+  margin-top: 4px !important;
 }
 
-/* Mobile Adjustments: W+5%, H-5%, No scroll */
-@media (max-width: 640px) {
+/* Mobile & Tablet Adjustments */
+@media (max-width: 1024px) {
   .txm-modal {
     width: 95%;
-    max-height: 75vh;
-    /* Reduced further to 75vh for a definitive 10%+ shrinkage */
-    /* Reduced height (+5% shorter effective limit) */
+    max-height: 85vh; /* Relaxed for iPad to prevent overlap */
     overflow-y: hidden;
-    /* Eliminate scrollable parts */
-    padding-bottom: 14px;
-    /* Further reduced from 20px */
+    padding-bottom: 12px;
   }
 
   .txm-modal.cancelled {
-    max-height: 55vh; /* Extremely tight for cancelled mobile */
-    padding-bottom: 4px;
+    max-height: 70vh; /* Better fit for iPad */
+    padding-bottom: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .txm-modal {
+    max-height: 75vh;
+  }
+  
+  .txm-modal.cancelled {
+    max-height: 55vh; 
   }
 
   .txm-modal.cancelled .txm-header {

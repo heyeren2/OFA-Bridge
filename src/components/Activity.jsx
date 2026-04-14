@@ -4,6 +4,7 @@ import { Search, ExternalLink, ArrowRight, ArrowLeft, CheckCircle, XCircle, Aler
 import { getChainByName, ARC_CHAIN, SUPPORTED_CHAINS } from '../config/chains';
 import { TOKEN_INFO } from '../config/contracts';
 import { retryMint } from '../services/bridgeService';
+import { checkAttestationStatus } from '../services/attestationService';
 import { sdk } from '../services/analyticsService';
 import { RemintModal } from './RemintModal';
 import { useStuckTxChecker } from '../hooks/useStuckTxChecker';
@@ -34,6 +35,8 @@ export default function Activity({ setActiveTab }) {
     const [isMinting, setIsMinting] = useState(false);
     const [isRemintSuccess, setIsRemintSuccess] = useState(false);
     const [newMintHash, setNewMintHash] = useState(null);
+    // Tracks which step is currently active: null | 'attestation' | 'mint'
+    const [mintingStep, setMintingStep] = useState(null);
 
     // Multi-chain aggregated state
     const [allTransactions, setAllTransactions] = useState([]);
@@ -42,27 +45,7 @@ export default function Activity({ setActiveTab }) {
         completedBridges: 0, pendingBridges: 0
     });
     const [txLoading, setTxLoading] = useState(false);
-    const [locallyRecoveredTxs, setLocallyRecoveredTxs] = useState(() => {
-        try {
-            const saved = localStorage.getItem('ofa_recovered_txs');
-            // Only keep recoveries from the last 24 hours to avoid stale data
-            const parsed = saved ? JSON.parse(saved) : {};
-            const filtered = {};
-            const now = Date.now();
-            Object.entries(parsed).forEach(([hash, data]) => {
-                if (now - data.timestamp < 24 * 60 * 60 * 1000) {
-                    filtered[hash] = data;
-                }
-            });
-            return filtered;
-        } catch { return {}; }
-    });
     const pollingTimerRef = useRef(null);
-
-    // Persist local recoveries
-    useEffect(() => {
-        localStorage.setItem('ofa_recovered_txs', JSON.stringify(locallyRecoveredTxs));
-    }, [locallyRecoveredTxs]);
 
     // Debounce search input
     useEffect(() => {
@@ -84,13 +67,11 @@ export default function Activity({ setActiveTab }) {
                 )?.name || name;
             };
 
-            // KEY FIX: If the backend has a mintTxHash, the mint already happened.
-            // Trust the hash over the status field, which can be stale on the backend.
+            // If the backend has a mintTxHash, the mint already happened — trust the DB.
             const alreadyMinted = !!tx.mintTxHash;
-            const localOverride = locallyRecoveredTxs[tx.burnTxHash];
 
             let derivedStatus;
-            if (alreadyMinted || localOverride) {
+            if (alreadyMinted) {
                 derivedStatus = 'completed';
             } else {
                 derivedStatus = tx.status === 'minted' ? 'completed'
@@ -112,13 +93,13 @@ export default function Activity({ setActiveTab }) {
                 fromChain: searchName(tx.sourceChain),
                 toChain: searchName(tx.destinationChain),
                 sourceTxHash: tx.burnTxHash,
-                destTxHash: localOverride?.mintHash || tx.mintTxHash || null,
+                destTxHash: tx.mintTxHash || null,
                 status: derivedStatus,
                 timestamp: tx.timestamp
                     ? String(Math.floor(new Date(tx.timestamp).getTime() / 1000))
                     : String(Math.floor(Date.now() / 1000)),
                 isOFA: true,
-                rawStatus: (alreadyMinted || localOverride) ? 'minted' : tx.status,
+                rawStatus: alreadyMinted ? 'minted' : tx.status,
             };
         });
     };
@@ -178,6 +159,84 @@ export default function Activity({ setActiveTab }) {
     // Refetch helper for remint
     const refetchTx = fetchData;
 
+    // Background attestation expiry checker
+    // Runs whenever allTransactions or the connected wallet changes.
+    // For each mint_failed tx owned by the user, calls Circle Iris API + simulates receiveMessage
+    // to determine if the attestation has simply expired (CCTP V2) or was already minted.
+    // Updates the backend and local state silently — the button auto-changes to 'Re-Attest'.
+    useEffect(() => {
+        if (!address || !allTransactions.length) return;
+
+        // Check both mint_failed AND attestation_failed txs:
+        // mint_failed       → check if expired → show Re-Attest once
+        // attestation_failed → check again  → if still expired → mark as failed permanently
+        const myPendingTxs = allTransactions.filter(tx =>
+            (tx.status === 'mint_failed' || tx.rawStatus === 'attestation_failed') &&
+            tx.sender?.toLowerCase() === address.toLowerCase() &&
+            tx.sourceTxHash &&
+            !tx.destTxHash
+        );
+
+        if (!myPendingTxs.length) return;
+
+        let cancelled = false;
+
+        const runChecks = async () => {
+            for (const tx of myPendingTxs) {
+                if (cancelled) break;
+                try {
+                    const attestStatus = await checkAttestationStatus({
+                        burnTxHash: tx.sourceTxHash,
+                        fromChain: tx.fromChain,
+                        toChain: tx.toChain,
+                        walletAddress: address,
+                    });
+
+                    console.log(`[Activity] Attestation check for ${tx.sourceTxHash.slice(0, 10)}...: ${attestStatus}`);
+
+                    if (attestStatus === 'expired') {
+                        // Two-stage escalation matching the manual Re-Attest logic:
+                        // mint_failed + expired        → attestation_failed (show Re-Attest once)
+                        // attestation_failed + expired → failed (no protocol recovery possible)
+                        const alreadyAttempted = tx.rawStatus === 'attestation_failed';
+                        const nextStatus = alreadyAttempted ? 'failed' : 'attestation_failed';
+
+                        // Silently update backend
+                        fetch(import.meta.env.VITE_ANALYTICS_URL + '/track/status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                burnTxHash: tx.sourceTxHash,
+                                bridgeId: import.meta.env.VITE_BRIDGE_ID,
+                                status: nextStatus,
+                            }),
+                        }).catch(() => {});
+
+                        // Update local state immediately
+                        if (!cancelled) {
+                            setAllTransactions(prev => prev.map(t =>
+                                t.id === tx.id
+                                    ? { ...t, rawStatus: nextStatus, status: alreadyAttempted ? 'failed' : 'mint_failed' }
+                                    : t
+                            ));
+                        }
+                    } else if (attestStatus === 'already_minted') {
+                        // Backend hasn't updated yet — trigger a re-fetch to get the real mint hash
+                        if (!cancelled) fetchData();
+                    }
+                } catch {
+                    // Silently ignore individual check errors
+                }
+
+                // Small delay between checks to avoid hammering Circle's API
+                await new Promise(r => setTimeout(r, 800));
+            }
+        };
+
+        runChecks();
+        return () => { cancelled = true; };
+    }, [allTransactions, address]);
+
     const stats = useMemo(() => ({
         volume: parseFloat(globalStats.totalVolume || '0'),
         count: globalStats.totalTransactions || 0,
@@ -236,45 +295,57 @@ export default function Activity({ setActiveTab }) {
 
     const confirmRemint = async (tx) => {
         setIsMinting(true);
+        // Start at attestation step if re-attesting, otherwise go straight to mint
+        setMintingStep(tx.rawStatus === 'attestation_failed' ? 'attestation' : 'mint');
         try {
             // Note: retryMint should ideally return the result object containing the hash
             const result = await retryMint({
                 burnTxHash: tx.sourceTxHash,
                 fromChain: tx.fromChain,
                 toChain: tx.toChain,
+                onStatusUpdate: ({ step }) => {
+                    // 'attestation_polling' — Iris API call in progress, keep spinner on attestation
+                    if (step === 'attestation_polling') {
+                        // Only show attestation spinner if we're in a re-attest flow
+                        // (normal mint_failed goes straight to 'mint' step)
+                        if (tx.rawStatus === 'attestation_failed') {
+                            setMintingStep('attestation');
+                        }
+                    }
+                    // 'attestation_done' — Circle confirmed, now transition to Mint step
+                    if (step === 'attestation_done') setMintingStep('mint');
+                },
             });
 
             const mintHash = result?.mintTxHash || result?.mintHash || result?.hash || null;
             if (mintHash) {
                 setNewMintHash(mintHash);
-                
-                // Track successful remint with SDK → sends to backend
-                await sdk.trackMint({
-                    burnTxHash: tx.sourceTxHash,
-                    mintTxHash: mintHash,
-                    amountReceived: tx.amountReceived || tx.amountDisplay,
-                    success: true,
-                }).catch(err => console.warn('[Activity] trackMint (remint) failed:', err.message));
-                
-                // If it was a re-attestation that logic might differ, but retryMint usually covers both
-                if (tx.rawStatus === 'attestation_failed') {
-                    await sdk.trackAttestation({
-                        burnTxHash: tx.sourceTxHash,
-                        success: true,
-                    }).catch(err => console.warn('[Activity] trackAttestation (remint) failed:', err.message));
+
+                // Update selectedTx immediately so the success modal explorer link works right away
+                setSelectedTx(prev => prev ? { ...prev, destTxHash: mintHash, status: 'completed' } : null);
+
+                // Write the mint hash directly to the backend database.
+                // This is the source of truth — no localStorage involved.
+                try {
+                    await fetch(import.meta.env.VITE_ANALYTICS_URL + '/track/mint', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            burnTxHash: tx.sourceTxHash,
+                            mintTxHash: mintHash,
+                            bridgeId: import.meta.env.VITE_BRIDGE_ID,
+                            amountReceived: tx.amountReceived || tx.amountDisplay,
+                            success: true,
+                        }),
+                    });
+                    console.log('[Activity] Remint recorded in backend DB:', mintHash);
+                } catch (trackErr) {
+                    console.warn('[Activity] Failed to record remint in DB (will retry via polling):', trackErr.message);
                 }
             }
-            
+
             setIsRemintSuccess(true);
-            
-            // Optimistic UI Update
-            if (mintHash) {
-                setLocallyRecoveredTxs(prev => ({
-                    ...prev,
-                    [tx.sourceTxHash]: { mintHash, timestamp: Date.now() }
-                }));
-            }
-            
+
             // Re-fetch transactions immediately and start polling
             refetchTx();
             fetchStats();
@@ -296,8 +367,52 @@ export default function Activity({ setActiveTab }) {
             }, 5000);
         } catch (err) {
             console.error(err);
-            
-            // Special case: "Nonce already used" means the mint already happened on a previous attempt.
+
+            if (err.message?.startsWith('ATTESTATION_EXPIRED')) {
+                console.warn('[Activity] Attestation expired — updating backend.');
+
+                setMintingStep(null);
+
+                // TWO-STAGE FAILURE LOGIC:
+                // 1st failure  (rawStatus was 'mint_failed')   → attestation_failed → show Re-Attest once
+                // 2nd failure  (rawStatus was 'attestation_failed') → failed → close modal, done
+                const isSecondAttempt = tx.rawStatus === 'attestation_failed';
+                const nextBackendStatus = isSecondAttempt ? 'failed' : 'attestation_failed';
+
+                // Update backend
+                try {
+                    await fetch(import.meta.env.VITE_ANALYTICS_URL + '/track/status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            burnTxHash: tx.sourceTxHash,
+                            bridgeId: import.meta.env.VITE_BRIDGE_ID,
+                            status: nextBackendStatus,
+                        }),
+                    });
+                } catch (e) { console.warn('[Activity] Could not update status:', e.message); }
+
+                // Update local state immediately
+                setAllTransactions(prev => prev.map(t =>
+                    t.id === tx.id
+                        ? { ...t, rawStatus: nextBackendStatus, status: isSecondAttempt ? 'failed' : 'mint_failed' }
+                        : t
+                ));
+
+                if (isSecondAttempt) {
+                    // Re-Attest also failed — this burn is permanently unrecoverable
+                    // Close the modal, the activity list now shows red 'Failed'
+                    console.warn('[Activity] Re-Attest also expired — marking tx as permanently failed.');
+                    setIsRemintOpen(false);
+                } else {
+                    // First detection — give the user one chance to Re-Attest
+                    setSelectedTx(prev => prev ? { ...prev, rawStatus: 'attestation_failed', status: 'mint_failed' } : null);
+                    // Keep modal open — button will now show 'Re-Attest & Mint'
+                }
+                return;
+            }
+
+            // Special case: "Nonce already used" = already minted by a prior attempt
             // The tx failed on-chain because the CCTP nonce was consumed by a prior successful remint.
             if (err.message?.toLowerCase().includes('nonce already used')) {
                 console.warn('[Activity] Nonce already used — remint was already completed on a prior attempt. Marking as success.');
@@ -313,11 +428,12 @@ export default function Activity({ setActiveTab }) {
                 burnTxHash: tx.sourceTxHash,
                 success: false,
                 error: err.message
-            }).catch(() => {});
+            }).catch(() => { });
 
             alert('Action failed: ' + err.message);
         } finally {
             setIsMinting(false);
+            setMintingStep(null);
         }
     };
 
@@ -459,8 +575,8 @@ export default function Activity({ setActiveTab }) {
                                                 </div>
                                                 <div className={`tx-status-pill ${statusConfig.className}`}>
                                                     {tx.status === 'mint_failed' && (
-                                                        (!address || address.toLowerCase() !== tx.sender.toLowerCase()) 
-                                                            ? (tx.rawStatus === 'attestation_failed' ? 'Attestation Failed' : 'Mint Failed') 
+                                                        (!address || address.toLowerCase() !== tx.sender.toLowerCase())
+                                                            ? (tx.rawStatus === 'attestation_failed' ? 'Attestation Failed' : 'Mint Failed')
                                                             : 'Action Needed'
                                                     )}
                                                     {tx.status !== 'mint_failed' && statusConfig.label}
@@ -709,8 +825,8 @@ export default function Activity({ setActiveTab }) {
                                                                 <CheckCircle size={14} />
                                                                 <span>
                                                                     {tx.status === 'mint_failed' && (
-                                                                        (!address || address.toLowerCase() !== tx.sender.toLowerCase()) 
-                                                                            ? (tx.rawStatus === 'attestation_failed' ? 'Attestation Failed' : 'Mint Failed') 
+                                                                        (!address || address.toLowerCase() !== tx.sender.toLowerCase())
+                                                                            ? (tx.rawStatus === 'attestation_failed' ? 'Attestation Failed' : 'Mint Failed')
                                                                             : 'Action Needed'
                                                                     )}
                                                                     {tx.status !== 'mint_failed' && statusConfig.label}
@@ -758,10 +874,12 @@ export default function Activity({ setActiveTab }) {
                 isOpen={isRemintOpen}
                 isSuccess={isRemintSuccess}
                 mintHash={newMintHash}
+                mintingStep={mintingStep}
                 onClose={() => {
                     setIsRemintOpen(false);
                     setIsRemintSuccess(false);
                     setNewMintHash(null);
+                    setMintingStep(null);
                 }}
                 onConfirm={confirmRemint}
                 tx={selectedTx}

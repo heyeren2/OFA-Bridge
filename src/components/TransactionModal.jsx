@@ -431,7 +431,7 @@ export default function TransactionModal({
                     <>
                         <div className="txm-divider-v3" />
                         {/* Footer */}
-                        <div className="txm-footer-v2" style={{ border: 'none', paddingTop: 4, paddingBottom: 4 }}>
+                        <div className="txm-footer-v2" style={{ border: 'none', paddingTop: 10, paddingBottom: 10 }}>
                             <button className="txm-footer-btn-v2" onClick={onClose}>
                                 {isCancelled ? 'Back to Bridge' : 'Close'}
                             </button>

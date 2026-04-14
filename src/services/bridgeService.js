@@ -512,7 +512,9 @@ export const executeBridge = async ({
     }
 };
 
-export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestation = null }) => {
+
+export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestation = null, onStatusUpdate }) => {
+
     if (!burnTxHash) throw new Error('No source transaction hash available for retry');
 
     console.log('[BridgeService] Manual retryMint for burn tx:', burnTxHash);
@@ -544,37 +546,59 @@ export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestat
         console.log('[BridgeService] Using cached attestation — skipping Iris API re-fetch');
         attestationData = cachedAttestation;
     } else {
-        // Slow path: fetch fresh from Circle's Iris API
-        try {
-            console.log(`[BridgeService] Fetching attestation from: ${attestationUrl}`);
-            const response = await fetch(attestationUrl);
+        // Poll Circle's Iris API until attestation is 'complete'
+        // Fresh burns can take 20–60s. Re-attestation attempts return immediately if complete.
+        // But we always poll to ensure the UI shows the spinner for a meaningful duration.
+        const MAX_POLL_ATTEMPTS = 60;  // 5-minute maximum (60 × 5s)
+        const POLL_INTERVAL_MS   = 5_000;
 
-            if (!response.ok) {
-                const errBody = await response.text();
-                console.error('[BridgeService] Attestation API error:', response.status, errBody);
-                throw new Error('Attestation not yet available. Circle may still be processing. Please wait 1-2 minutes.');
+        console.log(`[BridgeService] Polling attestation from: ${attestationUrl}`);
+
+        for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
+            // Notify the UI which attempt we're on (keeps the spinner moving for fresh burns)
+            onStatusUpdate?.({ step: 'attestation_polling', attempt, max: MAX_POLL_ATTEMPTS });
+
+            try {
+                const response = await fetch(attestationUrl);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const msg  = data.messages?.[0];
+
+                    if (msg?.status === 'complete') {
+                        attestationData = { message: msg.message, attestation: msg.attestation };
+                        console.log(`[BridgeService] Attestation ready on attempt ${attempt}`);
+                        break; // exit poll loop
+                    }
+
+                    console.log(`[BridgeService] Poll ${attempt}/${MAX_POLL_ATTEMPTS}: status=${msg?.status ?? 'no message yet'}`);
+                } else {
+                    console.warn(`[BridgeService] Poll ${attempt}/${MAX_POLL_ATTEMPTS}: HTTP ${response.status}`);
+                }
+            } catch (fetchErr) {
+                console.warn(`[BridgeService] Poll ${attempt}/${MAX_POLL_ATTEMPTS}: fetch error — ${fetchErr.message}`);
             }
 
-            const data = await response.json();
-
-            if (!data.messages || data.messages.length === 0) {
-                throw new Error('Attestation not yet available. Please wait a few minutes and try again.');
+            // Wait before trying again (don't wait on the last attempt)
+            if (attempt < MAX_POLL_ATTEMPTS) {
+                await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
             }
+        }
 
-            const msg = data.messages[0];
-            if (msg.status !== 'complete') {
-                throw new Error(`Attestation status: ${msg.status}. Please wait for attestation to complete.`);
-            }
-
-            attestationData = {
-                message: msg.message,
-                attestation: msg.attestation,
-            };
-        } catch (fetchErr) {
-            if (fetchErr.message.includes('Attestation')) throw fetchErr;
-            throw new Error(`Failed to fetch attestation: ${fetchErr.message}`);
+        if (!attestationData) {
+            throw new Error(
+                'Attestation timed out after 5 minutes. ' +
+                'Circle may still be processing this transaction. Please try again in a few minutes.'
+            );
         }
     }
+
+    // Signal that attestation is ready — UI marks the attestation step as ✓ DONE
+    onStatusUpdate?.({ step: 'attestation_done' });
+
+    // Deliberate 1.5s pause so the user clearly sees the attestation step complete
+    // BEFORE the wallet switch prompt or mint tx popup appear.
+    await new Promise(r => setTimeout(r, 1500));
 
     const { createWalletClient, custom } = await import('viem');
     const { getChainByName } = await import('../config/chains');
@@ -647,14 +671,36 @@ export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestat
         const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 
         if (receipt.status === 'reverted') {
-            // Nonce already used = this message was already minted by a prior attempt
+            // Decode the actual revert reason via attestationService to distinguish:
+            // - CCTP V2 message expiry (show Re-Attest)
+            // - Nonce already used (a prior successful mint consumed this message)
+            const { decodeRevertReason } = await import('./attestationService');
+            const reason = await decodeRevertReason({
+                transmitterAddress,
+                attestationData,
+                destChainConfig,
+                walletAddress: account,
+            });
+
+            if (reason === 'expired') {
+                throw new Error('ATTESTATION_EXPIRED: Message expired and must be re-signed by Circle.');
+            }
+
             throw new Error('Nonce already used');
         }
 
         console.log('[BridgeService] Manual retryMint confirmed on-chain:', txHash);
         return { mintTxHash: txHash };
     } catch (mintErr) {
+        const msg = mintErr.shortMessage || mintErr.message || 'Mint transaction failed';
+        // Detect CCTP message expiry specifically so the caller can handle it differently
+        const isExpired = msg.toLowerCase().includes('message expired') ||
+            msg.toLowerCase().includes('must be re-signed') ||
+            msg.toLowerCase().includes('expired');
+        if (isExpired) {
+            throw new Error('ATTESTATION_EXPIRED: ' + msg);
+        }
         console.error('[BridgeService] Manual retryMint failed:', mintErr);
-        throw new Error(mintErr.shortMessage || mintErr.message || 'Mint transaction failed');
+        throw new Error(msg);
     }
 };

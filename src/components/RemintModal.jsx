@@ -4,7 +4,7 @@ import { X, ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react';
 import { getChainByName } from '../config/chains';
 import { TOKEN_INFO } from '../config/contracts';
 
-export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, tx, isMinting }) => {
+export const RemintModal = ({ isOpen, isSuccess, mintHash, mintingStep, onClose, onConfirm, tx, isMinting }) => {
     if (!isOpen || !tx) return null;
 
     const fromChain = getChainByName(tx.fromChain);
@@ -37,12 +37,12 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
     if (isSuccess) {
         return createPortal(
             <div className="tx-modal-overlay" onClick={onClose}>
-                <div className="txm-modal" onClick={e => e.stopPropagation()} style={{ 
-                    background: '#1a163b', 
-                    maxWidth: '430px', 
-                    width: '95%', 
-                    borderRadius: '24px', 
-                    padding: '32px', 
+                <div className="txm-modal" onClick={e => e.stopPropagation()} style={{
+                    background: 'var(--midnight-indigo)',
+                    maxWidth: '430px',
+                    width: '95%',
+                    borderRadius: '24px',
+                    padding: '32px',
                     position: 'relative',
                     boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
                     border: '1px solid rgba(240, 231, 213, 0.1)',
@@ -75,29 +75,29 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
                     </div>
 
                     <div className="txm-success-hero" style={{ marginBottom: '40px' }}>
-                        <div style={{ 
-                            width: '80px', 
-                            height: '80px', 
-                            background: 'rgba(16, 185, 129, 0.1)', 
-                            borderRadius: '50%', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
+                        <div style={{
+                            width: '80px',
+                            height: '80px',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             margin: '0 auto 20px auto'
                         }}>
                             <CheckCircle2 size={44} style={{ color: '#10b981' }} />
                         </div>
                         <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#f5deb3', margin: '0 0 8px 0' }}>Remint Successful!</h1>
-                        <p style={{ fontSize: '15px', color: 'rgba(240, 231, 213, 0.6)' }}>
+                        <p style={{ fontSize: '13.5px', color: 'rgba(240, 231, 213, 0.6)' }}>
                             {formatAmount(tx.amountDisplay)} USDC received on {getShortenedChainName(tx.toChain)}
                         </p>
                     </div>
 
                     <div className="txm-success-details" style={{ marginBottom: '40px' }}>
-                        <div style={{ 
-                            background: 'rgba(255, 255, 255, 0.03)', 
-                            borderRadius: '16px', 
-                            padding: '16px', 
+                        <div style={{
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            borderRadius: '16px',
+                            padding: '16px',
                             border: '1px solid rgba(240, 231, 213, 0.05)',
                             textAlign: 'left'
                         }}>
@@ -108,14 +108,11 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <a 
-                                            href={getExplorerUrl(tx.toChain, mintHash || tx.destTxHash)} 
-                                            target="_blank" 
-                                            rel="noreferrer" 
+                                        <span
                                             style={{ color: '#f5deb3', fontSize: '14px', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
                                         >
-                                            View on {getShortenedChainName(tx.toChain)}
-                                        </a>
+                                            View on Explorer
+                                        </span>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <a
                                                 href={getExplorerUrl(tx.toChain, mintHash || tx.destTxHash)}
@@ -126,7 +123,7 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
                                                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(240,231,213,0.2)'}
                                                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(240,231,213,0.1)'}
                                             >
-                                                MINT ↗
+                                                MINT TXN ↗
                                             </a>
                                         </div>
                                     </div>
@@ -138,22 +135,22 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
                     <div className="txm-actions">
                         <button
                             onClick={onClose}
-                            style={{ 
-                                width: '100%', 
-                                padding: '16px', 
-                                borderRadius: '16px', 
-                                background: '#F0E7D5', 
-                                color: '#212842', 
-                                border: 'none', 
-                                fontSize: '16px', 
-                                fontWeight: '800', 
+                            style={{
+                                width: '100%',
+                                padding: '16px',
+                                borderRadius: '16px',
+                                background: '#F0E7D5',
+                                color: '#212842',
+                                border: 'none',
+                                fontSize: '16px',
+                                fontWeight: '800',
                                 cursor: 'pointer',
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.025em',
                                 marginBottom: '20px'
                             }}
                         >
-                            Back to Bridge
+                            Return to Bridge
                         </button>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'rgba(240, 231, 213, 0.4)', fontSize: '12px' }}>
                             <img src="/icons/circle.png" width={14} height={14} alt="" style={{ opacity: 0.5 }} />
@@ -168,6 +165,23 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
 
     const isAttestationFailed = tx.rawStatus === 'attestation_failed';
 
+    // Step status driven by mintingStep prop from parent:
+    //   null        = not started, isMinting=false
+    //   'attestation' = fetching fresh attestation from Circle
+    //   'mint'      = attestation ready, submitting receiveMessage tx to chain
+    const attestationStepStatus = (() => {
+        if (!isAttestationFailed) return 'completed'; // normal remint: attestation was fine
+        if (!isMinting) return 'pending';
+        if (mintingStep === 'mint') return 'completed';  // attestation done, now minting
+        return 'active'; // still fetching attestation
+    })();
+
+    const mintStepStatus = (() => {
+        if (!isMinting) return isAttestationFailed ? 'pending' : 'pending';
+        if (isAttestationFailed && mintingStep !== 'mint') return 'pending'; // waiting on attestation
+        return 'active'; // minting
+    })();
+
     const steps = [
         {
             key: 'burn',
@@ -178,25 +192,29 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
         {
             key: 'attestation',
             label: 'Attestation',
-            status: isAttestationFailed ? (isMinting ? 'active' : 'pending') : 'completed',
+            status: attestationStepStatus,
             desc: isAttestationFailed
-                ? (isMinting ? 'Requesting new attestation...' : 'Attestation failed. Click to retry.')
+                ? (attestationStepStatus === 'active'
+                    ? 'Fetching fresh Circle signature...'
+                    : attestationStepStatus === 'completed'
+                        ? 'New attestation received'
+                        : 'Attestation expired. Re-attest to proceed.')
                 : 'Circle attestation is ready'
         },
         {
             key: 'mint',
             label: 'Mint USDC',
-            status: !isAttestationFailed ? (isMinting ? 'active' : 'pending') : 'pending',
-            desc: isMinting && !isAttestationFailed
-                ? 'Confirming mint transaction...'
-                : (!isAttestationFailed ? 'Ready to mint on destination' : 'Waiting for attestation')
+            status: mintStepStatus,
+            desc: mintStepStatus === 'active'
+                ? 'Confirm mint transaction...'
+                : (isAttestationFailed ? 'Waiting for new attestation' : 'Ready to mint on destination')
         }
     ];
 
     return createPortal(
         <div className="tx-modal-overlay" onClick={onClose}>
             <div className="txm-modal" onClick={e => e.stopPropagation()} style={{
-                background: '#1a163b',
+                background: 'var(--midnight-indigo)',
                 maxWidth: '430px',
                 width: '95%',
                 borderRadius: '24px',
@@ -233,7 +251,7 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
                         fontFamily: 'Outfit, sans-serif',
                         display: 'inline-block'
                     }}>
-                        Bridge Transaction
+                        Remint Transaction
                     </h2>
                 </div>
 
@@ -350,15 +368,9 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, onClose, onConfirm, t
                         onClick={() => onConfirm(tx)}
                     >
                         {isMinting ? (
-                            <>
-                                <RefreshCw className="spin" size={20} />
-                                <span>Minting...</span>
-                            </>
+                            <span>{mintingStep === 'attestation' ? 'Re-attesting...' : 'Minting...'}</span>
                         ) : (
-                            <>
-                                <RefreshCw size={20} />
-                                <span>Complete Mint</span>
-                            </>
+                            <span>{isAttestationFailed ? 'Re-Attest & Mint' : 'Complete Mint'}</span>
                         )}
                     </button>
                 </div>
