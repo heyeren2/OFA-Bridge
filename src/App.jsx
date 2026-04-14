@@ -3,6 +3,7 @@ import { Wallet } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Bridge from './components/Bridge';
 import Activity from './components/Activity';
+import OfaSwap from './components/OfaSwap';
 import HeaderMenu from './components/HeaderMenu';
 import LearnPopup from './components/LearnPopup';
 import SettingsPopup from './components/SettingsPopup';
@@ -56,6 +57,12 @@ function App() {
                             onClick={() => setActiveTab('bridge')}
                         >
                             Bridge
+                        </button>
+                        <button
+                            className={`nav-btn ${activeTab === 'swap' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('swap')}
+                        >
+                            Swap
                         </button>
                         <button
                             className={`nav-btn ${activeTab === 'activity' ? 'active' : ''}`}
@@ -199,6 +206,8 @@ function App() {
                             />
                         </div>
                     </div>
+                ) : activeTab === 'swap' ? (
+                    <OfaSwap />
                 ) : (
                     <Activity language={language} setActiveTab={setActiveTab} />
                 )}

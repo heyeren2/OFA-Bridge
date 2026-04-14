@@ -63,7 +63,7 @@ export default function RecipientModal({ isOpen, onClose, onConfirm, initialValu
                     <div className="recipient-warning-box">
                         <AlertTriangle size={18} className="warning-icon" />
                         <div className="warning-text">
-                            This isn't the connected wallet address. Please ensure that the address provided is accurate.
+                            This isn't the connected wallet address. Please verify the address provided is correct.
                         </div>
                     </div>
                 )}

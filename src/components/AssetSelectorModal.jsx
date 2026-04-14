@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { SUPPORTED_CHAINS, ARC_CHAIN } from '../config/chains';
-import { TOKEN_INFO, USDC_ADDRESSES } from '../config/contracts';
+import { TOKEN_INFO, USDC_ADDRESSES, EURC_ADDRESSES } from '../config/contracts';
 
 export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentChain, currentToken, mode = 'chain' }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -276,9 +276,11 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
                                                 <span className="token-chain-name">{getShortenedChainName(token.chain)}</span>
                                             </div>
                                             <div className="token-address-col">
-                                                {token.symbol === 'USDC'
+                                            {token.symbol === 'USDC'
                                                     ? (USDC_ADDRESSES[token.bridgeKitName]?.slice(0, 6) + '...' + USDC_ADDRESSES[token.bridgeKitName]?.slice(-4))
-                                                    : 'Native Asset'}
+                                                    : token.symbol === 'EURC'
+                                                        ? (EURC_ADDRESSES[token.bridgeKitName]?.slice(0, 6) + '...' + EURC_ADDRESSES[token.bridgeKitName]?.slice(-4))
+                                                        : 'Native Asset'}
                                             </div>
                                         </div>
                                     </button>

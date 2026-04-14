@@ -44,6 +44,17 @@ export const TOKEN_INFO = {
         decimals: 18,
         icon: '/icons/ethereum.png',
     },
+    EURC: {
+        symbol: 'EURC',
+        name: 'Euro Coin',
+        decimals: 6,
+        icon: '/icons/euro.png',
+    },
+};
+
+// EURC contract addresses (testnet)
+export const EURC_ADDRESSES = {
+    Arc_Testnet: '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a',
 };
 
 // SwapRouter02 ABI (only the functions we need)

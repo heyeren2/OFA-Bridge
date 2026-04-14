@@ -72,7 +72,7 @@ export const hyperEvmTestnet = defineChain({
     default: { http: ['https://rpc.hyperliquid-testnet.xyz/evm'] },
   },
   blockExplorers: {
-    default: { name: 'Purrsec', url: 'https://testnet.purrsec.com' },
+    default: { name: 'Hyperliquid Explorer', url: 'https://testnet.purrsec.com' },
   },
   testnet: true,
 });

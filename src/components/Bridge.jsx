@@ -10,6 +10,7 @@ import BridgeStatus from './BridgeStatus';
 import { SUPPORTED_CHAINS, ARC_CHAIN, BRIDGE_DIRECTION, getChainByName } from '../config/chains';
 import { TOKEN_INFO, USDC_ADDRESSES, SWAP_FEE_PERCENTAGE } from '../config/contracts';
 import { calculateFee, calculateForwardingFee, executeBridge, retryMint } from '../services/bridgeService';
+
 import { FORWARDING_CONFIG, DEFAULT_MINT_MODE, CHAINS_WITHOUT_FORWARDER_SUPPORT } from '../services/forwardingConfig';
 import { getSwapQuote, executeSwap } from '../services/swapService';
 import { getDestSwapQuote, executeDestSwap } from '../services/destSwapService';
@@ -126,7 +127,7 @@ export default function Bridge({
     const c = CURRENCY_DATA[currency] || CURRENCY_DATA.USD;
 
     const { openConnectModal } = useConnectModal();
-    const { address: currentAddress, isConnected } = useAccount();
+    const { address: currentAddress, isConnected, connector } = useAccount();
 
     const [fromChainName, setFromChainName] = useState('Ethereum Sepolia');
     const [toChainName, setToChainName] = useState('Arc Testnet');
@@ -203,6 +204,7 @@ export default function Bridge({
         chainId: fromChain.chainId,
         watch: true,
     });
+
 
     const { data: destBalanceData } = useBalance({
         address: customRecipient || currentAddress,
@@ -368,9 +370,10 @@ export default function Bridge({
                 }
             }
 
-            // Update destToken if targeting 'to'
-            if (tokenSymbol === 'ETH' && chainName === 'Ethereum Sepolia') {
-                setDestToken('ETH');
+            // Update destToken: use the selected token if the dest chain supports it
+            const destChainConfig = getChainByName(chainName);
+            if (destChainConfig && destChainConfig.tokens.includes(tokenSymbol)) {
+                setDestToken(tokenSymbol);
             } else {
                 setDestToken('USDC');
             }
