@@ -52,11 +52,12 @@
 }
 
 .activity-tab-wrapper {
-  background: transparent;
-  min-height: unset; /* remove the 100vh — let the page grow naturally */
-  padding: 8px 16px 100px 16px;
-  font-family: 'Inter', sans-serif;
-  color: var(--activity-text-primary);
+    background: transparent;
+    min-height: unset;
+    /* remove the 100vh — let the page grow naturally */
+    padding: 8px 16px 100px 16px;
+    font-family: 'Inter', sans-serif;
+    color: var(--activity-text-primary);
 }
 
 .activity-container {
@@ -150,6 +151,7 @@
 .desktop-view .h-stat-info {
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 .desktop-view .h-stat-label {
@@ -530,52 +532,62 @@
     }
 
     .activity-header-section {
+        position: relative;
         display: flex;
-        align-items: flex-start;
-        gap: 16px;
-        /* Closer together as requested */
-        margin-bottom: 20px;
-        /* Reduced by 10% from 32px */
+        justify-content: center;
+        align-items: center;
+        min-height: 36px;
+        margin-top: -4px;
+        /* Move header higher */
+        margin-bottom: 8px;
+        width: 100%;
+        padding: 0;
     }
 
     .activity-back-arrow {
-        background: none;
-        border: none;
+        position: absolute;
+        left: 4px;
+        /* Brought closer to center */
+        background: white;
+        border: 1px solid var(--activity-border);
         cursor: pointer;
-        padding: 4px;
+        width: 30px;
+        /* Scaled down */
+        height: 30px;
+        /* Scaled down */
+        border-radius: 50%;
         color: #1a1a2e;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-top: 4px;
-        transition: opacity 0.2s ease;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        z-index: 5;
     }
 
-    .activity-back-arrow:hover {
-        opacity: 0.6;
-    }
-
-    [data-theme='dark'] .activity-back-arrow {
-        color: #f5deb3;
+    .activity-header-section .title-area {
+        text-align: center;
+        padding: 0 12px;
+        /* Tightened padding to bring arrow closer */
     }
 
     .activity-header-section .title-area h1 {
-        font-size: 25px;
-        /* Reduced by 10% from 28px */
+        font-size: 21px;
+        /* Slightly smaller for better fit */
         font-weight: 800;
-        color: inherit;
-    }
-
-    [data-theme='dark'] .activity-header-section .title-area h1,
-    [data-theme='dark'] .activity-header-section .title-area p,
-    [data-theme='dark'] .transactions-section-header h2 {
-        color: var(--vanilla);
+        margin: 0;
+        line-height: 1;
+        white-space: nowrap;
+        /* Force horizontal */
     }
 
     .activity-header-section .title-area p {
-        font-size: 14px;
+        font-size: 12px;
+        margin-top: 1px;
+        white-space: nowrap;
+        /* Force horizontal */
         color: inherit;
-        /* Defaults to body black in light mode */
+        opacity: 0.8;
     }
 
     .activity-stats-grid {
@@ -848,8 +860,8 @@
     .route-arrow-line {
         flex: 1;
         height: 2px;
-        background: rgba(26, 22, 59, 0.05);
-        margin: 0 16px;
+        background: transparent;
+        margin: 0 8px;
         position: relative;
     }
 
@@ -1052,11 +1064,15 @@
 
 /* REMINT BUTTON STYLES */
 .remint-btn-inline {
-    background: #212842; /* Midnight Indigo */
-    color: #F0E7D5; /* Vanilla Cream */
+    background: #212842;
+    /* Midnight Indigo */
+    color: #F0E7D5;
+    /* Vanilla Cream */
     border: none;
-    padding: 4px 8px 4px 12px; /* Pull in 5% from right */
-    border-radius: 9999px; /* Pill shape */
+    padding: 4px 8px 4px 12px;
+    /* Pull in 5% from right */
+    border-radius: 9999px;
+    /* Pill shape */
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;

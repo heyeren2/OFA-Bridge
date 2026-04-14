@@ -26,8 +26,8 @@ export default function Activity({ setActiveTab }) {
     const [myTxnFilter, setMyTxnFilter] = useState(false);
     const [timeFilter, setTimeFilter] = useState('24h');
     const [copiedHash, setCopiedHash] = useState(null);
-    const [fromChainFilter, setFromChainFilter] = useState('3 Chains');
-    const [toChainFilter, setToChainFilter] = useState('3 Chains');
+    const [fromChainFilter, setFromChainFilter] = useState('Chains');
+    const [toChainFilter, setToChainFilter] = useState('Chains');
 
     // Remint Modal State
     const [isRemintOpen, setIsRemintOpen] = useState(false);
@@ -107,13 +107,14 @@ export default function Activity({ setActiveTab }) {
     // Fetch global stats independently (always runs)
     const fetchStats = useCallback(async () => {
         try {
-            const res = await fetch(import.meta.env.VITE_ANALYTICS_URL + `/analytics/stats?bridgeId=${import.meta.env.VITE_BRIDGE_ID}`);
+            const rangeParam = timeFilter === 'all' ? '' : `&range=${timeFilter}`;
+            const res = await fetch(import.meta.env.VITE_ANALYTICS_URL + `/analytics/stats?bridgeId=${import.meta.env.VITE_BRIDGE_ID}${rangeParam}`);
             const data = await res.json();
             if (data && !data.error) setGlobalStats(data);
         } catch (err) {
             console.warn('[Activity] Stats fetch failed:', err.message);
         }
-    }, []);
+    }, [timeFilter]);
 
     // Fetch activity data
     const fetchData = useCallback(async () => {
@@ -249,8 +250,8 @@ export default function Activity({ setActiveTab }) {
     const filteredTxs = useMemo(() => {
         if (!allTransactions.length) return [];
         return allTransactions.filter(tx => {
-            const matchesFrom = fromChainFilter === '3 Chains' || tx.fromChain === fromChainFilter;
-            const matchesTo = toChainFilter === '3 Chains' || tx.toChain === toChainFilter;
+            const matchesFrom = fromChainFilter === 'Chains' || tx.fromChain === fromChainFilter;
+            const matchesTo = toChainFilter === 'Chains' || tx.toChain === toChainFilter;
             const matchesSearch = !debouncedSearch ||
                 tx.sender?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
                 tx.receiver?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
