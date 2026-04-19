@@ -1,20 +1,41 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 
 export default function LearnPopup({ isOpen, onClose }) {
+    const [isClosing, setIsClosing] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) setIsClosing(false);
+    }, [isOpen]);
+
+    const handleClose = useCallback(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+            onClose();
+            setIsClosing(false);
+        }, 200);
+    }, [onClose]);
+
     useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape' && isOpen) handleClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+    }, [isOpen, handleClose]);
 
     if (!isOpen) return null;
 
     return (
-        <div className="learn-popup-overlay" onClick={onClose}>
-            <div className="learn-popup-content" onClick={(e) => e.stopPropagation()}>
-                <button className="learn-close-btn" onClick={onClose}>
+        <div 
+            className={`learn-popup-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`} 
+            style={{ zIndex: 9999 }}
+            onClick={handleClose}
+        >
+            <div 
+                className={`learn-popup-content ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`} 
+                onClick={(e) => e.stopPropagation()}
+            >
+                <button className="learn-close-btn" onClick={handleClose}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Settings, ChevronDown, ChevronRight, ArrowUpDown, ArrowDown, Clock, Zap, X } from 'lucide-react';
+import { Settings, ChevronDown, ChevronRight, ArrowUpDown, ArrowDown, Clock, Zap, X, ScrollText } from 'lucide-react';
 import { useAccount, useBalance } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import ChainSelector from './ChainSelector';
@@ -1141,6 +1141,7 @@ export default function Bridge({
                                     className={`recipient-pill ${(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? 'pill--disabled' : ''}`}
                                     onClick={!(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? onOpenRecipientModal : undefined}
                                 >
+                                    <ScrollText size={14} color="#fbbf24" style={{ flexShrink: 0 }} />
                                     <span className="pill-address">
                                         {customRecipient.slice(0, 6)}...{customRecipient.slice(-4)}
                                     </span>

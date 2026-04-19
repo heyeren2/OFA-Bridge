@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { SUPPORTED_CHAINS, ARC_CHAIN } from '../config/chains';
 import { TOKEN_INFO, USDC_ADDRESSES, EURC_ADDRESSES } from '../config/contracts';
@@ -8,6 +8,19 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
     const [activeChainId, setActiveChainId] = useState(currentChain || null); // null means "All Chains"
     const [mobileSubView, setMobileSubView] = useState('tokens'); // 'tokens' or 'chains'
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [isClosing, setIsClosing] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) setIsClosing(false);
+    }, [isOpen]);
+
+    const handleClose = useCallback(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+            onClose();
+            setIsClosing(false);
+        }, 200);
+    }, [onClose]);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -17,11 +30,11 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
 
     useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape' && isOpen) handleClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+    }, [isOpen, handleClose]);
 
     const starredChains = useMemo(() => {
         const starredNames = ['Arc Testnet', 'Ethereum Sepolia', 'Avalanche Fuji', 'Base Sepolia', 'Optimism Sepolia'];
@@ -98,8 +111,14 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="asset-selector-modal" onClick={e => e.stopPropagation()}>
+        <div 
+            className={`modal-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`} 
+            onClick={handleClose}
+        >
+            <div 
+                className={`asset-selector-modal ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`} 
+                onClick={e => e.stopPropagation()}
+            >
                 <header className="modal-header">
                     {isMobile && mobileSubView === 'chains' && (
                         <button className="back-btn" onClick={() => setMobileSubView('tokens')}>
@@ -109,7 +128,7 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
                         </button>
                     )}
                     {isMobile && mobileSubView === 'tokens' && (
-                        <button className="back-btn" onClick={onClose}>
+                        <button className="back-btn" onClick={handleClose}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M19 12H5M12 19l-7-7 7-7" />
                             </svg>
@@ -121,7 +140,7 @@ export default function AssetSelectorModal({ isOpen, onClose, onSelect, currentC
                             : `Select ${mode === 'chain' ? 'Chain' : 'Token'}`
                         }
                     </h3>
-                    {!isMobile && <button className="close-btn" onClick={onClose}>&times;</button>}
+                    {!isMobile && <button className="close-btn" onClick={handleClose}>&times;</button>}
                 </header>
 
                 <div className="modal-layout">

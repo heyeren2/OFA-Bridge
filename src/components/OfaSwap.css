@@ -1,376 +1,548 @@
 /* ═══════════════════════════════════════════════════
    OFA SWAP PAGE — EURC ↔ USDC on Arc Testnet
-═══════════════════════════════════════════════════ */
+   DECOUPLED VERSION: Independent Classes for CSS Isolation
+   ═══════════════════════════════════════════════════ */
 
+/* 1. Page & Container Layout */
 .ofa-swap-page {
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: calc(100vh - 120px);
-    padding: 40px 16px;
+    flex-direction: column;
+    justify-content: flex-start; /* RAISE UP Content */
+    align-items: center;
+    height: calc(100vh - 85px);
+    width: 100%;
+    overflow: hidden;
+    background: transparent;
+    padding: 40px 20px 0 20px; /* More top padding to control height */
+    box-sizing: border-box;
 }
 
-.ofa-swap-card {
-    width: 100%;
-    max-width: 460px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    padding: 28px;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.05) inset;
+.ofa-swap-card-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
+    /* MATCH BRIDGE GAP */
+    width: 404px;
+    max-width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 5;
 }
 
-/* ── Header ── */
-.ofa-swap-header {
+/* 2. Slim Balance Card (Top Hero) */
+.ofa-bal-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 10px 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    width: 404px; /* MATCH CONTAINER WIDTH */
+    max-width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    margin-bottom: 15px; /* THE 15PX GAP REQUESTED */
+}
+
+.ofa-bal-horizontal-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 100%;
 }
 
-.ofa-swap-title-row {
+.ofa-bal-group {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
 }
 
-.ofa-swap-icon-pair {
-    position: relative;
-    width: 52px;
-    height: 32px;
-    flex-shrink: 0;
-}
-
-.ofa-swap-token-icon {
-    width: 32px;
-    height: 32px;
+.ofa-bal-token-icon {
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    position: absolute;
-    border: 2px solid rgba(255,255,255,0.15);
 }
 
-.ofa-swap-token-icon:first-child { left: 0; z-index: 1; }
-.ofa-swap-token-icon.overlap     { left: 20px; z-index: 2; }
-
-.ofa-swap-title {
-    font-size: 18px;
+.ofa-bal-sym {
+    font-size: 10.5px;
     font-weight: 700;
-    margin: 0;
-    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    opacity: 0.7;
+    color: var(--text-on-dark) !important;
 }
 
-.ofa-swap-sub {
-    font-size: 12px;
-    color: rgba(255,255,255,0.45);
-    margin: 2px 0 0;
+.ofa-bal-amount {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-on-dark) !important;
 }
 
-.ofa-swap-badge {
+.ofa-bal-sep {
+    height: 16px;
+    width: 1px;
+    background: var(--text-on-dark) !important;
+    opacity: 0.15;
+}
+
+/* 3. Independent Card Components (Renamed Prefix) */
+.ofa-card-relay {
+    background: var(--bg-card) !important;
+    color: var(--text-on-dark) !important;
+    border-radius: 20px;
+    border: 1px solid rgba(240, 231, 213, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 20px !important;
+}
+
+.ofa-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.ofa-relay-card-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(240, 231, 213, 0.4);
+}
+
+.ofa-user-chain-info {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 20px;
-    padding: 5px 10px;
-    font-size: 12px;
-    color: rgba(255,255,255,0.7);
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 4px 10px;
+    border-radius: 100px;
+    cursor: pointer;
+    height: 24px;
+    transition: all 0.2s;
+    position: relative;
+    border: 1px solid transparent;
 }
 
-.ofa-swap-badge-icon {
+.ofa-user-chain-info:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.ofa-recipient-pill-yellow {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.ofa-recipient-pill-yellow:hover {
+    background: rgba(251, 191, 36, 0.15);
+}
+
+.ofa-color-yellow {
+    color: #fbbf24 !important;
+}
+
+.ofa-mini-chain-logo {
     width: 16px;
     height: 16px;
     border-radius: 50%;
 }
 
-/* ── Warning ── */
-.ofa-swap-warning {
-    background: rgba(255, 180, 0, 0.1);
-    border: 1px solid rgba(255, 180, 0, 0.25);
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 12px;
-    color: #ffcc44;
-}
-
-.ofa-swap-warning code {
-    font-family: monospace;
-    background: rgba(255,255,255,0.1);
-    padding: 1px 5px;
-    border-radius: 4px;
-}
-
-/* ── Balances row ── */
-.ofa-swap-balances {
-    display: flex;
-    align-items: center;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    padding: 12px 16px;
-    gap: 12px;
-}
-
-.ofa-bal-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-}
-
-.ofa-bal-icon {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-}
-
-.ofa-bal-label {
-    font-size: 12px;
+.ofa-user-handle {
+    font-size: 10px;
     font-weight: 600;
-    color: rgba(255,255,255,0.5);
+    color: var(--vanilla-cream);
 }
 
-.ofa-bal-val {
-    margin-left: auto;
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: -0.02em;
+.ofa-relay-input-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
 }
 
-.ofa-bal-divider {
-    width: 1px;
-    height: 28px;
-    background: rgba(255,255,255,0.12);
-}
-
-/* ── Swap body ── */
-.ofa-swap-body {
+.ofa-input-group {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 4px;
 }
 
-/* ── Input / Output cards ── */
-.ofa-swap-input-card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
+.ofa-amount-input {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    font-weight: 700;
+    outline: none;
+    width: 100%;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Remove numeric steppers */
+.ofa-amount-input::-webkit-outer-spin-button,
+.ofa-amount-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.ofa-amount-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.ofa-amount-display {
+    color: #d6cece;
+    font-size: 24px;
+    font-weight: 700;
+    display: block;
+}
+
+.ofa-fiat-sub {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.ofa-fiat-val {
+    font-size: 13px;
+    color: rgba(240, 231, 213, 0.4);
+    font-weight: 500;
+}
+
+.ofa-token-selector-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.03);
     border-radius: 16px;
-    padding: 16px;
-    transition: border-color 0.2s;
+    padding: 4px 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 140px;
+    height: 48px !important;
+    /* Parity with Bridge 50px Icon */
 }
 
-.ofa-swap-input-card:focus-within {
-    border-color: rgba(255,255,255,0.25);
+.ofa-token-icon-wrap {
+    position: relative;
+    width: 40px;
+    height: 40px;
 }
 
-.ofa-swap-output-card {
-    background: rgba(255,255,255,0.025);
-    border-color: rgba(255,255,255,0.06);
+.ofa-token-icon {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
 }
 
-.ofa-swap-input-label {
+.ofa-chain-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #111;
+    background: #111;
+}
+
+.ofa-token-selector-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+}
+
+.ofa-token-sym {
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+}
+
+.ofa-chain-name-sub {
+    font-size: 11px;
+    color: rgba(240, 231, 213, 0.4);
+    font-weight: 500;
+}
+
+/* Recipient Dropdown Styles */
+.ofa-dropdown-anchor {
+    position: relative;
+}
+
+.ofa-recipient-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 260px;
+    background: #1a1f33;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    padding: 8px;
+    animation: ofaDropdownFadeIn 0.2s ease-out;
+}
+
+[data-theme='dark'] .ofa-recipient-dropdown {
+    background: var(--vanilla-cream);
+    border-color: rgba(33, 40, 66, 0.1);
+}
+
+.ofa-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+}
+
+[data-theme='dark'] .ofa-dropdown-item {
+    color: var(--midnight-indigo);
+}
+
+.ofa-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .ofa-dropdown-item:hover {
+    background: rgba(33, 40, 66, 0.05);
+}
+
+.ofa-dropdown-item.active {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.ofa-dropdown-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ofa-dropdown-icon img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.ofa-dropdown-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.ofa-dropdown-label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.ofa-dropdown-sub {
+    font-size: 11px;
+    opacity: 0.5;
+}
+
+.ofa-dropdown-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 4px 0;
+}
+
+@keyframes ofaDropdownFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ofa-card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
-    color: rgba(255,255,255,0.45);
-    margin-bottom: 10px;
+    margin-top: 12px;
 }
 
-.ofa-swap-bal-hint {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.ofa-swap-max-btn {
-    background: rgba(66, 153, 225, 0.15);
-    border: 1px solid rgba(66, 153, 225, 0.3);
-    color: #63b3ed;
-    border-radius: 6px;
-    padding: 2px 7px;
+.ofa-balance-label {
     font-size: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
+    font-weight: 500;
+    color: #9e9b95 !important;
+    opacity: 0.6;
 }
 
-.ofa-swap-max-btn:hover {
-    background: rgba(66, 153, 225, 0.25);
-}
-
-.ofa-swap-input-row {
+.ofa-pct-buttons {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
-.ofa-swap-amount-input {
-    flex: 1;
-    background: none;
+.ofa-pct-buttons button {
+    background: rgba(255, 255, 255, 0.03);
     border: none;
-    outline: none;
-    font-size: 28px;
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: var(--vanilla-cream);
+    font-size: 8px;
     font-weight: 700;
-    color: #fff;
-    font-family: inherit;
-    letter-spacing: -0.03em;
-    width: 0; /* prevents overflow */
-}
-
-.ofa-swap-amount-input::placeholder { color: rgba(255,255,255,0.2); }
-
-.ofa-swap-amount-display {
-    flex: 1;
-    font-size: 28px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.4);
-    letter-spacing: -0.03em;
-}
-
-.ofa-swap-token-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 20px;
-    padding: 6px 12px 6px 8px;
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.ofa-pill-icon {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-}
-
-/* ── Direction toggle ── */
-.ofa-swap-arrow-row {
-    display: flex;
-    justify-content: center;
-    padding: 4px 0;
-}
-
-.ofa-swap-direction-btn {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255,255,255,0.7);
     cursor: pointer;
     transition: all 0.2s;
 }
 
-.ofa-swap-direction-btn:hover:not(:disabled) {
-    background: rgba(255,255,255,0.15);
-    color: #fff;
-    transform: rotate(180deg);
+/* 4. Arrow & Info Overlay */
+.ofa-relay-connector {
+    height: 0;
+    margin: -6px 0 !important;
+    /* MATCH BRIDGE OVERLAP */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
 }
 
-.ofa-swap-direction-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-/* ── Fee note ── */
-.ofa-swap-fee-note {
+.ofa-swap-btn-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--midnight-indigo);
+    border: 4px solid var(--bg-primary);
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    color: rgba(255,255,255,0.35);
-    padding: 4px 2px 0;
+    justify-content: center;
+    color: var(--vanilla-cream);
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: translateY(0px);
+    /* REMOVE TRANSLATE FOR PERFECT CENTERING */
 }
 
-.ofa-swap-approx {
-    font-size: 11px;
-    color: rgba(255,255,255,0.35);
+.ofa-info-wrap {
+    background: var(--bg-card) !important;
+    padding: 12px 20px !important;
+    border-radius: 20px;
+    border: 1px solid rgba(240, 231, 213, 0.1);
 }
 
-/* ── Status ── */
-.ofa-swap-status {
+.ofa-info-row {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.7);
-    gap: 10px;
-}
-
-.ofa-swap-status.success {
-    background: rgba(52, 211, 153, 0.08);
-    border-color: rgba(52, 211, 153, 0.25);
-    color: #6ee7b7;
-}
-
-.ofa-swap-status.error {
-    background: rgba(248, 113, 113, 0.08);
-    border-color: rgba(248, 113, 113, 0.25);
-    color: #fca5a5;
-}
-
-.ofa-swap-tx-link {
-    display: flex;
     align-items: center;
-    gap: 4px;
-    color: #63b3ed;
-    text-decoration: none;
-    font-size: 12px;
-    white-space: nowrap;
 }
 
-.ofa-swap-tx-link:hover { text-decoration: underline; }
+.ofa-info-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+}
 
-/* ── Swap button ── */
-.ofa-swap-btn {
+.ofa-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+}
+
+/* 5. Action Button & Messages */
+.ofa-action-btn {
     width: 100%;
-    padding: 16px;
-    border-radius: 14px;
+    padding: 10px;
+    border-radius: var(--radius-lg);
     border: none;
-    background: linear-gradient(135deg, #4f8ef7 0%, #7c3aed 100%);
-    color: #fff;
+    background: #2d3139;
+    color: rgba(255, 255, 255, 0.4);
     font-size: 15px;
     font-weight: 700;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.01em;
+    transition: all 0.3s;
 }
 
-.ofa-swap-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(79, 142, 247, 0.4);
-    filter: brightness(1.08);
+.ofa-action-btn.active {
+    background: linear-gradient(135deg, #4f8ef7 0%, #7c3aed 100%);
+    color: #fff;
 }
 
-.ofa-swap-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+.ofa-status-msg {
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
 }
 
+/* 6. Theme Inversions (Independent) */
+[data-theme='dark'] .ofa-card-relay,
+[data-theme='dark'] .ofa-info-wrap,
+[data-theme='dark'] .ofa-bal-card {
+    background: var(--vanilla-cream) !important;
+    color: var(--midnight-indigo) !important;
+    border: 1px solid rgba(33, 40, 66, 0.1);
+}
+
+[data-theme='dark'] .ofa-amount-input,
+[data-theme='dark'] .ofa-amount-display,
+[data-theme='dark'] .ofa-token-sym,
+[data-theme='dark'] .ofa-user-handle,
+[data-theme='dark'] .ofa-balance-label,
+[data-theme='dark'] .ofa-val,
+[data-theme='dark'] .ofa-info-label {
+    color: var(--midnight-indigo) !important;
+}
+
+[data-theme='dark'] .ofa-relay-card-label,
+[data-theme='dark'] .ofa-fiat-val,
+[data-theme='dark'] .ofa-chain-name-sub {
+    color: rgba(33, 40, 66, 0.5) !important;
+}
+
+[data-theme='dark'] .ofa-swap-btn-icon {
+    background: var(--vanilla-cream);
+    color: var(--midnight-indigo);
+    border-color: var(--midnight-indigo);
+}
+
+/* 7. Mobile Responsive Overrides */
 @media (max-width: 480px) {
-    .ofa-swap-card { padding: 20px 16px; }
-    .ofa-swap-amount-input,
-    .ofa-swap-amount-display { font-size: 22px; }
+    .ofa-swap-page {
+        padding: 5px 0px !important;
+        align-items: flex-start;
+        height: auto;
+    }
+
+    .ofa-card-relay,
+    .ofa-info-wrap {
+        padding: 10px 10px !important;
+        width: calc(100% + 20px) !important;
+        margin-left: -10px !important;
+        border-radius: 12px !important;
+    }
+
+    .ofa-amount-input,
+    .ofa-amount-display {
+        font-size: clamp(14px, 3.2vw, 19px);
+    }
+
+    .ofa-token-selector-btn {
+        padding: 4px 8px;
+        height: 38px !important;
+        min-width: auto;
+    }
+
+    .ofa-token-icon-wrap {
+        width: 27px;
+        height: 27px;
+    }
+
+    .ofa-chain-badge {
+        width: 15px;
+        height: 15px;
+    }
+
+    .ofa-token-sym {
+        font-size: 10.5px;
+    }
+
+    .ofa-balance-label {
+        font-size: 9px !important;
+    }
 }

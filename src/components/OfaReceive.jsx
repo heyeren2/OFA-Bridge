@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 import { useAccount } from 'wagmi';
-import './RecipientModal.css';
+import './OfaReceive.css';
 
-export default function RecipientModal({ isOpen, onClose, onConfirm, initialValue }) {
+export default function OfaReceive({ isOpen, onClose, onConfirm, initialValue }) {
     const { address: connectedAddress } = useAccount();
     const [address, setAddress] = useState(initialValue || '');
     const [isValid, setIsValid] = useState(false);
@@ -35,7 +36,7 @@ export default function RecipientModal({ isOpen, onClose, onConfirm, initialValu
         setTimeout(() => {
             onClose();
             setIsClosing(false);
-        }, 200);
+        }, 200); // Match CSS animation duration
     }, [onClose]);
 
     if (!isOpen) return null;
@@ -47,29 +48,31 @@ export default function RecipientModal({ isOpen, onClose, onConfirm, initialValu
         }
     };
 
-    return (
+    return createPortal(
         <div 
-            className={`recipient-modal-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`} 
+            className={`ofa-receive-modal-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`} 
             style={{ zIndex: 9999 }}
             onClick={handleClose}
         >
             <div 
-                className={`recipient-modal-content ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`}
+                className={`ofa-receive-modal-content ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="recipient-modal-header">
-                    <button className="back-btn" onClick={handleClose}>
+                <div className="ofa-receive-modal-header">
+                    <button className="ofa-receive-back-btn" onClick={handleClose}>
                         <X size={24} />
                     </button>
-                    <h2 className="modal-title">Send to wallet</h2>
+                    <h2 className="ofa-receive-modal-title">Recipient Address</h2>
                     <div style={{ width: 24 }}></div>
+                    {/* Add spacer to help center the title since back button is absolute-positioned in CSS sometimes, 
+                        or use flex-header as I did before. */}
                 </div>
 
-                <div className="recipient-input-container">
+                <div className="ofa-receive-input-container">
                     <input
                         type="text"
-                        className="recipient-address-input"
-                        placeholder="Enter address"
+                        className="ofa-receive-address-input"
+                        placeholder="Enter 0x address"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         autoFocus
@@ -77,24 +80,25 @@ export default function RecipientModal({ isOpen, onClose, onConfirm, initialValu
                 </div>
 
                 {showWarning && (
-                    <div className="recipient-warning-box">
-                        <AlertTriangle size={18} className="warning-icon" />
-                        <div className="warning-text">
-                            This isn't the connected wallet address. Please verify the address provided is correct.
+                    <div className="ofa-receive-warning-box">
+                        <AlertTriangle size={18} className="ofa-receive-warning-icon" />
+                        <div className="ofa-receive-warning-text">
+                            This address is different from your connected wallet. Please double check before swapping.
                         </div>
                     </div>
                 )}
 
-                <div className="recipient-modal-footer">
+                <div className="ofa-receive-modal-footer">
                     <button
-                        className={`done-btn ${isValid ? 'done-btn--active' : ''}`}
+                        className={`ofa-receive-done-btn ${isValid ? 'ofa-receive-done-btn--active' : ''}`}
                         onClick={handleDone}
                         disabled={!isValid}
                     >
-                        Done
+                        Save Recipient
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

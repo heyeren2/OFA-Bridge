@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
-import { ArrowUpDown, Zap, ExternalLink } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { ArrowUpDown, Zap, ExternalLink, ChevronDown, ChevronRight, ScrollText, User, Wallet } from 'lucide-react';
 import { useAccount, useBalance } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { appKitSwapEurc, appKitSwapToEurc } from '../services/appKitSwapService';
 import { USDC_ADDRESSES, EURC_ADDRESSES, TOKEN_INFO } from '../config/contracts';
+import OfaReceive from './OfaReceive';
 import './OfaSwap.css';
 
 // Arc Testnet chain ID
@@ -20,12 +21,43 @@ export default function OfaSwap() {
     const [statusType, setStatusType] = useState(''); // '' | 'success' | 'error'
     const [lastTx, setLastTx] = useState(null);
 
-    const tokenIn  = direction === 'eurc_to_usdc' ? 'EURC' : 'USDC';
+    // Dynamic Recipient Logic
+    const [recipientAddress, setRecipientAddress] = useState('');
+    const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
+    const [isRecipientDropdownOpen, setIsRecipientDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const isCustomRecipient = isConnected && address && recipientAddress &&
+        recipientAddress.toLowerCase() !== address.toLowerCase();
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setIsRecipientDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        if (isConnected && address && !recipientAddress) {
+            setRecipientAddress(address);
+        }
+    }, [isConnected, address, recipientAddress]);
+
+    const abbreviateAddress = (addr) => {
+        if (!addr) return 'Connect Wallet';
+        return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    };
+
+    const tokenIn = direction === 'eurc_to_usdc' ? 'EURC' : 'USDC';
     const tokenOut = direction === 'eurc_to_usdc' ? 'USDC' : 'EURC';
-    const tokenInInfo  = TOKEN_INFO[tokenIn];
+    const tokenInInfo = TOKEN_INFO[tokenIn];
     const tokenOutInfo = TOKEN_INFO[tokenOut];
 
-    // USDC balance on Arc Testnet
+    // Source/Dest balance on Arc Testnet
     const { data: usdcData } = useBalance({
         address,
         token: USDC_ADDRESSES.Arc_Testnet,
@@ -33,7 +65,6 @@ export default function OfaSwap() {
         watch: true,
     });
 
-    // EURC balance on Arc Testnet
     const { data: eurcData } = useBalance({
         address,
         token: EURC_ADDRESSES.Arc_Testnet,
@@ -49,7 +80,8 @@ export default function OfaSwap() {
 
     const usdcBalance = fmt(usdcData);
     const eurcBalance = fmt(eurcData);
-    const sourceBalance = direction === 'eurc_to_usdc' ? eurcBalance : usdcBalance;
+    const sourceBalanceFormatted = direction === 'eurc_to_usdc' ? eurcBalance : usdcBalance;
+    const destBalanceFormatted = direction === 'eurc_to_usdc' ? usdcBalance : eurcBalance;
 
     const handleToggle = () => {
         setDirection(prev => prev === 'eurc_to_usdc' ? 'usdc_to_eurc' : 'eurc_to_usdc');
@@ -58,9 +90,16 @@ export default function OfaSwap() {
         setStatusType('');
     };
 
-    const handleMax = () => setAmount(
-        direction === 'eurc_to_usdc' ? eurcData?.formatted || '0' : usdcData?.formatted || '0'
-    );
+    const handlePercentageClick = (pct) => {
+        const balanceObj = direction === 'eurc_to_usdc' ? eurcData : usdcData;
+        if (!balanceObj) return;
+        const fullAmount = parseFloat(balanceObj.formatted);
+        if (pct === 100) {
+            setAmount(balanceObj.formatted);
+        } else {
+            setAmount(((fullAmount * pct) / 100).toFixed(6));
+        }
+    };
 
     const handleSwap = useCallback(async () => {
         if (!isConnected) { openConnectModal?.(); return; }
@@ -96,146 +135,256 @@ export default function OfaSwap() {
     const btnLabel = !isConnected
         ? 'Connect Wallet'
         : isSwapping
-            ? `Swapping ${tokenIn} → ${tokenOut}…`
-            : `Swap ${amount || '0'} ${tokenIn} → ${tokenOut}`;
+            ? `Swapping...`
+            : `Swap ${tokenIn}`;
 
-    const btnDisabled = isSwapping || kitKeyMissing || (!isConnected ? false : !amount || parseFloat(amount) <= 0);
+    const canSwap = isConnected && amount && parseFloat(amount) > 0 && !isSwapping && !kitKeyMissing;
 
     return (
         <div className="ofa-swap-page">
-            <div className="ofa-swap-card">
-                {/* Header */}
-                <div className="ofa-swap-header">
-                    <div className="ofa-swap-title-row">
-                        <div className="ofa-swap-icon-pair">
-                            <img src="/icons/euro.png" alt="EURC" className="ofa-swap-token-icon" />
-                            <img src="/icons/usdc.png"  alt="USDC" className="ofa-swap-token-icon overlap" />
-                        </div>
-                        <div>
-                            <h2 className="ofa-swap-title">EURC ↔ USDC</h2>
-                            <p className="ofa-swap-sub">Same-chain swap on Arc Testnet</p>
-                        </div>
+
+            {/* 1. SLIM BALANCE CARD (Top Hero) - MOVED OUTSIDE FOR 15PX GAP */}
+            <div className="ofa-bal-card">
+                <div className="ofa-bal-horizontal-row">
+                    <div className="ofa-bal-group">
+                        <img src="/icons/euro.png" alt="EURC" className="ofa-bal-token-icon" />
+                        <span className="ofa-bal-sym">EURC</span>
+                        <span className="ofa-bal-amount">{eurcBalance}</span>
                     </div>
-                    <div className="ofa-swap-badge">
-                        <img src="/icons/Arc.png" alt="Arc" className="ofa-swap-badge-icon" />
-                        <span>Arc Testnet</span>
+                    <div className="ofa-bal-sep" />
+                    <div className="ofa-bal-group">
+                        <img src="/icons/usdc.png" alt="USDC" className="ofa-bal-token-icon" />
+                        <span className="ofa-bal-sym">USDC</span>
+                        <span className="ofa-bal-amount">{usdcBalance}</span>
                     </div>
                 </div>
+            </div>
 
-                {/* Kit key warning */}
-                {kitKeyMissing && (
-                    <div className="ofa-swap-warning">
-                        ⚠️ Circle Kit Key not configured. Add <code>VITE_CIRCLE_KIT_KEY</code> to your .env file.
-                    </div>
-                )}
+            <div className="ofa-swap-card-container">
 
-                {/* Balances row */}
-                <div className="ofa-swap-balances">
-                    <div className="ofa-bal-item">
-                        <img src="/icons/euro.png" alt="EURC" className="ofa-bal-icon" />
-                        <span className="ofa-bal-label">EURC</span>
-                        <span className="ofa-bal-val">{isConnected ? eurcBalance : '—'}</span>
-                    </div>
-                    <div className="ofa-bal-divider" />
-                    <div className="ofa-bal-item">
-                        <img src="/icons/usdc.png" alt="USDC" className="ofa-bal-icon" />
-                        <span className="ofa-bal-label">USDC</span>
-                        <span className="ofa-bal-val">{isConnected ? usdcBalance : '—'}</span>
-                    </div>
-                </div>
-
-                {/* Swap input section */}
-                <div className="ofa-swap-body">
-
-                    {/* FROM token */}
-                    <div className="ofa-swap-input-card">
-                        <div className="ofa-swap-input-label">
-                            <span>You pay</span>
-                            <span className="ofa-swap-bal-hint">
-                                Balance: {isConnected ? sourceBalance : '—'}
-                                <button className="ofa-swap-max-btn" onClick={handleMax}>MAX</button>
-                            </span>
+                {/* 2. YOU PAY CARD - Unbundled and unique id/class */}
+                <div className="ofa-card-relay ofa-card-wrap ofa-pay-card" id="ofa-pay-card">
+                    <div className="ofa-label-row">
+                        <span className="ofa-relay-card-label">Pay</span>
+                        <div className="ofa-user-chain-info">
+                            <img src="/icons/Arc.png" alt="Arc" className="ofa-mini-chain-logo" />
+                            <span className="ofa-user-handle">Arc Testnet</span>
+                            <ChevronDown size={14} />
                         </div>
-                        <div className="ofa-swap-input-row">
+                    </div>
+
+                    <div className="ofa-relay-input-row">
+                        <div className="ofa-input-group">
                             <input
-                                className="ofa-swap-amount-input"
+                                className="ofa-amount-input"
                                 type="number"
-                                placeholder="0.00"
+                                placeholder="0"
                                 value={amount}
                                 onChange={e => setAmount(e.target.value)}
                                 disabled={isSwapping}
-                                min="0"
                             />
-                            <div className="ofa-swap-token-pill">
-                                <img src={tokenInInfo.icon} alt={tokenIn} className="ofa-pill-icon" />
-                                <span>{tokenIn}</span>
+                            <div className="ofa-fiat-sub">
+                                <span className="ofa-fiat-val">${(parseFloat(amount || 0) * 1).toFixed(2)}</span>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Direction toggle */}
-                    <div className="ofa-swap-arrow-row">
-                        <button
-                            className="ofa-swap-direction-btn"
-                            onClick={handleToggle}
-                            disabled={isSwapping}
-                            title="Reverse direction"
-                        >
-                            <ArrowUpDown size={16} />
-                        </button>
-                    </div>
-
-                    {/* TO token */}
-                    <div className="ofa-swap-input-card ofa-swap-output-card">
-                        <div className="ofa-swap-input-label">
-                            <span>You receive <span className="ofa-swap-approx">(approx.)</span></span>
+                        <div className="ofa-selector-group">
+                            <button className="ofa-token-selector-btn">
+                                <div className="ofa-token-icon-wrap">
+                                    <img src={tokenInInfo.icon} alt={tokenIn} className="ofa-token-icon" />
+                                    <img src="/icons/Arc.png" alt="" className="ofa-chain-badge" />
+                                </div>
+                                <div className="ofa-token-selector-info">
+                                    <span className="ofa-token-sym">{tokenIn}</span>
+                                    <span className="ofa-chain-name-sub">Arc</span>
+                                </div>
+                                <ChevronRight size={18} />
+                            </button>
                         </div>
-                        <div className="ofa-swap-input-row">
-                            <span className="ofa-swap-amount-display">
+                    </div>
+
+                    <div className="ofa-card-footer">
+                        <div className="ofa-balance-info">
+                            <span className="ofa-balance-label">Balance: {sourceBalanceFormatted}</span>
+                        </div>
+                        <div className="ofa-pct-buttons">
+                            <button onClick={() => handlePercentageClick(20)}>20%</button>
+                            <button onClick={() => handlePercentageClick(50)}>50%</button>
+                            <button onClick={() => handlePercentageClick(100)}>MAX</button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* SWAP ARROW */}
+                <div className="ofa-relay-connector ofa-arrow-wrap">
+                    <button
+                        className="ofa-swap-btn-icon"
+                        onClick={handleToggle}
+                        disabled={isSwapping}
+                    >
+                        <ArrowUpDown size={16} />
+                    </button>
+                </div>
+
+                {/* 3. YOU RECEIVE CARD - Unbundled and unique id/class */}
+                <div className="ofa-card-relay ofa-card-wrap ofa-receive-card" id="ofa-receive-card">
+                    <div className="ofa-label-row">
+                        <span className="ofa-relay-card-label">Receive</span>
+                        
+                        <div className="ofa-dropdown-anchor" ref={dropdownRef}>
+                            <div 
+                                className={`ofa-user-chain-info ${isCustomRecipient ? 'ofa-recipient-pill-yellow' : ''}`}
+                                onClick={() => setIsRecipientDropdownOpen(!isRecipientDropdownOpen)}
+                            >
+                                <div className="ofa-recipient-icon-wrap" style={{ display: 'flex', alignItems: 'center' }}>
+                                    {isCustomRecipient ? (
+                                        <ScrollText size={14} className="ofa-color-yellow" />
+                                    ) : (
+                                        connector?.icon ? (
+                                            <img src={connector.icon} alt={connector.name} className="ofa-mini-chain-logo" />
+                                        ) : (
+                                            <Wallet size={14} className={isCustomRecipient ? '' : 'ofa-color-vanilla'} />
+                                        )
+                                    )}
+                                </div>
+                                <span className={`ofa-user-handle ${isCustomRecipient ? 'ofa-color-yellow' : ''}`}>
+                                    {abbreviateAddress(recipientAddress)}
+                                </span>
+                                <ChevronDown size={14} className={isCustomRecipient ? 'ofa-color-yellow' : ''} />
+                            </div>
+
+                            {isRecipientDropdownOpen && (
+                                <div className="ofa-recipient-dropdown">
+                                    {/* Own Wallet Option */}
+                                    <div 
+                                        className={`ofa-dropdown-item ${!isCustomRecipient ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setRecipientAddress(address);
+                                            setIsRecipientDropdownOpen(false);
+                                        }}
+                                    >
+                                        <div className="ofa-dropdown-icon">
+                                            {connector?.icon ? (
+                                                <img src={connector.icon} alt="" />
+                                            ) : (
+                                                <Wallet size={16} />
+                                            )}
+                                        </div>
+                                        <div className="ofa-dropdown-text">
+                                            <span className="ofa-dropdown-label">{abbreviateAddress(address)}</span>
+                                            <span className="ofa-dropdown-sub">Connected Wallet</span>
+                                        </div>
+                                        {!isCustomRecipient && <span className="ofa-dropdown-check">✓</span>}
+                                    </div>
+
+                                    <div className="ofa-dropdown-divider" />
+
+                                    {/* Custom Address Option */}
+                                    <div 
+                                        className="ofa-dropdown-item"
+                                        onClick={() => {
+                                            setIsReceiveModalOpen(true);
+                                            setIsRecipientDropdownOpen(false);
+                                        }}
+                                    >
+                                        <div className="ofa-dropdown-icon">
+                                            <ScrollText size={16} />
+                                        </div>
+                                        <div className="ofa-dropdown-text">
+                                            <span className="ofa-dropdown-label">
+                                                {isCustomRecipient ? 'Change address' : 'Paste wallet address'}
+                                            </span>
+                                            <span className="ofa-dropdown-sub">Send to other address</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="ofa-relay-input-row">
+                        <div className="ofa-input-group">
+                            <span className="ofa-amount-display">
                                 {amount && parseFloat(amount) > 0
                                     ? (parseFloat(amount) * 0.999).toFixed(4)
                                     : '0.00'}
                             </span>
-                            <div className="ofa-swap-token-pill">
-                                <img src={tokenOutInfo.icon} alt={tokenOut} className="ofa-pill-icon" />
-                                <span>{tokenOut}</span>
+                            <div className="ofa-fiat-sub">
+                                <span className="ofa-fiat-val">${(parseFloat(amount || 0) * 0.999).toFixed(2)}</span>
                             </div>
+                        </div>
+
+                        <div className="ofa-selector-group">
+                            <button className="ofa-token-selector-btn">
+                                <div className="ofa-token-icon-wrap">
+                                    <img src={tokenOutInfo.icon} alt={tokenOut} className="ofa-token-icon" />
+                                    <img src="/icons/Arc.png" alt="" className="ofa-chain-badge" />
+                                </div>
+                                <div className="ofa-token-selector-info">
+                                    <span className="ofa-token-sym">{tokenOut}</span>
+                                    <span className="ofa-chain-name-sub">Arc</span>
+                                </div>
+                                <ChevronRight size={18} />
+                            </button>
                         </div>
                     </div>
 
-                    {/* Fee note */}
-                    <div className="ofa-swap-fee-note">
-                        <Zap size={12} />
-                        <span>~0.1% swap fee • Powered by Circle App Kit</span>
+                    <div className="ofa-card-footer">
+                        <div className="ofa-balance-info">
+                            <span className="ofa-balance-label">Balance: {destBalanceFormatted}</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Status message */}
+                {/* 4. INFO CARD (Swap Fee) - Unbundled and unique id/class */}
+                <div className="ofa-card-relay ofa-info-wrap ofa-fee-card" id="ofa-fee-card">
+                    <div className="ofa-info-row">
+                        <span className="ofa-info-label">Swap Fee</span>
+                        <span className="ofa-val" style={{ fontWeight: 700, fontSize: '13px' }}>~0.1%</span>
+                    </div>
+                    <div className="ofa-info-row">
+                        <span className="ofa-info-label">Route</span>
+                        <span className="ofa-val" style={{ fontWeight: 700, fontSize: '13px' }}>Arc Direct</span>
+                    </div>
+                </div>
+
+                {/* STATUS MESSAGES */}
+                {kitKeyMissing && (
+                    <div className="ofa-status-msg error">
+                        ⚠️ Config Error: Circle Kit Key is missing
+                    </div>
+                )}
+
                 {statusMsg && (
-                    <div className={`ofa-swap-status ${statusType}`}>
+                    <div className={`ofa-status-msg ${statusType}`}>
                         <span>{statusMsg}</span>
                         {lastTx?.explorerUrl && (
-                            <a
-                                href={lastTx.explorerUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="ofa-swap-tx-link"
-                            >
-                                View <ExternalLink size={12} />
+                            <a href={lastTx.explorerUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', color: 'inherit' }}>
+                                <ExternalLink size={12} style={{ display: 'inline', verticalAlign: 'middle' }} />
                             </a>
                         )}
                     </div>
                 )}
 
-                {/* Swap button */}
-                <button
-                    className="ofa-swap-btn"
-                    onClick={handleSwap}
-                    disabled={btnDisabled}
-                >
-                    {btnLabel}
-                </button>
+                {/* ACTION BUTTON */}
+                <div className="ofa-action-wrap">
+                    <button
+                        className={`ofa-action-btn ${canSwap ? 'active' : ''}`}
+                        onClick={handleSwap}
+                        disabled={!isConnected ? false : !canSwap}
+                    >
+                        {btnLabel}
+                    </button>
+                </div>
+
             </div>
+
+            <OfaReceive
+                isOpen={isReceiveModalOpen}
+                initialValue={isCustomRecipient ? recipientAddress : ''}
+                onClose={() => setIsReceiveModalOpen(false)}
+                onConfirm={(addr) => setRecipientAddress(addr)}
+            />
         </div>
     );
 }

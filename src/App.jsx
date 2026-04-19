@@ -187,30 +187,32 @@ function App() {
             <LearnPopup isOpen={isLearnOpen} onClose={() => setIsLearnOpen(false)} />
             {/* <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} /> */}
             <main className="app-main">
-                {activeTab === 'bridge' ? (
-                    <div className="bridge-page-wrapper">
-                        <div className="bridge-view-wrap">
-                            <Bridge
-                                currency={currency}
-                                language={language}
-                                slippage={slippage}
-                                onOpenSettings={() => setIsSettingsOpen(true)}
-                                isSettingsOpen={isSettingsOpen}
-                                setIsSettingsOpen={setIsSettingsOpen}
-                                setCurrency={setCurrency}
-                                setLanguage={setLanguage}
-                                setActiveTab={setActiveTab}
-                                customRecipient={customRecipient}
-                                setCustomRecipient={setCustomRecipient}
-                                onOpenRecipientModal={() => setIsRecipientModalOpen(true)}
-                            />
+                <div key={activeTab} className="ofa-tab-animate" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                    {activeTab === 'bridge' ? (
+                        <div className="bridge-page-wrapper">
+                            <div className="bridge-view-wrap">
+                                <Bridge
+                                    currency={currency}
+                                    language={language}
+                                    slippage={slippage}
+                                    onOpenSettings={() => setIsSettingsOpen(true)}
+                                    isSettingsOpen={isSettingsOpen}
+                                    setIsSettingsOpen={setIsSettingsOpen}
+                                    setCurrency={setCurrency}
+                                    setLanguage={setLanguage}
+                                    setActiveTab={setActiveTab}
+                                    customRecipient={customRecipient}
+                                    setCustomRecipient={setCustomRecipient}
+                                    onOpenRecipientModal={() => setIsRecipientModalOpen(true)}
+                                />
+                            </div>
                         </div>
-                    </div>
-                ) : activeTab === 'swap' ? (
-                    <OfaSwap />
-                ) : (
-                    <Activity language={language} setActiveTab={setActiveTab} />
-                )}
+                    ) : activeTab === 'swap' ? (
+                        <OfaSwap />
+                    ) : (
+                        <Activity language={language} setActiveTab={setActiveTab} />
+                    )}
+                </div>
             </main>
             <SettingsPopup
                 isOpen={isSettingsOpen}
@@ -229,8 +231,13 @@ function App() {
                 initialValue={customRecipient}
             />
             <footer className="app-footer">
-                <p>Powered by Circle CCTP V2 • Cross-Chain Bridge</p>
+                <p>
+                    {activeTab === 'swap' 
+                        ? 'Powered by Circle App Kit' 
+                        : 'Powered by Circle CCTP V2 • Cross-Chain Bridge'}
+                </p>
             </footer>
+            {/* Version 3.0 Sync */}
         </div>
     );
 }

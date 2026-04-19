@@ -51,6 +51,9 @@
 /* Selective Page Inversion - Main Cards (Stay Vanilla) */
 [data-theme='dark'] .bridge-card-relay,
 [data-theme='dark'] .info-card,
+[data-theme='dark'] .ofa-swap-card,
+[data-theme='dark'] .ofa-bal-card,
+[data-theme='dark'] .ofa-info-card,
 [data-theme='dark'] .bridge-card {
   background: var(--bg-card) !important;
   color: var(--text-on-dark) !important;
@@ -60,17 +63,22 @@
 
 [data-theme='dark'] .bridge-card-relay .relay-amount-input,
 [data-theme='dark'] .bridge-card-relay .relay-amount-display,
+[data-theme='dark'] .ofa-swap-card .ofa-amount-input,
+[data-theme='dark'] .ofa-swap-card .ofa-amount-display,
 [data-theme='dark'] .bridge-card-relay .token-sym,
 [data-theme='dark'] .bridge-card-relay .user-handle,
 [data-theme='dark'] .bridge-card-relay .balance-label,
 [data-theme='dark'] .info-card .info-label,
+[data-theme='dark'] .ofa-info-card .ofa-info-label,
 [data-theme='dark'] .info-card .val,
+[data-theme='dark'] .ofa-info-card .val,
 [data-theme='dark'] .info-card .rate-val,
 [data-theme='dark'] .info-card .stat-item {
   color: var(--text-on-dark) !important;
 }
 
 [data-theme='dark'] .bridge-card-relay .relay-card-label,
+[data-theme='dark'] .ofa-swap-card .ofa-card-label,
 [data-theme='dark'] .bridge-card-relay .fiat-val,
 [data-theme='dark'] .bridge-card-relay .chain-name-sub {
   color: rgba(33, 40, 66, 0.5) !important;
@@ -225,8 +233,9 @@ body {
   transition: all 0.5s ease;
 }
 
-/* Disable scrolling on Bridge tab */
-.bridge-active {
+/* Disable scrolling on Bridge and Swap tabs */
+.bridge-active,
+.swap-active {
   height: 100vh;
   overflow: hidden;
   position: fixed;
@@ -352,13 +361,40 @@ body {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
-  to {
-    opacity: 1;
-  }
+/* Global Animation Library */
+@keyframes ofaPopIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes ofaPopOut {
+    from { opacity: 1; transform: scale(1) translateY(0); }
+    to { opacity: 0; transform: scale(0.95) translateY(10px); }
+}
+
+@keyframes ofaTabPop {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ofa-animate-pop-in {
+    animation: ofaPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.ofa-animate-pop-out {
+    animation: ofaPopOut 0.2s ease-in forwards;
+}
+
+.ofa-animate-fade-in {
+    animation: fadeIn 0.2s ease-out forwards;
+}
+
+.ofa-tab-animate {
+    animation: ofaTabPop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 .header-menu-active .logo,
@@ -707,14 +743,22 @@ body {
 
 .app-footer {
   text-align: center;
-  padding: 12px 16px;
+  padding: 16px;
   color: var(--midnight-indigo);
-  /* Darker for cream background */
   font-size: 13px;
   opacity: 0.6;
   border-top: 1px solid rgba(33, 40, 66, 0.1);
-  margin-top: -60px;
-  /* Pull up further */
+  width: 100%;
+}
+
+/* Position footer at bottom for stagnant tabs */
+.bridge-active .app-footer,
+.swap-active .app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  background: var(--bg-primary);
+  z-index: 10;
 }
 
 
@@ -906,7 +950,7 @@ body {
 }
 
 .balance-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
   opacity: 0.6;
@@ -3496,8 +3540,8 @@ body {
 
 .token-icon-wrap {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 50px;
+  height: 50px;
 }
 
 .token-img {
@@ -3510,8 +3554,8 @@ body {
   position: absolute;
   bottom: -2px;
   right: -2px;
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 2px solid #111;
   background: #111;
@@ -3945,20 +3989,20 @@ body {
     min-width: auto;
     font-size: 10px;
     gap: 4px;
-    height: 28px;
+    height: 38px;
     /* Increased ~7% from 26px */
   }
 
   .token-icon-wrap {
-    width: 19px;
+    width: 27px;
     /* Increased 10% from 17px */
-    height: 19px;
+    height: 27px;
   }
 
   .chain-badge-overlay {
-    width: 11px;
+    width: 15px;
     /* Scaled proportionally */
-    height: 11px;
+    height: 15px;
     bottom: -1px;
     right: -1px;
     border-width: 1px;
@@ -3979,7 +4023,7 @@ body {
   }
 
   .balance-label {
-    font-size: 8px;
+    font-size: 9px;
     /* ~0.8 * 10 */
     max-width: 95px;
     /* ~0.8 * 120 */

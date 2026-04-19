@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
 const CustomSelect = ({ value, onChange, options, label }) => {
@@ -51,13 +51,27 @@ export default function SettingsPopup({
     slippage,
     setSlippage
 }) {
+    const [isClosing, setIsClosing] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) setIsClosing(false);
+    }, [isOpen]);
+
+    const handleClose = useCallback(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+            onClose();
+            setIsClosing(false);
+        }, 200);
+    }, [onClose]);
+
     useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape' && isOpen) handleClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+    }, [isOpen, handleClose]);
 
     if (!isOpen) return null;
 
@@ -77,11 +91,17 @@ export default function SettingsPopup({
     ];
 
     return createPortal(
-        <div className="settings-popup-overlay" onClick={onClose}>
-            <div className="settings-popup-content" onClick={(e) => e.stopPropagation()}>
+        <div 
+            className={`settings-popup-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`} 
+            onClick={handleClose}
+        >
+            <div 
+                className={`settings-popup-content ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`} 
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="settings-header">
                     <h2>Settings</h2>
-                    <button className="settings-close-btn" onClick={onClose}>
+                    <button className="settings-close-btn" onClick={handleClose}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>

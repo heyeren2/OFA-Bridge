@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
     X,
@@ -60,22 +60,33 @@ export default function TransactionModal({
     const stepStartRef = useRef(null);
     const timerRef = useRef(null);
     const [totalTime, setTotalTime] = useState(null);
+    const [isClosing, setIsClosing] = useState(false);
 
     useEffect(() => {
-        if (isOpen && !bridgeStartRef.current) {
-            bridgeStartRef.current = Date.now();
-            stepStartRef.current = Date.now();
-            setTotalElapsed(0);
-            setStepElapsed(0);
-            setTotalTime(null);
-        }
-        if (!isOpen) {
+        if (isOpen) {
+            setIsClosing(false);
+            if (!bridgeStartRef.current) {
+                bridgeStartRef.current = Date.now();
+                stepStartRef.current = Date.now();
+                setTotalElapsed(0);
+                setStepElapsed(0);
+                setTotalTime(null);
+            }
+        } else {
             bridgeStartRef.current = null;
             stepStartRef.current = null;
             setTotalElapsed(0);
             setStepElapsed(0);
         }
     }, [isOpen]);
+
+    const handleClose = useCallback(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+            onClose();
+            setIsClosing(false);
+        }, 200);
+    }, [onClose]);
 
     useEffect(() => {
         if (isOpen && bridgeStep !== 'complete' && !error) {
@@ -106,10 +117,12 @@ export default function TransactionModal({
     }, [bridgeStep]);
 
     useEffect(() => {
-        const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
+        const handleEsc = (e) => { 
+            if (e.key === 'Escape' && isOpen) handleClose(); 
+        };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+    }, [isOpen, handleClose]);
 
     if (!isOpen) return null;
 
@@ -178,9 +191,15 @@ export default function TransactionModal({
     const remainingSeconds = Math.max(0, 90 - totalElapsed);
 
     return createPortal(
-        <div className="tx-modal-overlay" onClick={onClose}>
-            <div className={`txm-modal ${isCancelled ? 'cancelled' : ''}`} onClick={(e) => e.stopPropagation()}>
-                <button className="txm-close" onClick={onClose}>
+        <div 
+            className={`tx-modal-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`} 
+            onClick={handleClose}
+        >
+            <div 
+                className={`txm-modal ${isCancelled ? 'cancelled' : ''} ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`} 
+                onClick={(e) => e.stopPropagation()}
+            >
+                <button className="txm-close" onClick={handleClose}>
                     <X size={18} />
                 </button>
 
