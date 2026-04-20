@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-    X, 
-    Check, 
-    ArrowRight, 
-    Clock, 
-    Loader2, 
+import {
+    X,
+    Check,
+    ArrowRight,
+    Clock,
+    Loader2,
     ExternalLink,
     ChevronRight,
     Circle,
@@ -70,7 +70,7 @@ export default function OfaModal({
     return createPortal(
         <div className={`ofa-modal-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`} onClick={handleClose}>
             <div className={`ofa-modal-container ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`} onClick={e => e.stopPropagation()}>
-                
+
                 {/* Header */}
                 <div className="ofa-modal-header">
                     <h2>Transaction Details</h2>
@@ -81,7 +81,7 @@ export default function OfaModal({
 
                 <div className="ofa-modal-body">
                     {isSuccess ? (
-                        <SuccessView 
+                        <SuccessView
                             fromAmount={fromAmount}
                             fromToken={fromToken}
                             toAmount={toAmount}
@@ -91,7 +91,7 @@ export default function OfaModal({
                             onClose={handleClose}
                         />
                     ) : (
-                        <ProcessingView 
+                        <ProcessingView
                             step={step}
                             fromAmount={fromAmount}
                             fromToken={fromToken}
@@ -111,7 +111,7 @@ export default function OfaModal({
 
 function ProcessingView({ step, fromAmount, fromToken, toAmount, toToken, stats, error, onRetry }) {
     const isCancelled = error?.toLowerCase().includes('reject') || error?.toLowerCase().includes('denied');
-    
+
     return (
         <div className="ofa-processing-view">
             {/* 1. COMPACT TOKEN ROW */}
@@ -127,7 +127,7 @@ function ProcessingView({ step, fromAmount, fromToken, toAmount, toToken, stats,
                             <span className="token-amount">{fromAmount} {fromToken?.symbol}</span>
                         </div>
                     </div>
-                    
+
                     <div className="route-connector-v2">
                         <ArrowRight size={16} />
                     </div>
@@ -148,7 +148,7 @@ function ProcessingView({ step, fromAmount, fromToken, toAmount, toToken, stats,
             {/* 2. STEPS CARD */}
             <div className="ofa-modal-card steps-card-v2">
                 <div className="steps-line-connector"></div>
-                
+
                 <div className={`step-item-v2 ${step === 'approving' ? 'active' : (step === 'swapping' || step === 'success') ? 'completed' : 'upcoming'}`}>
                     <div className="step-indicator-v2">
                         {step === 'approving' ? (

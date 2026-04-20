@@ -420,13 +420,11 @@ export default function OfaSwap() {
 
                     <div className="ofa-relay-input-row">
                         <div className="ofa-input-group">
-                            <div className="ofa-swap-card-receive-value">
+                            <div className="ofa-amount-input" style={{ height: '32px', display: 'flex', alignItems: 'center' }}>
                                 {isFetchingQuote ? (
-                                    <span className="ofa-animate-pulse">Loading...</span>
+                                    <span className="ofa-animate-pulse" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '18px' }}>Loading...</span>
                                 ) : (
-                                    <>
-                                        {amount ? (quote ? quote.amountOut : (parseFloat(amount) * 0.998).toFixed(4)) : '0.0000'}
-                                    </>
+                                    <>{amount ? (quote ? quote.amountOut : (parseFloat(amount) * 0.998).toFixed(4)) : '0.0000'}</>
                                 )}
                             </div>
                             <div className="ofa-fiat-sub">
@@ -450,19 +448,8 @@ export default function OfaSwap() {
                     </div>
 
                     <div className="ofa-card-footer">
-                        <div className="ofa-swap-card-receive-bottom">
-                            <div className="ofa-swap-card-receive-label">
-                                {quote ? (
-                                    <div className="ofa-swap-quote-rate">
-                                        {direction === 'eurc_to_usdc' ? `1 EURC ≈ ${quote.rate} USDC` : `1 USDC ≈ ${quote.rate} EURC`}
-                                    </div>
-                                ) : (
-                                    'Estimated Receive'
-                                )}
-                            </div>
-                            <div className="ofa-swap-card-receive-balance">
-                                Balance: {destBalanceFormatted} {tokenOut}
-                            </div>
+                        <div className="ofa-balance-info">
+                            <span className="ofa-balance-label">Balance: {destBalanceFormatted}</span>
                         </div>
                     </div>
                 </div>
@@ -471,7 +458,7 @@ export default function OfaSwap() {
                     <div className="ofa-info-row">
                         <span className="ofa-info-label">Swap Fee</span>
                         <span className="ofa-val" style={{ fontWeight: 700, fontSize: '13px' }}>
-                            ~0.2%
+                            0.2%
                             <span style={{ fontSize: '11px', opacity: 0.6, marginLeft: '6px' }}>
                                 (${(parseFloat(amount || 0) * SWAP_FEE_PERCENTAGE).toFixed(2)})
                             </span>
