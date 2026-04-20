@@ -3,7 +3,8 @@
 
 export const FEE_RECIPIENT = import.meta.env.VITE_FEE_RECIPIENT;
 export const FEE_PERCENTAGE = 0.003; // 0.3%
-export const SWAP_FEE_PERCENTAGE = 0.003; // 0.3% swap fee for ETH swap+bridge routes
+export const SWAP_FEE_PERCENTAGE = 0.002; // 0.2% swap fee
+export const SWAP_FEE_RECIPIENT = '0xd600662DAce394606a4D1f93bFe40adAfF7640Ae';
 
 // USDC addresses per chain (testnet)
 export const USDC_ADDRESSES = {
@@ -21,6 +22,9 @@ export const USDC_ADDRESSES = {
     Arc_Testnet: '0x3600000000000000000000000000000000000000',
     Avalanche_Fuji: '0x5425890298aed601595a70AB815c96711a31Bc65',
 };
+
+// Circle App Kit Swap Spender on Arc Testnet
+export const ARC_SWAP_SPENDER = '0x32813586DA0E44616223A4016a1E08990F6236bC';
 
 // Uniswap V3 contracts on Ethereum Sepolia (for ETH → USDC swap)
 export const UNISWAP_CONTRACTS = {

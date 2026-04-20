@@ -71,7 +71,7 @@ const clearPreMintHook = () => {
 const INCREASE_ALLOWANCE = '0x39509351'; // increaseAllowance(address,uint256)
 const APPROVE = '0x095ea7b3'; // approve(address,uint256)
 
-const createApprovalFixedProvider = () => {
+const createApprovalFixedProvider = (fullAmount) => {
     const provider = window.ethereum;
 
     return new Proxy(provider, {
@@ -117,11 +117,23 @@ const createApprovalFixedProvider = () => {
                         }
                     }
 
-                    // Approval Fix: Intercept increaseAllowance → swap to approve
-                    if (
-                        args.method === 'eth_sendTransaction' &&
-                        args.params?.[0]?.data?.toLowerCase().startsWith(INCREASE_ALLOWANCE)
-                    ) {
+                    const data = args.params?.[0]?.data?.toLowerCase() || '';
+
+                    // 1. Force the approval amount to be the FULL input amount (e.g. 10 USDC instead of 9.5)
+                    if (fullAmount && (data.startsWith(INCREASE_ALLOWANCE) || data.startsWith(APPROVE))) {
+                        try {
+                            // Assume 6 decimals for USDC/EURC on testnets
+                            const fullAmtRaw = BigInt(Math.floor(parseFloat(fullAmount) * 1e6));
+                            const fullAmtHex = fullAmtRaw.toString(16).padStart(64, '0');
+                            const prefix = data.substring(0, 10 + 64); // sig (10) + spender (64)
+                            const fixedData = prefix + fullAmtHex;
+                            console.log(`[BridgeService] Forcing approval amount: ${fullAmount} (hex: ...${fullAmtHex.slice(-8)})`);
+                            args = { ...args, params: [{ ...args.params[0], data: fixedData }] };
+                        } catch (e) { console.warn('[BridgeService] Failed to rewrite approval amount:', e); }
+                    }
+
+                    // 2. Rewrite increaseAllowance → approve (Arc token compatibility)
+                    if (args.method === 'eth_sendTransaction' && data.startsWith(INCREASE_ALLOWANCE)) {
                         const originalData = args.params[0].data;
                         const fixedData = APPROVE + originalData.slice(10);
                         console.log('[BridgeService] Swapped increaseAllowance → approve');
@@ -152,11 +164,12 @@ const createApprovalFixedProvider = () => {
 
 let adapterInstance = null;
 
-const getAdapter = async () => {
+const getAdapter = async (fullAmount) => {
     if (!window.ethereum) {
         throw new Error('No wallet provider found. Please install MetaMask or Rabby.');
     }
-    if (!adapterInstance) {
+    // Always recreate adapter if we have a forced amount to ensure proxy freshness
+    if (!adapterInstance || fullAmount) {
         // Use high-performance public client for polling to bypass wallet rate limits
         const sepoliaPollingClient = createPublicClient({
             chain: sepolia,
@@ -164,7 +177,7 @@ const getAdapter = async () => {
             batch: { multicall: true }
         });
 
-        const fixedProvider = createApprovalFixedProvider();
+        const fixedProvider = createApprovalFixedProvider(fullAmount);
 
         adapterInstance = await createViemAdapterFromProvider({
             provider: fixedProvider,
@@ -200,6 +213,7 @@ export const executeBridge = async ({
     fromChain,
     toChain,
     amount,
+    fullAmount, // Full amount for proxy rewrite
     recipientAddress,
     forwardingFee = '0',
     isSwapRoute = false,
@@ -207,7 +221,7 @@ export const executeBridge = async ({
     onStatusUpdate,
 }) => {
     const kit = getKit();
-    const adapter = await getAdapter();
+    const adapter = await getAdapter(fullAmount);
 
     // Clear any pre-mint hook from a previous bridge run.
     clearPreMintHook();

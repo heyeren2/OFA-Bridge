@@ -1,0 +1,723 @@
+.ofa-modal-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 2000;
+}
+
+.ofa-modal-container {
+    width: 100%;
+    max-width: 440px;
+    background: #1a1f33;
+    /* Premium Midnight Indigo */
+    border: 1px solid rgba(240, 231, 213, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    color: var(--vanilla-cream);
+}
+
+.ofa-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(240, 231, 213, 0.05);
+}
+
+.ofa-modal-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--vanilla-cream);
+}
+
+.ofa-modal-close {
+    background: transparent;
+    border: none;
+    color: rgba(240, 231, 213, 0.4);
+    cursor: pointer;
+    padding: 8px;
+    margin-right: -8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+}
+
+.ofa-modal-close:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--vanilla-cream);
+}
+
+.ofa-modal-body {
+    padding: 20px 24px 24px 24px;
+}
+
+/* ═══════════════════════════════════════════════════
+   V2 REFINED UI COMPONENTS (VANILLA & INDIGO)
+   ═══════════════════════════════════════════════════ */
+
+/* 1. Compact Route Card V2 */
+.route-card-v2 {
+    padding: 12px 16px !important;
+}
+
+.route-row-v2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.token-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.token-icon-v2 {
+    position: relative;
+    width: 36px;
+    height: 36px;
+}
+
+.token-icon-v2 img:not(.network-badge-v2) {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: white;
+}
+
+.network-badge-v2 {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #1a1f33;
+}
+
+.token-label-v2 {
+    display: flex;
+    flex-direction: column;
+}
+
+.network-name {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(240, 231, 213, 0.4);
+    text-transform: uppercase;
+}
+
+.token-amount {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--vanilla-cream);
+}
+
+.route-connector-v2 {
+    color: rgba(240, 231, 213, 0.1);
+    display: flex;
+    align-items: center;
+}
+
+/* 2. Enhanced Steps Card V2 */
+.steps-card-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+    padding: 20px !important;
+}
+
+.steps-line-connector {
+    position: absolute;
+    left: 31px;
+    /* Center of the indicators */
+    top: 48px;
+    bottom: 48px;
+    width: 2px;
+    background: rgba(240, 231, 213, 0.08);
+    /* Faint vanilla line */
+    z-index: 0;
+}
+
+.step-item-v2 {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+}
+
+.step-indicator-v2 {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Rolling Vanilla Line */
+.spinning-vanilla-line {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(240, 231, 213, 0.2);
+    border-top: 2px solid var(--vanilla-cream);
+    border-radius: 50%;
+    animation: ofaSpin 0.8s linear infinite;
+    transition: all 0.3s ease;
+}
+
+.spinning-vanilla-line.cancelled {
+    border-color: rgba(239, 68, 68, 0.2);
+    border-top-color: #ef4444;
+}
+
+/* Vanilla Checkmark (Indigo Check) */
+.checkmark-vanilla {
+    width: 22px;
+    height: 22px;
+    background: var(--vanilla-cream);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1a1f33;
+    /* Indigo check icon as requested */
+    box-shadow: 0 0 12px rgba(240, 231, 213, 0.2);
+}
+
+.step-circle-upcoming {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(240, 231, 213, 0.1);
+    border-radius: 50%;
+}
+
+/* Red X Indicator */
+.indicator-x-red {
+    width: 22px;
+    height: 22px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ef4444;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+.step-title-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.step-main-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--vanilla-cream);
+}
+
+.step-subtitle {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(240, 231, 213, 0.4);
+    margin-top: 2px;
+}
+
+.step-status-v2 {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 4px;
+}
+
+.step-status-v2.pending {
+    background: rgba(240, 231, 213, 0.05);
+    color: #f59e0b;
+    /* Amber/Warning for pending */
+}
+
+.step-status-v2.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.step-status-v2.done {
+    background: var(--vanilla-cream);
+    color: #1a1f33;
+    /* Indigo text on Vanilla bg */
+}
+
+.step-status-v2.upcoming {
+    opacity: 0;
+}
+
+/* Card Styling */
+.ofa-modal-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(240, 231, 213, 0.05);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+/* Route Card */
+.route-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.route-token {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.token-icon-wrapper {
+    position: relative;
+    width: 40px;
+    height: 40px;
+}
+
+.token-icon-wrapper img:not(.chain-badge) {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: white;
+}
+
+.chain-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #1a1f33;
+    border-radius: 50%;
+    background: white;
+}
+
+.token-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.token-info .amount {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--vanilla-cream);
+}
+
+.token-info .symbol {
+    font-size: 13px;
+    color: rgba(240, 231, 213, 0.5);
+    font-weight: 600;
+}
+
+.route-arrow {
+    color: rgba(240, 231, 213, 0.2);
+}
+
+/* Steps Card */
+.steps-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.step-indicator {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step-indicator .spin {
+    color: var(--success);
+    animation: ofaSpin 1s linear infinite;
+}
+
+.step-indicator .done {
+    color: var(--success);
+}
+
+.step-indicator .pending {
+    color: rgba(240, 231, 213, 0.2);
+}
+
+.step-text {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.step-item.pending .step-text {
+    color: rgba(240, 231, 213, 0.3);
+}
+
+.step-status {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.step-item.active .step-status {
+    color: var(--warning);
+}
+
+.step-item.completed .step-status {
+    color: var(--success);
+}
+
+/* Stats Card */
+.stats-card {
+    padding: 12px 16px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+}
+
+.stat-row .label {
+    font-size: 13px;
+    color: rgba(240, 231, 213, 0.5);
+}
+
+.stat-row .value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vanilla-cream);
+}
+
+.stat-row .value.percent {
+    color: var(--success);
+}
+
+/* Actions */
+.ofa-modal-action-btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #2d3139;
+    color: var(--vanilla-cream) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ofa-modal-action-btn.processing {
+    background: linear-gradient(135deg, #3a424f 0%, #3f9e8e 100%);
+    box-shadow: 0 8px 32px rgba(63, 158, 142, 0.2);
+}
+
+.ofa-modal-action-btn.retry {
+    background: linear-gradient(135deg, #3a424f 0%, #3f9e8e 100%);
+    box-shadow: 0 8px 32px rgba(63, 158, 142, 0.2);
+}
+
+.ofa-modal-action-btn.retry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(63, 158, 142, 0.3);
+    filter: brightness(1.1);
+}
+
+.ofa-modal-action-btn.retry:active {
+    transform: translateY(1px);
+}
+
+.ofa-modal-action-btn:disabled {
+    opacity: 0.8;
+    cursor: default;
+}
+
+.ofa-modal-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    color: #ef4444;
+    font-size: 13px;
+}
+
+/* Success View Refinements (20% Size Reduction applied via transform/paddings) */
+.ofa-success-view {
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px;
+    transform: scale(0.95);
+    /* Subtle scale down */
+}
+
+.success-hero {
+    text-align: center;
+    padding: 10px 0 20px 0;
+}
+
+.hero-icon-container {
+    position: relative;
+    width: 120px;
+    /* Increased size (was 80px) */
+    height: 120px;
+    margin: 0 auto 24px auto;
+}
+
+.hero-icon-bg {
+    width: 120px;
+    height: 120px;
+    background: rgba(240, 231, 213, 0.05);
+    /* Faint vanilla glow */
+    border-radius: 40px;
+    /* Softer radius */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        inset 0 0 20px rgba(240, 231, 213, 0.05);
+}
+
+.hero-rocket {
+    width: 240px;
+    /* Increased by 60% from 90px */
+    height: 240px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+}
+
+.hero-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 38px;
+    height: 38px;
+    background: #1a1f33;
+    /* Midnight Indigo background */
+    color: #10b981;
+    /* Green check as requested? Wait, user said 'green inside should be in indigo color and the check inside should be in vanilla' */
+    /* Re-listening: 'circle should be in indigo color and the green inside should be and then check inside should be in vanilla' */
+    /* Wait, the green check is already green. User wants the circle indigo and the check vanilla. */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid #1a1f33;
+    /* Thick indigo border */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.hero-badge svg {
+    color: var(--vanilla-cream);
+    /* Vanilla check */
+}
+
+.success-sub-header {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--vanilla-cream);
+}
+
+.summary-card {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.summary-row {
+    padding: 8px 0;
+}
+
+.summary-row .label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: rgba(240, 231, 213, 0.4);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.summary-row .val {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.summary-token-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    margin-right: 10px;
+    background: white;
+    object-fit: contain;
+}
+
+.summary-amount {
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--vanilla-cream);
+    letter-spacing: -0.01em;
+}
+
+.received-left {
+    display: flex;
+    align-items: center;
+}
+
+.received-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.hash-snippet-link {
+    font-size: 11px;
+    color: rgba(240, 231, 213, 0.4);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(240, 231, 213, 0.05);
+    border-radius: 12px;
+    transition: all 0.2s;
+}
+
+.hash-snippet-link:hover {
+    background: rgba(240, 231, 213, 0.1);
+    color: var(--vanilla-cream);
+}
+
+.success-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.success-done-btn {
+    width: 100% !important;
+    background: var(--vanilla-cream) !important;
+    color: #1a1f33 !important;
+    /* Indigo text */
+    font-weight: 800 !important;
+    font-size: 16px !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.success-done-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes ofaSpin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes ofaPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes ofaPopOut {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+}
+
+@keyframes ofaFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes ofaFadeOut {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+.ofa-animate-pop-in {
+    animation: ofaPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ofa-animate-pop-out {
+    animation: ofaPopOut 0.2s ease-in forwards;
+}
+
+.ofa-animate-fade-in {
+    animation: ofaFadeIn 0.3s ease-out forwards;
+}
+
+.ofa-animate-fade-out {
+    animation: ofaFadeOut 0.2s ease-in forwards;
+}

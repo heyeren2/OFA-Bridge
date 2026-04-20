@@ -41,7 +41,7 @@ function App() {
 
     return (
         <div className={`app ${isMenuOpen ? 'menu-open' : ''} ${activeTab}-active`}>
-            <BackgroundIcons />
+            {activeTab === 'activity' && <BackgroundIcons />}
             {isMenuOpen && (
                 <div className="menu-backdrop" onClick={() => setIsMenuOpen(false)}></div>
             )}

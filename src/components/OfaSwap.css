@@ -7,13 +7,15 @@
 .ofa-swap-page {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start; /* RAISE UP Content */
+    justify-content: flex-start;
+    /* RAISE UP Content */
     align-items: center;
     height: calc(100vh - 85px);
     width: 100%;
     overflow: hidden;
     background: transparent;
-    padding: 40px 20px 0 20px; /* More top padding to control height */
+    padding: 15px 20px 0 20px;
+    /* RAISED UP by 25px (from 40px) to clear footer */
     box-sizing: border-box;
 }
 
@@ -36,11 +38,13 @@
     border-radius: var(--radius-lg);
     padding: 10px 20px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    width: 404px; /* MATCH CONTAINER WIDTH */
+    width: 404px;
+    /* MATCH CONTAINER WIDTH */
     max-width: 100%;
     box-sizing: border-box;
     display: flex;
-    margin-bottom: 15px; /* THE 15PX GAP REQUESTED */
+    margin-bottom: 15px;
+    /* THE 15PX GAP REQUESTED */
 }
 
 .ofa-bal-horizontal-row {
@@ -353,8 +357,15 @@
 }
 
 @keyframes ofaDropdownFadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .ofa-card-footer {
@@ -441,6 +452,188 @@
     color: white;
 }
 
+/* Enhanced Info Card Components */
+.ofa-info-divider {
+    height: 1px;
+    background: rgba(240, 231, 213, 0.08);
+    margin: 10px 0;
+    width: 100%;
+}
+
+.ofa-info-sub-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.ofa-exchange-rate-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vanilla-cream);
+    opacity: 0.9;
+}
+
+/* Slippage Settings UI */
+.ofa-slippage-settings {
+    display: flex;
+    align-items: center;
+    position: relative;
+    height: 24px;
+    overflow: hidden;
+}
+
+.ofa-settings-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--vanilla-cream);
+    z-index: 2;
+    background: var(--bg-card);
+    /* Cover the slide-in */
+}
+
+[data-theme='dark'] .ofa-settings-trigger {
+    background: var(--vanilla-cream);
+    color: var(--midnight-indigo);
+}
+
+.ofa-settings-trigger:hover {
+    opacity: 0.8;
+}
+
+.ofa-slippage-val {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.ofa-slippage-menu {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    background: var(--bg-card);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+[data-theme='dark'] .ofa-slippage-menu {
+    background: var(--vanilla-cream);
+}
+
+.ofa-slippage-menu.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+    position: relative;
+    /* Take up space once open */
+}
+
+.ofa-slippage-preset {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--vanilla-cream);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme='dark'] .ofa-slippage-preset {
+    background: rgba(33, 40, 66, 0.05);
+    border-color: rgba(33, 40, 66, 0.15);
+    color: var(--midnight-indigo);
+}
+
+.ofa-slippage-preset:hover,
+.ofa-slippage-preset.active {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--vanilla-cream);
+}
+
+.ofa-pen-btn {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--vanilla-cream);
+    padding: 0 4px;
+    transition: transform 0.2s;
+}
+
+[data-theme='dark'] .ofa-pen-btn {
+    color: var(--midnight-indigo);
+}
+
+.ofa-pen-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Custom Slippage Input */
+.ofa-custom-slippage-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--vanilla-cream);
+    border-radius: 6px;
+    padding: 0 6px;
+    height: 22px;
+}
+
+[data-theme='dark'] .ofa-custom-slippage-wrap {
+    background: white;
+    border-color: var(--midnight-indigo);
+}
+
+.ofa-custom-slippage-input {
+    background: transparent;
+    border: none;
+    width: 35px;
+    color: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    outline: none;
+    text-align: right;
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+
+/* Remove numeric steppers for slippage input */
+.ofa-custom-slippage-input::-webkit-outer-spin-button,
+.ofa-custom-slippage-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.ofa-custom-slippage-input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.ofa-check-btn {
+    display: flex;
+    align-items: center;
+    color: #10b981;
+    /* Success green */
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
 /* 5. Action Button & Messages */
 .ofa-action-btn {
     width: 100%;
@@ -450,14 +643,14 @@
     background: #2d3139;
     color: rgba(255, 255, 255, 0.4);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 900;
     text-transform: uppercase;
     cursor: pointer;
     transition: all 0.3s;
 }
 
 .ofa-action-btn.active {
-    background: linear-gradient(135deg, #4f8ef7 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #3a424f 0%, #3f9e8e 100%);
     color: #fff;
 }
 

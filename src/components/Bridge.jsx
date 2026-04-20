@@ -31,7 +31,8 @@ const TRANSLATIONS = {
         swapAndBridge: 'SWAP & BRIDGE',
         bridge: 'BRIDGE',
         max: 'MAX',
-        insufficientBalance: 'Insufficient Balance'
+        insufficientBalance: 'Insufficient Balance',
+        enterAmount: 'Enter Amount'
     },
     Español: {
         from: 'Desde',
@@ -45,7 +46,8 @@ const TRANSLATIONS = {
         swapAndBridge: 'INTERCAMBIO Y PUENTE',
         bridge: 'PUENTE',
         max: 'MÁX',
-        insufficientBalance: 'Saldo Insuficiente'
+        insufficientBalance: 'Saldo Insuficiente',
+        enterAmount: 'Ingrese el Monto'
     },
     Dutch: {
         from: 'Van',
@@ -59,7 +61,8 @@ const TRANSLATIONS = {
         swapAndBridge: 'SWAP & BRUG',
         bridge: 'BRUG',
         max: 'MAX',
-        insufficientBalance: 'Onvoldoende Saldo'
+        insufficientBalance: 'Onvoldoende Saldo',
+        enterAmount: 'Voer Bedrag In'
     },
     French: {
         from: 'De',
@@ -73,7 +76,8 @@ const TRANSLATIONS = {
         swapAndBridge: 'ÉCHANGE ET PONT',
         bridge: 'PONT',
         max: 'MAX',
-        insufficientBalance: 'Solde Insuffisant'
+        insufficientBalance: 'Solde Insuffisant',
+        enterAmount: 'Entrez le Montant'
     },
     Chinese: {
         from: '来自',
@@ -87,7 +91,8 @@ const TRANSLATIONS = {
         swapAndBridge: '交换并桥接',
         bridge: '桥接',
         max: '最大',
-        insufficientBalance: '余额不足'
+        insufficientBalance: '余额不足',
+        enterAmount: '输入金额'
     },
     Japanese: {
         from: 'から',
@@ -101,7 +106,8 @@ const TRANSLATIONS = {
         swapAndBridge: 'スワップ＆ブリッジ',
         bridge: 'ブリッジ',
         max: '最大',
-        insufficientBalance: '残高不足'
+        insufficientBalance: '残高不足',
+        enterAmount: '金額を入力'
     }
 };
 
@@ -536,6 +542,7 @@ export default function Bridge({
                 fromChain: fromChainKit,
                 toChain: toChainKit,
                 amount: bridgeAmount,
+                fullAmount: amount,
                 recipientAddress: customRecipient || currentAddress,
                 forwardingFee,
                 isSwapRoute: isEthSwap,
@@ -891,12 +898,13 @@ export default function Bridge({
 
     const getButtonLabel = () => {
         if (!isConnected) return t.connectWallet;
+        if (!amount || parseFloat(amount) <= 0) return t.enterAmount;
         if (isBridging) return t.bridging;
         if (hasInsufficientSourceGas) return `Insufficient Gas on ${getCleanChainName(fromChainName)}`;
         if (hasInsufficientDestGas) return `Insufficient Gas on ${getCleanChainName(toChainName)}`;
         if (hasInsufficientBalance) return t.insufficientBalance;
-        if (isEthSwap) return `${t.swapAndBridge} ${amount || '0'} ETH`;
-        return `${t.bridge} ${amount || '0'} USDC`;
+        if (isEthSwap) return `${t.swapAndBridge} ${amount} ETH`;
+        return `${t.bridge} ${amount} USDC`;
     };
 
     const peerChain = toChainName === 'Arc Testnet' ? fromChain : destChain;
