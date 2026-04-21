@@ -15,6 +15,7 @@ import { FORWARDING_CONFIG, DEFAULT_MINT_MODE, CHAINS_WITHOUT_FORWARDER_SUPPORT 
 import { getSwapQuote, executeSwap } from '../services/swapService';
 import { getDestSwapQuote, executeDestSwap } from '../services/destSwapService';
 import TransactionModal from './TransactionModal';
+import RetryModal from './RetryModal';
 import { sdk } from '../services/analyticsService';
 // RecipientModal and its CSS are now imported in App.jsx
 
@@ -150,6 +151,7 @@ export default function Bridge({
     const [selectorMode, setSelectorMode] = useState('chain');
     const [selectorTarget, setSelectorTarget] = useState('from'); // 'from' or 'to'
     const [isReminting, setIsReminting] = useState(false);
+    const [isRetryModalOpen, setIsRetryModalOpen] = useState(false);
     const [cachedAttestation, setCachedAttestation] = useState(null); // stored from SDK event
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [txData, setTxData] = useState({ approveHash: null, sourceHash: null, destHash: null, swapHash: null, destSwapHash: null });
@@ -1244,17 +1246,6 @@ export default function Bridge({
                             </div>
                         </div>
                     </div>
-                    <div className="desktop-only">
-                        <button
-                            className={`recipient-trigger-btn ${(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? 'trigger--disabled' : ''}`}
-                            onClick={!(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? onOpenRecipientModal : undefined}
-                            disabled={isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient}
-                            data-tooltip={isEthDestNoRecipient ? "Custom recipient not supported for ETH destination swaps" : isAutoModeRestricted ? "Minimum 5 USDC required for Ethereum Auto mode" : isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
-                            data-tooltip-pos="left"
-                        >
-                            <img src="/icons/wallet.png" alt="Wallet" />
-                        </button>
-                    </div>
                 </div>
 
                 {/* CARD 4: ACTION */}
@@ -1274,8 +1265,35 @@ export default function Bridge({
                     )}
                 </div>
 
+                {/* SHARED ACTIONS - Desktop Stacking / Mobile Horizontal */}
+                <div className="desktop-only">
+                    <button
+                        className="retry-trigger-btn"
+                        onClick={() => setIsRetryModalOpen(true)}
+                        data-tooltip="Retry any CCTP transaction"
+                        data-tooltip-pos="left"
+                    >
+                        <img src="/icons/retry.png" alt="Retry" />
+                    </button>
+                    <button
+                        className={`recipient-trigger-btn ${(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? 'trigger--disabled' : ''}`}
+                        onClick={!(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? onOpenRecipientModal : undefined}
+                        disabled={isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient}
+                        data-tooltip={isEthDestNoRecipient ? "Custom recipient not supported for ETH destination swaps" : isAutoModeRestricted ? "Minimum 5 USDC required for Ethereum Auto mode" : isDestForwarderBlocked ? "Auto Mode unavailable for this chain" : "Send to a different wallet"}
+                        data-tooltip-pos="left"
+                    >
+                        <img src="/icons/wallet.png" alt="Wallet" />
+                    </button>
+                </div>
+
                 <div className="mobile-only">
                     <div className="mobile-recipient-wrap">
+                        <button
+                            className="retry-trigger-btn retry-trigger-btn-mobile"
+                            onClick={() => setIsRetryModalOpen(true)}
+                        >
+                            <img src="/icons/retry.png" alt="Retry" />
+                        </button>
                         <button
                             className={`recipient-trigger-btn recipient-trigger-btn-mobile ${(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? 'trigger--disabled' : ''}`}
                             onClick={!(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? onOpenRecipientModal : undefined}
@@ -1321,6 +1339,11 @@ export default function Bridge({
                 isSwapAndBridge={isEthSwap}
                 onRemint={handleRemint}
                 isReminting={isReminting}
+            />
+
+            <RetryModal 
+                isOpen={isRetryModalOpen}
+                onClose={() => setIsRetryModalOpen(false)}
             />
         </>
     );

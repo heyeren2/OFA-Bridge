@@ -5944,11 +5944,19 @@ body {
   color: var(--vanilla-cream);
 }
 
+.bridge-container {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  /* Aligns with cards */
+  margin: 0 auto;
+}
+
+/* RECIPENT TRIGGER BUTTON */
 .recipient-trigger-btn {
   position: absolute;
-  bottom: 4px;
-  right: -52px;
-  /* Positioned outside the card to the right */
+  bottom: 132px;
+  right: -48px;
   background: #1a152e;
   border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: 12px;
@@ -5966,16 +5974,7 @@ body {
 
 [data-theme='dark'] .recipient-trigger-btn {
   background: #F0E7D5;
-  /* Vanilla Cream for dark mode container */
   border-color: rgba(26, 21, 46, 0.2);
-}
-
-@media (max-width: 600px) {
-  .recipient-trigger-btn {
-    right: 12px;
-    bottom: 12px;
-    /* Move inside on mobile to avoid screen overflow */
-  }
 }
 
 .recipient-trigger-btn:hover {
@@ -5983,23 +5982,83 @@ body {
   box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
 }
 
-[data-theme='dark'] .recipient-trigger-btn:hover {
-  background: #e6dec9;
-  box-shadow: 0 0 15px rgba(26, 21, 46, 0.15);
+/* RETRY TRIGGER BUTTON - Stacked ABOVE Recipient */
+.retry-trigger-btn {
+  position: absolute;
+  bottom: 180px;
+  /* 4px + 44px height + 8px gap */
+  right: -444px;
+  background: #1a152e;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 6px;
+  z-index: 50;
+  backdrop-filter: blur(4px);
 }
 
-.recipient-trigger-btn img {
+[data-theme='dark'] .retry-trigger-btn {
+  background: #F0E7D5;
+  border-color: rgba(26, 21, 46, 0.2);
+}
+
+.retry-trigger-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
+}
+
+/* Image Filters for theme inversion */
+.recipient-trigger-btn img,
+.retry-trigger-btn img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  /* Vanilla Cream (#F0E7D5) for Light Mode: Base White then Tint */
   filter: brightness(0) invert(1) sepia(5%) saturate(885%) hue-rotate(320deg) brightness(101%) contrast(89%) !important;
   transition: all 0.2s;
 }
 
-[data-theme='dark'] .recipient-trigger-btn img {
-  /* Indigo (#1a152e) for Dark Mode: Base White then Tint */
+[data-theme='dark'] .recipient-trigger-btn img,
+[data-theme='dark'] .retry-trigger-btn img {
   filter: brightness(0) invert(8%) sepia(21%) saturate(2421%) hue-rotate(204deg) brightness(95%) contrast(92%) !important;
+}
+
+/* Mobile Alignment (Horizontal) */
+.retry-trigger-btn-mobile,
+.recipient-trigger-btn-mobile {
+  position: relative !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+@media (max-width: 600px) {
+
+  .recipient-trigger-btn,
+  .retry-trigger-btn {
+    display: none;
+    /* Hide absolute versions */
+  }
+
+  .recipient-trigger-btn-mobile,
+  .retry-trigger-btn-mobile {
+    display: flex;
+  }
+}
+
+@media (max-width: 600px) {
+  .retry-trigger-btn {
+    /* Optional: hide absolute version on mobile if we're using the flex wrapper */
+    display: none;
+  }
+
+  .retry-trigger-btn.retry-trigger-btn-mobile {
+    display: flex;
+  }
 }
 
 .recipient-pill-container {

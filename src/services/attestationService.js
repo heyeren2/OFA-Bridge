@@ -40,6 +40,11 @@ export const CCTP_MESSAGE_TRANSMITTER = {
     'Arc Testnet':      '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
     'Unichain Sepolia': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
     'Sei Testnet':      '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+    'Monad Testnet':    '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+    'HyperEVM Testnet': '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+    'Linea Sepolia':    '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+    'Ink Testnet':      '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+    'Plume Testnet':    '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
 };
 
 // Minimal ABI for the receiveMessage function on the MessageTransmitter contract
