@@ -3,7 +3,7 @@ import { ArrowUpDown, Zap, ExternalLink, ChevronDown, ChevronRight, ScrollText, 
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { parseUnits } from 'viem';
-import { appKitSwapEurc, appKitSwapToEurc, estimateSwapStats } from '../services/appKitSwapService';
+import { appKitSwapEurc, appKitSwapToEurc, estimateSwapStats, getSwapQuote } from '../services/appKitSwapService';
 import { USDC_ADDRESSES, EURC_ADDRESSES, TOKEN_INFO, SWAP_FEE_PERCENTAGE, SWAP_FEE_RECIPIENT, ARC_SWAP_SPENDER, ERC20_ABI } from '../config/contracts';
 import OfaReceive from './OfaReceive';
 import OfaModal from './OfaModal';
@@ -75,7 +75,6 @@ export default function OfaSwap() {
         const fetchQuote = async () => {
             if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
                 setQuote(null);
-                setModalStats(prev => ({ ...prev, rate: 'Calculating...', toAmount: '0.0000' }));
                 return;
             }
 
@@ -87,19 +86,10 @@ export default function OfaSwap() {
                     amountIn: amount
                 });
 
-                setQuote(q);
-
-                const rateStr = direction === 'eurc_to_usdc'
-                    ? `1 EURC = ${q.rate} USDC`
-                    : `1 USDC = ${q.rate} EURC`;
-
-                setModalStats(prev => ({
-                    ...prev,
-                    rate: rateStr,
-                    toAmount: q.amountOut
-                }));
+                setQuote(q); // null if fetch failed
             } catch (err) {
                 console.warn('[OfaSwap] Quote effect failed:', err);
+                setQuote(null);
             } finally {
                 setIsFetchingQuote(false);
             }
@@ -201,16 +191,19 @@ export default function OfaSwap() {
             // 1. Fetch real-time stats for the modal
             const stats = await estimateSwapStats();
 
-            // Use quote data if available, else fallback
-            const finalToAmount = quote ? quote.amountOut : (parseFloat(amount) * 0.998).toFixed(4);
-            const finalRate = quote ? (direction === 'eurc_to_usdc' ? `1 EURC = ${quote.rate} USDC` : `1 USDC = ${quote.rate} EURC`) : 'Calculating...';
+            // Use quote data if available, else show a neutral fallback
+            const finalToAmount = quote ? quote.amountOut : '--';
+            const finalRate = quote
+                ? (direction === 'eurc_to_usdc' ? `1 EURC = ${quote.rate} USDC` : `1 USDC = ${quote.rate} EURC`)
+                : 'Loading...';
 
-            setModalStats({
+            setModalStats(prev => ({
+                ...prev,
                 ...stats,
                 slippage: `${slippage}%`,
                 rate: finalRate,
                 toAmount: finalToAmount
-            });
+            }));
 
             // 2. Prepare Fee Logic (SDK Handles Fees)
             const customFeeConfig = {
@@ -232,10 +225,15 @@ export default function OfaSwap() {
                 customFeeConfig
             );
 
-            // 3. Finalize
+            // 3. Finalize — capture amounts BEFORE clearing the input
+            const capturedAmountIn = amount;
+            const capturedAmountOut = result?.amountOut
+                ?? (quote ? quote.amountOut : (parseFloat(amount) * (1 - SWAP_FEE_PERCENTAGE)).toFixed(4));
+
             setLastTx({
                 ...result,
-                amountIn: amount
+                amountIn: capturedAmountIn,
+                amountOut: capturedAmountOut
             });
             setModalStep('success');
             setAmount('');
@@ -250,17 +248,31 @@ export default function OfaSwap() {
     const kitKeyMissing = !import.meta.env.VITE_CIRCLE_KIT_KEY ||
         import.meta.env.VITE_CIRCLE_KIT_KEY === 'your_kit_key_here';
 
+    const isInsufficientBalance = (() => {
+        if (!amount || isNaN(parseFloat(amount)) || !isConnected) return false;
+        const balanceObj = direction === 'eurc_to_usdc' ? eurcData : usdcData;
+        if (!balanceObj) return false;
+        try {
+            const required = parseUnits(amount, balanceObj.decimals);
+            return balanceObj.value < required;
+        } catch (e) {
+            return false;
+        }
+    })();
+
     const btnLabel = !isConnected
         ? 'Connect Wallet'
         : !amount || parseFloat(amount) <= 0
             ? 'Enter Amount'
-            : isSwapping
-                ? `Swapping...`
-                : hasAllowance
-                    ? `Swap`
-                    : `Approve & Swap`;
+            : isInsufficientBalance
+                ? 'Insufficient Balance'
+                : isSwapping
+                    ? `Swapping...`
+                    : hasAllowance
+                        ? `Swap`
+                        : `Approve & Swap`;
 
-    const canSwap = isConnected && amount && parseFloat(amount) > 0 && !isSwapping && !kitKeyMissing;
+    const canSwap = isConnected && amount && parseFloat(amount) > 0 && !isSwapping && !kitKeyMissing && !isInsufficientBalance;
 
     return (
         <div className="ofa-swap-page">
@@ -304,7 +316,14 @@ export default function OfaSwap() {
                                 disabled={isSwapping}
                             />
                             <div className="ofa-fiat-sub">
-                                <span className="ofa-fiat-val">${(parseFloat(amount || 0) * 1).toFixed(2)}</span>
+                                <span className="ofa-fiat-val">
+                                    {direction === 'eurc_to_usdc'
+                                        ? quote
+                                            ? `$${(parseFloat(quote.amountOut) / 0.998).toFixed(2)}` // USD value of EURC = USDC you'd get ÷ fee factor
+                                            : '$0.00'
+                                        : `$${parseFloat(amount || 0).toFixed(2)}` // USDC is 1:1 USD
+                                    }
+                                </span>
                             </div>
                         </div>
 
@@ -422,13 +441,22 @@ export default function OfaSwap() {
                         <div className="ofa-input-group">
                             <div className="ofa-amount-input" style={{ height: '32px', display: 'flex', alignItems: 'center' }}>
                                 {isFetchingQuote ? (
-                                    <span className="ofa-animate-pulse" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '18px' }}>Loading...</span>
+                                    <span className="ofa-animate-pulse" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '18px' }}>...</span>
                                 ) : (
-                                    <>{amount ? (quote ? quote.amountOut : (parseFloat(amount) * 0.998).toFixed(4)) : '0.0000'}</>
+                                    <>{amount ? (quote ? quote.amountOut : '...') : '0.0000'}</>
                                 )}
                             </div>
                             <div className="ofa-fiat-sub">
-                                <span className="ofa-fiat-val">${(parseFloat(amount || 0) * (1 - SWAP_FEE_PERCENTAGE)).toFixed(2)}</span>
+                                {quote && amount ? (
+                                    <span className="ofa-fiat-val">
+                                        {direction === 'eurc_to_usdc'
+                                            ? `$${parseFloat(quote.amountOut).toFixed(2)}`   // receiving USDC — already USD
+                                            : `$${(parseFloat(amount) * 0.998).toFixed(2)}`  // receiving EURC — USD value = USDC spent × 0.998
+                                        }
+                                    </span>
+                                ) : (
+                                    <span className="ofa-fiat-val">$0.00</span>
+                                )}
                             </div>
                         </div>
 
@@ -469,7 +497,10 @@ export default function OfaSwap() {
 
                     <div className="ofa-info-sub-row">
                         <span className="ofa-exchange-rate-text">
-                            {direction === 'eurc_to_usdc' ? '1 EURC = 0.999 USDC' : '1 USDC = 0.999 EURC'}
+                            {quote
+                                ? (direction === 'eurc_to_usdc' ? `1 EURC = ${quote.rate} USDC` : `1 USDC = ${quote.rate} EURC`)
+                                : (direction === 'eurc_to_usdc' ? '1 EURC = ... USDC' : '1 USDC = ... EURC')
+                            }
                         </span>
 
                         {/* Slippage Settings Container */}
@@ -555,9 +586,9 @@ export default function OfaSwap() {
                 onClose={() => setIsModalOpen(false)}
                 onRetry={handleSwap}
                 step={modalStep}
-                fromAmount={amount || '0'}
+                fromAmount={lastTx?.amountIn ?? amount ?? '0'}
                 fromToken={tokenInInfo}
-                toAmount={(parseFloat(amount || 0) * (1 - SWAP_FEE_PERCENTAGE)).toFixed(4)}
+                toAmount={lastTx?.amountOut ?? modalStats?.toAmount ?? '--'}
                 toToken={tokenOutInfo}
                 txHash={lastTx?.txHash}
                 explorerUrl={lastTx?.explorerUrl}

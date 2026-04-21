@@ -65,39 +65,80 @@ export async function estimateSwapStats() {
     }
 }
 
+
+// ── Curve StableSwap Pool (WUSDC/EURC) on Arc Testnet ────────────────────────
+// Found by tracing Circle SDK swap transactions through LiFiDiamond → MagPieRouterV3
+const CURVE_POOL_ADDRESS = '0x942644106B073E30D72c2C5D7529D5C296ea91ab';
+
+// coin0 = WUSDC (18 decimals), coin1 = EURC (6 decimals)
+const CURVE_POOL_ABI = [
+    {
+        name: 'get_dy',
+        type: 'function',
+        inputs: [
+            { name: 'i', type: 'int128' },
+            { name: 'j', type: 'int128' },
+            { name: 'dx', type: 'uint256' }
+        ],
+        outputs: [{ type: 'uint256' }],
+        stateMutability: 'view'
+    }
+];
+
 /**
- * Fetches a real-time quote for the swap from the Circle SDK.
+ * Fetches a real-time quote by calling get_dy() on the Curve StableSwap pool
+ * that the Circle SDK actually routes through. Accurate to within ~1-2%.
  */
 export async function getSwapQuote({ tokenIn, tokenOut, amountIn }) {
-    const kit = getKit();
     try {
-        patchFetchForProxy();
-        const result = await kit.getQuote({
-            fromChain: 'Arc_Testnet',
-            tokenIn,
-            tokenOut,
-            amountIn: amountIn.toString()
-        });
+        const amt = parseFloat(amountIn);
+        if (isNaN(amt) || amt <= 0) return null;
 
-        // Calculate rate: amountOut / amountIn
-        const rate = (parseFloat(result.amountOut) / parseFloat(amountIn)).toFixed(6);
+        let dy_raw;
+        let amountOut;
+        let rate;
+
+        if (tokenIn === 'EURC' && tokenOut === 'USDC') {
+            // EURC (coin1, 6dec) → WUSDC (coin0, 18dec)
+            const dx = BigInt(Math.floor(amt * 1e6));
+            dy_raw = await arcClient.readContract({
+                address: CURVE_POOL_ADDRESS,
+                abi: CURVE_POOL_ABI,
+                functionName: 'get_dy',
+                args: [1, 0, dx]  // i=1 (EURC), j=0 (WUSDC)
+            });
+            // Pool returns WUSDC in 18 decimals → convert to USDC (6 decimals)
+            const rawUsdc = Number(dy_raw) / 1e18;
+            // Deduct our 0.2% dapp fee
+            amountOut = (rawUsdc * 0.998).toFixed(4);
+            rate = (parseFloat(amountOut) / amt).toFixed(6);
+        } else {
+            // USDC → WUSDC (coin0, 18dec) → EURC (coin1, 6dec)
+            const dx = BigInt(Math.floor(amt * 1e18)); // WUSDC is 18 decimals
+            dy_raw = await arcClient.readContract({
+                address: CURVE_POOL_ADDRESS,
+                abi: CURVE_POOL_ABI,
+                functionName: 'get_dy',
+                args: [0, 1, dx]  // i=0 (WUSDC), j=1 (EURC)
+            });
+            // Pool returns EURC in 6 decimals
+            const rawEurc = Number(dy_raw) / 1e6;
+            // Deduct our 0.2% dapp fee
+            amountOut = (rawEurc * 0.998).toFixed(4);
+            rate = (parseFloat(amountOut) / amt).toFixed(6);
+        }
 
         return {
-            amountOut: result.amountOut,
+            amountOut,
             rate,
-            priceImpact: result.priceImpact || '0',
-            fee: result.fee || '0'
+            priceImpact: '0'
         };
     } catch (error) {
-        console.error('[AppKitSwap] Quote failed:', error);
-        // Fallback to 1:1 if quote fails, but notify UI
-        return {
-            amountOut: amountIn.toString(),
-            rate: '1.00',
-            error: error.message
-        };
+        console.error('[AppKitSwap] On-chain quote failed:', error);
+        return null; // UI will show '—' and user can still proceed
     }
 }
+
 // ── Vite Dev CORS Proxy Patcher ──────────────────────────────────────────────
 // Circle's kit.swap() calls https://api.circle.com — blocked by CORS in browser.
 // In development (localhost), we intercept fetch and rewrite those URLs to use
