@@ -3,113 +3,141 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    background: #F0E7D5; /* Vanilla background */
+    background: #000000; /* Pure black background */
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    padding: 20px;
-}
-
-[data-theme='dark'] .security-gate-overlay {
-    background: #212842; /* Midnight Indigo background */
+    padding: 40px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #ffffff;
 }
 
 .security-gate-content {
     width: 100%;
-    max-width: 420px;
-    background: #212842; /* Dark card */
-    border-radius: 24px;
-    padding: 32px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    border: 1px solid rgba(240, 231, 213, 0.1);
-}
-
-[data-theme='dark'] .security-gate-content {
-    background: #1a1f33;
-    border-color: rgba(240, 231, 213, 0.05);
-}
-
-.security-icon-wrap {
-    width: 80px;
-    height: 80px;
-    background: rgba(240, 231, 213, 0.05);
-    border-radius: 20px;
+    max-width: 800px;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 24px;
+    flex-direction: column;
+    min-height: 80vh;
 }
 
-.shield-icon {
-    color: #F0E7D5;
+.security-gate-header {
+    margin-top: 40px;
+}
+
+.security-gate-header h1 {
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
 }
 
 .security-gate-header h2 {
-    color: #F0E7D5;
     font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 8px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #ffffff;
 }
 
 .security-gate-header p {
-    color: rgba(240, 231, 213, 0.6);
-    font-size: 14px;
+    font-size: 16px;
     line-height: 1.5;
+    color: #cccccc;
+    max-width: 700px;
+    margin-bottom: 40px;
 }
 
 .verification-box {
-    margin: 32px 0;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 16px;
-    padding: 20px;
-    border: 1px solid rgba(240, 231, 213, 0.05);
-}
-
-.lock-indicator {
+    margin: 20px 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    color: rgba(240, 231, 213, 0.4);
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 16px;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .turnstile-container {
-    display: flex;
-    justify-content: center;
+    background: #1c1c1c;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid #333;
+    display: inline-block;
     min-height: 65px;
 }
 
 .verification-error {
     margin-top: 16px;
+    color: #ff4d4d;
+    font-size: 14px;
+}
+
+.security-gate-footer {
+    margin-top: auto;
+    width: 100%;
+    padding-bottom: 40px;
+}
+
+.footer-line {
+    height: 1px;
+    background: #333;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.ray-id {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.ray-id code {
+    color: #999;
+    font-family: monospace;
+}
+
+.footer-links {
+    font-size: 12px;
+    color: #666;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: #ef4444;
-    font-size: 13px;
-    font-weight: 500;
 }
 
-.security-gate-footer p {
-    color: rgba(240, 231, 213, 0.3);
-    font-size: 12px;
-    line-height: 1.4;
+.footer-links a {
+    color: #0070f3;
+    text-decoration: none;
 }
 
-/* Mobile adjustments */
-@media (max-width: 480px) {
-    .security-gate-content {
-        padding: 24px 20px;
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+.footer-links .divider {
+    color: #333;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+    .security-gate-overlay {
+        justify-content: flex-start;
+        padding-top: 60px;
+    }
+
+    .security-gate-header h1 {
+        font-size: 28px;
     }
 
     .security-gate-header h2 {
         font-size: 20px;
+    }
+
+    .security-gate-header p {
+        font-size: 14px;
+    }
+
+    .security-gate-content {
+        min-height: auto;
+        height: 100%;
     }
 }

@@ -31,21 +31,17 @@ const SecurityGate = ({ children }) => {
 
     return (
         <div className="security-gate-overlay">
-            <div className="security-gate-content ofa-animate-pop-in">
-                <div className="security-gate-header">
-                    <div className="security-icon-wrap">
-                        <ShieldCheck size={40} className="shield-icon" />
-                    </div>
-                    <h2>Security Verification</h2>
-                    <p>Please complete the verification below to access OFA Bridge.</p>
-                </div>
+            <div className="security-gate-content">
+                <header className="security-gate-header">
+                    <h1>ofabridge.xyz</h1>
+                    <h2>Performing security verification</h2>
+                    <p>
+                        This website uses a security service to protect against malicious bots. 
+                        This page is displayed while the website verifies you are not a bot.
+                    </p>
+                </header>
 
                 <div className="verification-box">
-                    <div className="lock-indicator">
-                        <Lock size={14} />
-                        <span>Protected by Cloudflare Turnstile</span>
-                    </div>
-                    
                     <div className="turnstile-container">
                         <Turnstile
                             sitekey={SITE_KEY}
@@ -57,15 +53,20 @@ const SecurityGate = ({ children }) => {
 
                     {error && (
                         <div className="verification-error">
-                            <ShieldAlert size={16} />
                             <span>{error}</span>
                         </div>
                     )}
                 </div>
 
-                <div className="security-gate-footer">
-                    <p>This check helps us prevent malicious bot activity and ensure a fast experience for all users.</p>
-                </div>
+                <footer className="security-gate-footer">
+                    <div className="footer-line"></div>
+                    <div className="ray-id">Ray ID: <code>{Math.random().toString(16).slice(2, 18)}</code></div>
+                    <div className="footer-links">
+                        <span>Performance and Security by <a href="https://www.cloudflare.com/5xx-error-landing" target="_blank" rel="noreferrer">Cloudflare</a></span>
+                        <span className="divider">|</span>
+                        <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noreferrer">Privacy</a>
+                    </div>
+                </footer>
             </div>
         </div>
     );
