@@ -2,7 +2,7 @@
     "rewrites": [
         {
             "source": "/circle-api/:path*",
-            "destination": "/api/circle-proxy"
+            "destination": "/api/circle-proxy/:path*"
         }
     ],
     "headers": [

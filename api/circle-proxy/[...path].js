@@ -1,36 +1,35 @@
 /**
- * Vercel Serverless Proxy for Circle API
- * Routes: /api/circle-proxy/* → https://api.circle.com/*
+ * Vercel Catch-All Proxy for Circle API
+ * Routes: /circle-api/v1/stablecoinKits/swap → https://api.circle.com/v1/stablecoinKits/swap
  *
- * This solves the CORS issue on production. Circle's API blocks direct
- * browser requests from ofabridge.xyz, but server-to-server calls are fine.
+ * req.query.path is an array like ['v1', 'stablecoinKits', 'swap']
+ * which we join back into a full path string.
  */
-
 export default async function handler(req, res) {
-    // Build the target Circle API URL from the incoming path
-    // e.g. /api/circle-proxy/v1/stablecoinKits/swap → https://api.circle.com/v1/stablecoinKits/swap
-    const targetPath = req.url.replace('/api/circle-proxy', '');
-    const targetUrl = `https://api.circle.com${targetPath}`;
+    // Reconstruct the full path from the catch-all segments
+    const pathSegments = req.query.path || [];
+    const targetPath = '/' + pathSegments.join('/');
+
+    // Preserve query string (e.g. ?foo=bar) if any
+    const queryString = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    const targetUrl = `https://api.circle.com${targetPath}${queryString}`;
+
+    console.log(`[CircleProxy] ${req.method} ${targetUrl}`);
 
     try {
         const response = await fetch(targetUrl, {
             method: req.method,
             headers: {
                 'Content-Type': 'application/json',
-                // Forward the Authorization header if present (for Kit Key auth)
                 ...(req.headers.authorization && { Authorization: req.headers.authorization }),
-                // Forward any other Circle-specific headers
                 ...(req.headers['x-circle-kit-key'] && { 'x-circle-kit-key': req.headers['x-circle-kit-key'] }),
             },
-            // Forward the request body for POST requests
             ...(req.method !== 'GET' && req.method !== 'HEAD' && {
                 body: JSON.stringify(req.body),
             }),
         });
 
         const data = await response.json();
-
-        // Forward Circle's response status and body back to the browser
         res.status(response.status).json(data);
 
     } catch (error) {
