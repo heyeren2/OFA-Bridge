@@ -1,0 +1,115 @@
+.security-gate-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: #F0E7D5; /* Vanilla background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+[data-theme='dark'] .security-gate-overlay {
+    background: #212842; /* Midnight Indigo background */
+}
+
+.security-gate-content {
+    width: 100%;
+    max-width: 420px;
+    background: #212842; /* Dark card */
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    border: 1px solid rgba(240, 231, 213, 0.1);
+}
+
+[data-theme='dark'] .security-gate-content {
+    background: #1a1f33;
+    border-color: rgba(240, 231, 213, 0.05);
+}
+
+.security-icon-wrap {
+    width: 80px;
+    height: 80px;
+    background: rgba(240, 231, 213, 0.05);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+}
+
+.shield-icon {
+    color: #F0E7D5;
+}
+
+.security-gate-header h2 {
+    color: #F0E7D5;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.security-gate-header p {
+    color: rgba(240, 231, 213, 0.6);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.verification-box {
+    margin: 32px 0;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(240, 231, 213, 0.05);
+}
+
+.lock-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: rgba(240, 231, 213, 0.4);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+}
+
+.turnstile-container {
+    display: flex;
+    justify-content: center;
+    min-height: 65px;
+}
+
+.verification-error {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #ef4444;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.security-gate-footer p {
+    color: rgba(240, 231, 213, 0.3);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+    .security-gate-content {
+        padding: 24px 20px;
+    }
+
+    .security-gate-header h2 {
+        font-size: 20px;
+    }
+}

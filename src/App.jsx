@@ -10,6 +10,7 @@ import SettingsPopup from './components/SettingsPopup';
 // import AboutModal from './components/AboutModal'; // Temporarily disabled for push
 import BackgroundIcons from './components/BackgroundIcons';
 import RecipientModal from './components/RecipientModal';
+import SecurityGate from './components/SecurityGate';
 import './components/RecipientModal.css';
 import './App.css';
 
@@ -40,7 +41,8 @@ function App() {
     };
 
     return (
-        <div className={`app ${isMenuOpen ? 'menu-open' : ''} ${activeTab}-active`}>
+        <SecurityGate>
+            <div className={`app ${isMenuOpen ? 'menu-open' : ''} ${activeTab}-active`}>
             {activeTab === 'activity' && <BackgroundIcons />}
             {isMenuOpen && (
                 <div className="menu-backdrop" onClick={() => setIsMenuOpen(false)}></div>
@@ -238,9 +240,9 @@ function App() {
                 </p>
             </footer>
             {/* Version 3.0 Sync */}
-        </div>
+            </div>
+        </SecurityGate>
     );
 }
 
 export default App;
-

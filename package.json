@@ -24,6 +24,7 @@
     "lucide-react": "^0.473.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-turnstile": "^1.1.5",
     "viem": "^2.23.5",
     "wagmi": "^2.14.12"
   }
