@@ -48,6 +48,7 @@ const SecurityGate = ({ children }) => {
                             onVerify={handleVerify}
                             onError={handleError}
                             theme="dark"
+                            appearance="always" // Forces the checkbox to show
                         />
                     </div>
 
