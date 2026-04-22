@@ -113,21 +113,18 @@ export async function getSwapQuote({ tokenIn, tokenOut, amountIn }) {
 
 let _fetchPatched = false;
 function patchFetchForProxy() {
-    if (_fetchPatched || typeof window === 'undefined' || !import.meta.env.DEV) return;
-
+    if (_fetchPatched || typeof window === 'undefined') return;
     _fetchPatched = true;
     const CIRCLE_API = 'https://api.circle.com';
     const originalFetch = window.fetch.bind(window);
     window.fetch = async (input, init) => {
         const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
         if (url.startsWith(CIRCLE_API)) {
-            const proxied = url.replace('https://api.circle.com', '/circle-api');
-            console.log(`[AppKitSwap] Proxying Circle API: ${url} → ${proxied}`);
+            const proxied = url.replace(CIRCLE_API, '/circle-api');
             return originalFetch(proxied, init);
         }
         return originalFetch(input, init);
     };
-    console.log('[AppKitSwap] Global fetch patched for Circle API proxy');
 }
 
 /**

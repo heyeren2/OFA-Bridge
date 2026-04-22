@@ -1,4 +1,10 @@
 {
+    "rewrites": [
+        {
+            "source": "/circle-api/:path*",
+            "destination": "/api/circle-proxy"
+        }
+    ],
     "headers": [
         {
             "source": "/icons/(.*)",
