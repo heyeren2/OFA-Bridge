@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Settings, ChevronDown, ChevronRight, ArrowUpDown, ArrowDown, Clock, Zap, X, ScrollText } from 'lucide-react';
+import { Settings, ChevronDown, ChevronRight, ArrowUpDown, ArrowDown, Clock, Zap, X, ScrollText, Repeat, BookText } from 'lucide-react';
 import { useAccount, useBalance } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import ChainSelector from './ChainSelector';
@@ -975,14 +975,23 @@ export default function Bridge({
 
                 {/* Cards Navigation Row (Mobile Only) */}
                 <div className="bridge-nav-row">
-                    <button
-                        className="activity-btn-mobile"
-                        onClick={() => setActiveTab('activity')}
-                        data-tooltip="Activity"
-                        data-tooltip-pos="bottom"
-                    >
-                        <Clock size={20} />
-                    </button>
+                    <div className="mobile-nav-pill">
+                        <button 
+                            className="pill-nav-btn" 
+                            onClick={() => setActiveTab('swap')}
+                            data-tooltip="Swap Tab"
+                        >
+                            <Repeat size={18} />
+                        </button>
+                        <div className="pill-nav-divider" />
+                        <button 
+                            className="pill-nav-btn" 
+                            onClick={() => setActiveTab('activity')}
+                            data-tooltip="Activity Tab"
+                        >
+                            <BookText size={18} />
+                        </button>
+                    </div>
                     <button
                         className="settings-btn-mobile"
                         onClick={onOpenSettings}
@@ -1291,13 +1300,16 @@ export default function Bridge({
                         <button
                             className="retry-trigger-btn retry-trigger-btn-mobile"
                             onClick={() => setIsRetryModalOpen(true)}
+                            data-tooltip="Retry Tool"
                         >
                             <img src="/icons/retry.png" alt="Retry" />
                         </button>
+
                         <button
                             className={`recipient-trigger-btn recipient-trigger-btn-mobile ${(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? 'trigger--disabled' : ''}`}
                             onClick={!(isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient) ? onOpenRecipientModal : undefined}
                             disabled={isDestForwarderBlocked || isAutoModeRestricted || isEthDestNoRecipient}
+                            data-tooltip="Custom Recipient"
                         >
                             <img src="/icons/wallet.png" alt="Wallet" />
                         </button>

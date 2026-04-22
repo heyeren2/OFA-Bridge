@@ -706,6 +706,71 @@
     }
 }
 
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    .ofa-modal-overlay {
+        padding: 10px;
+    }
+
+    .ofa-modal-container {
+        max-height: 92vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ofa-modal-header {
+        padding: 16px 20px;
+    }
+
+    .ofa-modal-header h2 {
+        font-size: 16px;
+    }
+
+    .ofa-modal-body {
+        padding: 16px 16px 20px 16px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ofa-modal-card {
+        padding: 12px !important;
+        margin-bottom: 10px;
+    }
+
+    .token-amount {
+        font-size: 14px;
+    }
+
+    .step-main-text {
+        font-size: 13px;
+    }
+
+    .ofa-modal-action-btn {
+        padding: 14px;
+        font-size: 11px;
+    }
+
+    .success-sub-header {
+        font-size: 18px;
+    }
+
+    .hero-icon-container {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 16px;
+    }
+
+    .hero-icon-bg {
+        width: 100px;
+        height: 100px;
+    }
+
+    .hero-rocket {
+        width: 180px;
+        height: 180px;
+    }
+}
+
 .ofa-animate-pop-in {
     animation: ofaPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

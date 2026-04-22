@@ -22,12 +22,10 @@
 .ofa-swap-card-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    /* MATCH BRIDGE GAP */
+    gap: 6px; /* Reduced for mobile visibility */
     width: 404px;
     max-width: 100%;
     margin: 0 auto;
-    box-sizing: border-box;
     position: relative;
     z-index: 5;
 }
@@ -43,8 +41,7 @@
     max-width: 100%;
     box-sizing: border-box;
     display: flex;
-    margin-bottom: 15px;
-    /* THE 15PX GAP REQUESTED */
+    margin-bottom: 8px !important; /* Shifted up as requested */
 }
 
 .ofa-bal-horizontal-row {
@@ -402,8 +399,7 @@
 /* 4. Arrow & Info Overlay */
 .ofa-relay-connector {
     height: 0;
-    margin: -6px 0 !important;
-    /* MATCH BRIDGE OVERLAP */
+    margin: -3px 0 !important; /* Half of the 6px gap to make total distance 6px */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -694,20 +690,29 @@
     border-color: var(--midnight-indigo);
 }
 
+/* layout upwards shift */
+.ofa-bal-card {
+    margin-bottom: 8px !important;
+}
+
+.ofa-swap-card-container {
+    gap: 6px !important;
+}
+
 /* 7. Mobile Responsive Overrides */
 @media (max-width: 480px) {
     .ofa-swap-page {
-        padding: 5px 0px !important;
-        align-items: flex-start;
+        padding: 5px 12px !important;
+        align-items: center;
         height: auto;
     }
 
     .ofa-card-relay,
     .ofa-info-wrap {
-        padding: 10px 10px !important;
-        width: calc(100% + 20px) !important;
-        margin-left: -10px !important;
-        border-radius: 12px !important;
+        padding: 12px 16px !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+        border-radius: 16px !important;
     }
 
     .ofa-amount-input,
@@ -738,4 +743,58 @@
     .ofa-balance-label {
         font-size: 9px !important;
     }
+}
+
+/* Mobile Header */
+.swap-mobile-header {
+    display: flex;
+    justify-content: center; /* Center the header content */
+    align-items: center;
+    margin-bottom: 15px; /* Reduced margin to shift up */
+    padding: 0 4px;
+    animation: ofaTabPop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    width: 100%;
+}
+
+.swap-header-center-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.swap-back-arrow {
+    background: rgba(33, 40, 66, 0.05);
+    border: 1px solid rgba(33, 40, 66, 0.1);
+    border-radius: 10px;
+    width: 34px; /* Reduced by 40%+ */
+    height: 34px; /* Reduced by 40%+ */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--midnight-indigo);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.swap-back-arrow:hover {
+    background: rgba(33, 40, 66, 0.1);
+    transform: translateX(-2px);
+}
+
+.swap-mobile-header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--midnight-indigo);
+    margin: 0;
+    line-height: 1;
+}
+
+[data-theme='dark'] .swap-mobile-header h1 {
+    color: var(--vanilla-cream);
+}
+
+[data-theme='dark'] .swap-back-arrow {
+    background: rgba(240, 231, 213, 0.1);
+    border-color: rgba(30, 36, 66, 0.1);
+    color: var(--vanilla-cream);
 }

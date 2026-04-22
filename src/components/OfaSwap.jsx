@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { ArrowUpDown, Zap, ExternalLink, ChevronDown, ChevronRight, ScrollText, User, Wallet, Settings, Pen, Check } from 'lucide-react';
+import { ArrowUpDown, Zap, ExternalLink, ChevronDown, ChevronRight, ScrollText, User, Wallet, Settings, Pen, Check, ArrowLeft } from 'lucide-react';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { parseUnits } from 'viem';
@@ -13,7 +13,7 @@ import './OfaModal.css';
 // Arc Testnet chain ID
 const ARC_CHAIN_ID = 5042002;
 
-export default function OfaSwap() {
+export default function OfaSwap({ setActiveTab }) {
     const { address, isConnected, connector } = useAccount();
     const { openConnectModal } = useConnectModal();
 
@@ -276,6 +276,14 @@ export default function OfaSwap() {
 
     return (
         <div className="ofa-swap-page">
+            <div className="swap-mobile-header mobile-only">
+                <div className="swap-header-center-wrap">
+                    <button className="swap-back-arrow" onClick={() => setActiveTab('bridge')}>
+                        <ArrowLeft size={18} />
+                    </button>
+                    <h1>Swap</h1>
+                </div>
+            </div>
 
             <div className="ofa-bal-card">
                 <div className="ofa-bal-horizontal-row">

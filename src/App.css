@@ -3991,10 +3991,9 @@ body {
 
   /* Bridge Container & Card */
   .bridge-container {
-    padding: 10px 0px !important;
-    /* Set to 0 to allow card expansion */
+    padding: 8px 0px !important; /* Reduced from 10px */
     max-width: 100%;
-    margin-top: 4px;
+    margin-top: 0px; /* Removed top margin to shift everything up */
     transform: none !important;
     width: 100%;
   }
@@ -5879,30 +5878,37 @@ body {
   display: none;
 }
 
-@media (max-width: 768px) {
-  .bridge-nav-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 4px;
-    margin-bottom: -12px;
-    /* Lowered significantly to be close to the card */
-    width: 100%;
-  }
-}
-
 .activity-btn-mobile,
 .settings-btn-mobile {
   background: transparent;
   border: none;
-  color: var(--midnight-indigo);
-  width: 38px;
-  height: 38px;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--midnight-indigo);
   cursor: pointer;
   transition: all 0.2s;
+  border-radius: 10px;
+}
+
+[data-theme='dark'] .activity-btn-mobile,
+[data-theme='dark'] .settings-btn-mobile {
+  color: var(--vanilla-cream);
+}
+
+@media (max-width: 768px) {
+  .bridge-nav-row {
+    display: flex !important;
+    justify-content: space-between; /* Change from flex-end + gap to space-between */
+    align-items: center;
+    padding: 0 4px;
+    margin-bottom: 8px; /* Reduced from 12px to shift cards up */
+    width: 100%;
+    max-width: 404px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 .activity-btn-mobile:hover,
@@ -6393,4 +6399,68 @@ body {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+}
+
+/* Mobile Navigation Pill */
+.mobile-nav-pill {
+  background: rgba(30, 36, 64, 0.98);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(240, 231, 213, 0.15);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  /* Reduced by 20% */
+  z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: ofaTabPop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.pill-nav-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
+  /* Reduced by 20% */
+  color: rgba(240, 231, 213, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 14px;
+}
+
+.pill-nav-btn:hover {
+  color: #f0e7d5;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pill-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.pill-nav-divider {
+  width: 1px;
+  height: 12px;
+  /* Reduced by 20% */
+  background: rgba(240, 231, 213, 0.1);
+  margin: 0 2px;
+}
+
+[data-theme='dark'] .mobile-nav-pill {
+  background: rgba(240, 231, 213, 0.95);
+  border-color: rgba(30, 36, 64, 0.1);
+}
+
+[data-theme='dark'] .pill-nav-btn {
+  color: rgba(30, 36, 64, 0.6);
+}
+
+[data-theme='dark'] .pill-nav-btn:hover {
+  color: #1a1f33;
+}
+
+[data-theme='dark'] .pill-nav-divider {
+  background: rgba(30, 36, 64, 0.1);
 }

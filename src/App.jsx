@@ -208,7 +208,7 @@ function App() {
                             </div>
                         </div>
                     ) : activeTab === 'swap' ? (
-                        <OfaSwap />
+                        <OfaSwap setActiveTab={setActiveTab} />
                     ) : (
                         <Activity language={language} setActiveTab={setActiveTab} />
                     )}
