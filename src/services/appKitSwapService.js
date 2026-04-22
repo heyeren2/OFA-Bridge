@@ -211,8 +211,7 @@ async function runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, sli
         amountIn,
         config: {
             kitKey,
-            slippage: (slippage / 100),
-            allowanceStrategy: 'approve',
+            ...(slippage ? { slippage } : {}),
             ...(customFee ? { customFee } : {}),
         },
     });
