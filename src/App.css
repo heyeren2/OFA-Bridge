@@ -792,7 +792,8 @@ body {
 /* Bridge Wrapper */
 .bridge-page-wrapper {
   width: 100%;
-  max-width: 460px;
+  max-width: 506px;
+  /* Increased by 10% from 460px */
   margin: -10px auto 0;
 }
 
@@ -3415,7 +3416,8 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 460px;
+  max-width: 506px;
+  /* Increased by 10% from 460px */
   gap: 10px;
   margin: 0 auto;
   background: transparent !important;
@@ -3533,7 +3535,7 @@ body {
 
 .relay-amount-display {
   color: white;
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
   display: block;
 }
@@ -3991,9 +3993,11 @@ body {
 
   /* Bridge Container & Card */
   .bridge-container {
-    padding: 8px 0px !important; /* Reduced from 10px */
+    padding: 8px 0px !important;
+    /* Reduced from 10px */
     max-width: 100%;
-    margin-top: 0px; /* Removed top margin to shift everything up */
+    margin-top: 0px;
+    /* Removed top margin to shift everything up */
     transform: none !important;
     width: 100%;
   }
@@ -5900,10 +5904,12 @@ body {
 @media (max-width: 768px) {
   .bridge-nav-row {
     display: flex !important;
-    justify-content: space-between; /* Change from flex-end + gap to space-between */
+    justify-content: space-between;
+    /* Change from flex-end + gap to space-between */
     align-items: center;
     padding: 0 4px;
-    margin-bottom: 8px; /* Reduced from 12px to shift cards up */
+    margin-bottom: 8px;
+    /* Reduced from 12px to shift cards up */
     width: 100%;
     max-width: 404px;
     margin-left: auto;
@@ -5953,7 +5959,8 @@ body {
 .bridge-container {
   position: relative;
   width: 100%;
-  max-width: 440px;
+  max-width: 484px;
+  /* Increased by 10% from 440px to match swap cards */
   /* Aligns with cards */
   margin: 0 auto;
 }
@@ -5993,7 +6000,7 @@ body {
   position: absolute;
   bottom: 180px;
   /* 4px + 44px height + 8px gap */
-  right: -444px;
+  right: -464px;
   background: #1a152e;
   border: 1px solid rgba(251, 191, 36, 0.3);
   border-radius: 12px;

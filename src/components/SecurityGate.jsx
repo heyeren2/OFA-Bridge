@@ -5,6 +5,10 @@ import './SecurityGate.css';
 
 const SecurityGate = ({ children }) => {
     const [isVerified, setIsVerified] = useState(() => {
+        // Automatically verify if running on localhost
+        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            return true;
+        }
         // Optional: Persist verification for the session
         return sessionStorage.getItem('ofa_verified') === 'true';
     });
