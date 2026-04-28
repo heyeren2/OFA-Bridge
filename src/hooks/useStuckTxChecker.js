@@ -87,11 +87,24 @@ export function useStuckTxChecker(allTransactions, address, onRecovered) {
                             const destTxHash = msg.destinationTransaction?.transactionHash;
 
                             if (destTxHash) {
-                                // Mint already confirmed on-chain — mark attested and let
-                                // the backend poller pick up the mint hash automatically
-                                console.log(`[StuckChecker] Iris found destTx for ${burnTxHash} — already minted, deferring to poller`);
-                                await forceStatus(burnTxHash, 'attested');
-                                anyRecovered = true;
+                                // Mint already confirmed on-chain (likely via Circle Relay/Auto-mode)
+                                // Report the actual mint hash to the backend so it shows as 'Completed'
+                                console.log(`[StuckChecker] Iris found destTx for ${burnTxHash} — marking as COMPLETED`);
+                                try {
+                                    await fetch(`${ANALYTICS_URL}/track/mint`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            burnTxHash,
+                                            mintTxHash: destTxHash,
+                                            bridgeId: BRIDGE_ID,
+                                            success: true
+                                        }),
+                                    });
+                                    anyRecovered = true;
+                                } catch (e) {
+                                    console.warn('[StuckChecker] Failed to report recovered mint:', e.message);
+                                }
 
                             } else if (irisStatus === 'complete') {
                                 // Attestation done, mint never happened → show Remint button
