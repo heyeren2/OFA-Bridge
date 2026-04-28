@@ -161,22 +161,20 @@ export default function Activity({ setActiveTab }) {
     // Refetch helper for remint
     const refetchTx = fetchData;
 
+    // Tracks which burnTxHashes have already been fully checked to prevent infinite loops
+    const checkedAttestationRef = useRef(new Set());
+
     // Background attestation expiry checker
-    // Runs whenever allTransactions or the connected wallet changes.
-    // For each mint_failed tx owned by the user, calls Circle Iris API + simulates receiveMessage
-    // to determine if the attestation has simply expired (CCTP V2) or was already minted.
-    // Updates the backend and local state silently — the button auto-changes to 'Re-Attest'.
     useEffect(() => {
         if (!address || !allTransactions.length) return;
 
-        // Check both mint_failed AND attestation_failed txs:
-        // mint_failed       → check if expired → show Re-Attest once
-        // attestation_failed → check again  → if still expired → mark as failed permanently
         const myPendingTxs = allTransactions.filter(tx =>
             (tx.status === 'mint_failed' || tx.rawStatus === 'attestation_failed') &&
             tx.sender?.toLowerCase() === address.toLowerCase() &&
             tx.sourceTxHash &&
-            !tx.destTxHash
+            !tx.destTxHash &&
+            // Skip txs we've already resolved in this session to prevent infinite loops
+            !checkedAttestationRef.current.has(tx.sourceTxHash)
         );
 
         if (!myPendingTxs.length) return;
@@ -197,13 +195,9 @@ export default function Activity({ setActiveTab }) {
                     console.log(`[Activity] Attestation check for ${tx.sourceTxHash.slice(0, 10)}...: ${attestStatus}`);
 
                     if (attestStatus === 'expired') {
-                        // Two-stage escalation matching the manual Re-Attest logic:
-                        // mint_failed + expired        → attestation_failed (show Re-Attest once)
-                        // attestation_failed + expired → failed (no protocol recovery possible)
                         const alreadyAttempted = tx.rawStatus === 'attestation_failed';
                         const nextStatus = alreadyAttempted ? 'failed' : 'attestation_failed';
 
-                        // Silently update backend
                         fetch(import.meta.env.VITE_ANALYTICS_URL + '/track/status', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -214,7 +208,6 @@ export default function Activity({ setActiveTab }) {
                             }),
                         }).catch(() => {});
 
-                        // Update local state immediately
                         if (!cancelled) {
                             setAllTransactions(prev => prev.map(t =>
                                 t.id === tx.id
@@ -222,15 +215,40 @@ export default function Activity({ setActiveTab }) {
                                     : t
                             ));
                         }
+
+                        // Mark as checked so we don't re-evaluate the escalated status
+                        checkedAttestationRef.current.add(tx.sourceTxHash);
+
                     } else if (attestStatus === 'already_minted') {
-                        // Backend hasn't updated yet — trigger a re-fetch to get the real mint hash
-                        if (!cancelled) fetchData();
+                        // The CCTP nonce is consumed — the relay already minted this tx.
+                        // Update backend to 'minted' and flip local state to 'completed'
+                        // so the Re-Attest button disappears immediately.
+                        // Do NOT call fetchData() here — that causes an infinite loop.
+                        fetch(import.meta.env.VITE_ANALYTICS_URL + '/track/status', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                burnTxHash: tx.sourceTxHash,
+                                bridgeId: import.meta.env.VITE_BRIDGE_ID,
+                                status: 'minted',
+                            }),
+                        }).catch(() => {});
+
+                        if (!cancelled) {
+                            setAllTransactions(prev => prev.map(t =>
+                                t.id === tx.id
+                                    ? { ...t, rawStatus: 'minted', status: 'completed' }
+                                    : t
+                            ));
+                        }
+
+                        // Mark as resolved so this tx is never re-checked
+                        checkedAttestationRef.current.add(tx.sourceTxHash);
                     }
                 } catch {
                     // Silently ignore individual check errors
                 }
 
-                // Small delay between checks to avoid hammering Circle's API
                 await new Promise(r => setTimeout(r, 800));
             }
         };
@@ -335,21 +353,21 @@ export default function Activity({ setActiveTab }) {
         // Start at attestation step if re-attesting, otherwise go straight to mint
         setMintingStep(tx.rawStatus === 'attestation_failed' ? 'attestation' : 'mint');
         try {
-            // Note: retryMint should ideally return the result object containing the hash
+            // Read the mintMode that was stored in localStorage when the original burn happened.
+            // This tells retryMint whether to use Circle's forwarder (auto) or the user's wallet (manual).
+            const mintMode = localStorage.getItem(`mintMode_${tx.sourceTxHash}`) || 'manual';
+
             const result = await retryMint({
                 burnTxHash: tx.sourceTxHash,
                 fromChain: tx.fromChain,
                 toChain: tx.toChain,
+                mintMode,
                 onStatusUpdate: ({ step }) => {
-                    // 'attestation_polling' — Iris API call in progress, keep spinner on attestation
                     if (step === 'attestation_polling') {
-                        // Only show attestation spinner if we're in a re-attest flow
-                        // (normal mint_failed goes straight to 'mint' step)
                         if (tx.rawStatus === 'attestation_failed') {
                             setMintingStep('attestation');
                         }
                     }
-                    // 'attestation_done' — Circle confirmed, now transition to Mint step
                     if (step === 'attestation_done') setMintingStep('mint');
                 },
             });

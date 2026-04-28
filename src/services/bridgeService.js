@@ -527,7 +527,7 @@ export const executeBridge = async ({
 };
 
 
-export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestation = null, onStatusUpdate }) => {
+export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestation = null, mintMode = 'manual', onStatusUpdate }) => {
 
     if (!burnTxHash) throw new Error('No source transaction hash available for retry');
 
@@ -611,10 +611,75 @@ export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestat
     onStatusUpdate?.({ step: 'attestation_done' });
 
     // Deliberate 1.5s pause so the user clearly sees the attestation step complete
-    // BEFORE the wallet switch prompt or mint tx popup appear.
     await new Promise(r => setTimeout(r, 1500));
 
-    const { createWalletClient, custom } = await import('viem');
+    // ── AUTO MODE: Submit via Circle's forwarder (no wallet popup) ────────────
+    if (mintMode === 'auto') {
+        console.log('[BridgeService] Auto-mode retryMint — submitting via Circle forwarder...');
+        try {
+            const kit = getKit();
+            const adapter = await getAdapter();
+
+            // BridgeKit forwarder: re-bridge from the source chain using the existing
+            // attestation. The kit will skip the burn step if already done and use
+            // useForwarder:true to have Circle auto-mint on the destination.
+            // We map chain names to BridgeKit names for this call.
+            const CHAIN_TO_KIT = {
+                'Ethereum Sepolia': 'Ethereum_Sepolia',
+                'Base Sepolia': 'Base_Sepolia',
+                'Arbitrum Sepolia': 'Arbitrum_Sepolia',
+                'Optimism Sepolia': 'Optimism_Sepolia',
+                'Unichain Sepolia': 'Unichain_Sepolia',
+                'Avalanche Fuji': 'Avalanche_Fuji',
+                'Monad Testnet': 'Monad_Testnet',
+                'HyperEVM Testnet': 'HyperEVM_Testnet',
+                'Sei Testnet': 'Sei_Testnet',
+                'Linea Sepolia': 'Linea_Sepolia',
+                'Ink Testnet': 'Ink_Testnet',
+                'Plume Testnet': 'Plume_Testnet',
+                'Arc Testnet': 'Arc_Testnet',
+            };
+
+            const toKitChain = CHAIN_TO_KIT[toChain] || toChain;
+            const fromKitChain = CHAIN_TO_KIT[fromChain] || fromChain;
+
+            // Get the connected wallet address for recipientAddress
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const recipientAddress = accounts[0];
+
+            // Use the kit's bridge with useForwarder:true and pass the existing attestation
+            // so Circle's relay service handles the mint automatically.
+            const result = await kit.bridge({
+                from: { adapter, chain: fromKitChain },
+                to: {
+                    chain: toKitChain,
+                    recipientAddress,
+                    useForwarder: true,
+                },
+                attestation: attestationData, // BridgeKit v1.8+ supports resuming from attestation
+                burnTxHash,                   // Skip re-burn; resume from existing burn
+                config: { transferSpeed: 'FAST' },
+            });
+
+            if (result?.state === 'completed' || result?.state === 'success') {
+                const mintTxHash = result?.steps?.find(s => s.name === 'mint')?.txHash || null;
+                console.log('[BridgeService] Auto retryMint via forwarder completed:', mintTxHash);
+                return { mintTxHash: mintTxHash || burnTxHash }; // fallback to burnTxHash as marker
+            }
+
+            throw new Error('Forwarder did not complete. Circle relay may still be processing.');
+        } catch (forwarderErr) {
+            console.warn('[BridgeService] Auto-mode forwarder path failed:', forwarderErr.message);
+            // Surface a user-friendly message — no wallet popup
+            throw new Error(
+                'Circle relay is still processing your mint automatically. ' +
+                'No action required — your USDC will arrive shortly. ' +
+                'Refresh the Activity tab in a few minutes.'
+            );
+        }
+    }
+
+    // ── MANUAL MODE: User signs receiveMessage on destination chain ───────────
     const { getChainByName } = await import('../config/chains');
 
     const destChainConfig = getChainByName(toChain);

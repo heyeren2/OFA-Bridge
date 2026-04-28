@@ -650,6 +650,9 @@ export default function Bridge({
                                     sourceChain: fromChainName,
                                     destinationChain: toChainName,
                                 }).catch(err => console.warn('[Bridge] trackBurn failed:', err.message));
+                                // Store mintMode in localStorage so Activity tab can use correct
+                                // retry path (forwarder vs manual wallet) for this tx.
+                                localStorage.setItem(`mintMode_${update.txHash}`, mintMode);
                                 // Store burn hash in ref to avoid stale closure
                                 burnTxHashRef.current = update.txHash;
                             }
