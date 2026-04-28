@@ -340,8 +340,63 @@ export const executeBridge = async ({
 
     registerListener('approve', 'approve');
     registerListener('burn', 'burn');
-    registerListener('fetchAttestation', 'attestation');
     registerListener('mint', 'mint');
+
+    // For AUTO mode (forwarder), the relay mints server-side — preMintHook never fires
+    // because no eth_sendTransaction goes through the user's wallet.
+    // We register a special fetchAttestation listener that immediately advances
+    // the UI from Attestation → Mint once Circle's attestation is ready.
+    //
+    // For MANUAL mode, keep the standard listener (preMintHook handles the transition).
+    const forwarderAttestationHandler = (payload) => {
+        const attestationValue =
+            payload?.attestation ||
+            payload?.values?.attestation ||
+            payload?.data?.attestation ||
+            null;
+
+        console.log('[BridgeService] [AUTO] fetchAttestation event:', {
+            hasAttestation: !!attestationValue,
+            payloadKeys: payload ? Object.keys(payload) : [],
+        });
+
+        // In auto mode, once the attestation event fires (with or without the payload value),
+        // it means Circle has confirmed the burn and the relay will handle the mint.
+        // Mark attestation as done and advance to mint immediately.
+        if (!completedSteps.has('attestation')) {
+            completedSteps.add('attestation');
+            clearPreMintHook();
+
+            onStatusUpdate?.({
+                step: 'attestation',
+                status: 'completed',
+                txHash: null,
+                data: payload,
+            });
+
+            console.log('[BridgeService] [AUTO] ✅ Attestation DONE — advancing to mint (relay will handle)');
+
+            setTimeout(() => {
+                lastStartedStep = 'mint';
+                onStatusUpdate?.({ step: 'mint', status: 'pending' });
+            }, 500);
+        }
+    };
+
+    // canUseForwarder is known here, register appropriate attestation listener
+    // We register it after kit.bridge() params are calculated below,
+    // so we reference canUseForwarder which is declared in the try block.
+    // Store a ref to register post-params.
+    let _canUseForwarder = false;
+    const registerAttestationListener = (canForwarder) => {
+        _canUseForwarder = canForwarder;
+        if (canForwarder) {
+            kit.on('fetchAttestation', forwarderAttestationHandler);
+            cleanup.push(() => { if (kit.off) kit.off('fetchAttestation', forwarderAttestationHandler); });
+        } else {
+            registerListener('fetchAttestation', 'attestation');
+        }
+    };
 
     try {
         onStatusUpdate?.({ step: 'approve', status: 'pending' });
@@ -372,6 +427,8 @@ export const executeBridge = async ({
             chainBlocksForwarder,
             globalEnabled: FORWARDING_CONFIG.isForwardingEnabled,
         });
+
+        registerAttestationListener(canUseForwarder);
 
         const bridgeParams = {
             from: { adapter, chain: fromChain },
@@ -451,6 +508,55 @@ export const executeBridge = async ({
             } catch (retryErr) {
                 console.error('[BridgeService] kit.retry() threw:', retryErr);
                 throw new Error(errorMsg);
+            }
+        }
+
+        // For AUTO mode: if the SDK's mint event did NOT provide a txHash (relay edge case),
+        // poll Iris as a fallback to get the relay's destination tx hash.
+        // If the SDK already emitted the mint hash (normal case), skip this entirely.
+        if (canUseForwarder && result.state !== 'error' && !completedSteps.has('mint')) {
+            // Get the burn tx hash from the SDK result steps
+            const burnTxHashForRelay = result.steps?.find(s => s.name === 'burn')?.txHash || null;
+
+            if (burnTxHashForRelay) {
+                console.log('[BridgeService] [AUTO] Bridge complete — polling Iris for relay mint hash...');
+                let relayMintHash = null;
+                const IRIS = 'https://iris-api-sandbox.circle.com/v2/messages';
+                const MAX_ATTEMPTS = 6; // 30s total (6 × 5s)
+                for (let i = 0; i < MAX_ATTEMPTS; i++) {
+                    try {
+                        const irisRes = await fetch(`${IRIS}?sourceTxHash=${burnTxHashForRelay}`);
+                        if (irisRes.ok) {
+                            const irisData = await irisRes.json();
+                            const destTxHash = irisData?.messages?.[0]?.destinationTransaction?.transactionHash;
+                            if (destTxHash) {
+                                relayMintHash = destTxHash;
+                                console.log(`[BridgeService] [AUTO] ✅ Relay mint hash: ${relayMintHash}`);
+                                break;
+                            }
+                        }
+                    } catch (_) { /* ignore */ }
+                    if (i < MAX_ATTEMPTS - 1) await new Promise(r => setTimeout(r, 5000));
+                }
+
+                if (relayMintHash) {
+                    // Emit mint completed with the real hash so Bridge.jsx's sdk.trackMint() fires
+                    if (!completedSteps.has('mint')) {
+                        completedSteps.add('mint');
+                        onStatusUpdate?.({
+                            step: 'mint',
+                            status: 'completed',
+                            txHash: relayMintHash,
+                            data: null,
+                        });
+                    }
+                } else {
+                    console.warn('[BridgeService] [AUTO] Iris did not return relay mint hash within 30s — marking mint done without hash');
+                    if (!completedSteps.has('mint')) {
+                        completedSteps.add('mint');
+                        onStatusUpdate?.({ step: 'mint', status: 'completed', txHash: null, data: null });
+                    }
+                }
             }
         }
 

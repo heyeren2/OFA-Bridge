@@ -206,7 +206,7 @@ export default function Activity({ setActiveTab }) {
                                 bridgeId: import.meta.env.VITE_BRIDGE_ID,
                                 status: nextStatus,
                             }),
-                        }).catch(() => {});
+                        }).catch(() => { });
 
                         if (!cancelled) {
                             setAllTransactions(prev => prev.map(t =>
@@ -232,7 +232,7 @@ export default function Activity({ setActiveTab }) {
                                 bridgeId: import.meta.env.VITE_BRIDGE_ID,
                                 status: 'minted',
                             }),
-                        }).catch(() => {});
+                        }).catch(() => { });
 
                         if (!cancelled) {
                             setAllTransactions(prev => prev.map(t =>
@@ -265,7 +265,7 @@ export default function Activity({ setActiveTab }) {
     // Filtered Transactions
     const filteredTxs = useMemo(() => {
         if (!allTransactions.length) return [];
-        
+
         const now = Math.floor(Date.now() / 1000);
         let timeThreshold = 0;
         if (timeFilter === '24h') timeThreshold = now - 86400;
@@ -280,10 +280,10 @@ export default function Activity({ setActiveTab }) {
                 tx.receiver?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
                 tx.sourceTxHash?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
                 tx.destTxHash?.toLowerCase().includes(debouncedSearch.toLowerCase());
-            
+
             const txTime = parseInt(tx.timestamp);
             const matchesTime = timeFilter === 'all' || txTime >= timeThreshold;
-            
+
             return matchesFrom && matchesTo && matchesSearch && matchesTime;
         });
     }, [allTransactions, fromChainFilter, toChainFilter, debouncedSearch, timeFilter]);
@@ -291,7 +291,7 @@ export default function Activity({ setActiveTab }) {
     const stats = useMemo(() => {
         // Always use filteredTxs for stats to ensure consistency with the visible list
         // and to handle range filtering even if the backend stats endpoint doesn't.
-        
+
         const volume = filteredTxs.reduce((sum, tx) => sum + parseFloat(tx.amountDisplay || 0), 0);
         const count = filteredTxs.length;
         const uniqueWallets = new Set(filteredTxs.map(tx => tx.sender?.toLowerCase())).size;
