@@ -24,7 +24,7 @@ export default function Activity({ setActiveTab }) {
     const [searchAddress, setSearchAddress] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [myTxnFilter, setMyTxnFilter] = useState(false);
-    const [timeFilter, setTimeFilter] = useState('24h');
+    const [timeFilter, setTimeFilter] = useState('all');
     const [copiedHash, setCopiedHash] = useState(null);
     const [fromChainFilter, setFromChainFilter] = useState('Chains');
     const [toChainFilter, setToChainFilter] = useState('Chains');
@@ -110,6 +110,7 @@ export default function Activity({ setActiveTab }) {
             const rangeParam = timeFilter === 'all' ? '' : `&range=${timeFilter}`;
             const res = await fetch(import.meta.env.VITE_ANALYTICS_URL + `/analytics/stats?bridgeId=${import.meta.env.VITE_BRIDGE_ID}${rangeParam}`);
             const data = await res.json();
+            console.log(`[Activity] Stats for ${timeFilter}:`, data);
             if (data && !data.error) setGlobalStats(data);
         } catch (err) {
             console.warn('[Activity] Stats fetch failed:', err.message);
@@ -238,17 +239,21 @@ export default function Activity({ setActiveTab }) {
         return () => { cancelled = true; };
     }, [allTransactions, address]);
 
-    const stats = useMemo(() => ({
-        volume: parseFloat(globalStats.totalVolume || '0'),
-        count: globalStats.totalTransactions || 0,
-        users: globalStats.uniqueWallets || 0,
-        fees: 0,
-    }), [globalStats]);
+    // Reset to page 1 when any filter changes
+    useEffect(() => {
+        setPage(1);
+    }, [timeFilter, fromChainFilter, toChainFilter, debouncedSearch, myTxnFilter]);
 
-
-    // Filtered Transactions (Chain + Search filters only — My Tx filtering is handled by fetchData)
+    // Filtered Transactions
     const filteredTxs = useMemo(() => {
         if (!allTransactions.length) return [];
+        
+        const now = Math.floor(Date.now() / 1000);
+        let timeThreshold = 0;
+        if (timeFilter === '24h') timeThreshold = now - 86400;
+        else if (timeFilter === '7d') timeThreshold = now - 86400 * 7;
+        else if (timeFilter === '30d') timeThreshold = now - 86400 * 30;
+
         return allTransactions.filter(tx => {
             const matchesFrom = fromChainFilter === 'Chains' || tx.fromChain === fromChainFilter;
             const matchesTo = toChainFilter === 'Chains' || tx.toChain === toChainFilter;
@@ -257,9 +262,40 @@ export default function Activity({ setActiveTab }) {
                 tx.receiver?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
                 tx.sourceTxHash?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
                 tx.destTxHash?.toLowerCase().includes(debouncedSearch.toLowerCase());
-            return matchesFrom && matchesTo && matchesSearch;
+            
+            const txTime = parseInt(tx.timestamp);
+            const matchesTime = timeFilter === 'all' || txTime >= timeThreshold;
+            
+            return matchesFrom && matchesTo && matchesSearch && matchesTime;
         });
-    }, [allTransactions, fromChainFilter, toChainFilter, debouncedSearch]);
+    }, [allTransactions, fromChainFilter, toChainFilter, debouncedSearch, timeFilter]);
+
+    const stats = useMemo(() => {
+        // Always use filteredTxs for stats to ensure consistency with the visible list
+        // and to handle range filtering even if the backend stats endpoint doesn't.
+        
+        const volume = filteredTxs.reduce((sum, tx) => sum + parseFloat(tx.amountDisplay || 0), 0);
+        const count = filteredTxs.length;
+        const uniqueWallets = new Set(filteredTxs.map(tx => tx.sender?.toLowerCase())).size;
+
+        // If 'all' is selected, we can fallback to globalStats from backend if available,
+        // but filteredTxs is more reliable for real-time updates.
+        if (timeFilter === 'all' && globalStats.totalTransactions > count) {
+            return {
+                volume: parseFloat(globalStats.totalVolume || '0'),
+                count: globalStats.totalTransactions || 0,
+                users: globalStats.uniqueWallets || 0,
+                fees: 0,
+            };
+        }
+
+        return {
+            volume,
+            count,
+            users: uniqueWallets,
+            fees: 0,
+        };
+    }, [globalStats, filteredTxs, timeFilter]);
 
     // --- Dynamic Sizing ---
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 820);
