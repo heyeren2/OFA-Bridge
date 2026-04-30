@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { checkNonceUsedOnChain } from '../services/attestationService';
 
 const IRIS_API = 'https://iris-api-sandbox.circle.com/v2/messages';
 const ANALYTICS_URL = import.meta.env.VITE_ANALYTICS_URL;
@@ -9,6 +10,7 @@ const BRIDGE_ID = import.meta.env.VITE_BRIDGE_ID;
 // our own backend for the mint hash instead of querying Iris.
 const ARC_SOURCE_CHAINS = ['Arc Testnet', 'Arc_Testnet'];
 
+const TWENTY_SEC_MS = 20 * 1000;
 const TWO_MIN_MS    = 2 * 60 * 1000;
 const TEN_MIN_MS    = 10 * 60 * 1000;
 const THIRTY_MIN_MS = 30 * 60 * 1000;
@@ -49,9 +51,10 @@ export function useStuckTxChecker(allTransactions, address, onRecovered) {
             if (tx.status !== 'processing') return false;
             if (tx.sender?.toLowerCase() !== address.toLowerCase()) return false;
             const txTime = parseInt(tx.timestamp) * 1000;
-            // Arc relay can take a few minutes — check after 2min
-            // Standard chains check after 10min
-            const threshold = ARC_SOURCE_CHAINS.includes(tx.fromChain) ? TWO_MIN_MS : TEN_MIN_MS;
+            // Arc relay completes fast (forwarder) — check after just 20s so
+            // a fresh auto-mode bridge shows Completed almost immediately.
+            // Standard chains need longer (10min) since they require manual attestation.
+            const threshold = ARC_SOURCE_CHAINS.includes(tx.fromChain) ? TWENTY_SEC_MS : TEN_MIN_MS;
             return (now - txTime) > threshold;
         });
 
@@ -81,45 +84,90 @@ export function useStuckTxChecker(allTransactions, address, onRecovered) {
             return false;
         };
 
-        // ── STRATEGY A: Poll backend for Arc relay mint ───────────────────────
+        // ── STRATEGY A: Poll backend + Iris fallback for Arc relay mints ─────
         const checkArcTx = async (tx) => {
             const burnTxHash = tx.sourceTxHash;
             if (!burnTxHash) return false;
 
+            const txAgeMs = now - parseInt(tx.timestamp) * 1000;
+
+            // ── Layer 1: Ask backend if it has the relay mint callback ────────
             try {
-                // Ask our backend if it has received the relay's mint callback yet
                 const res = await fetch(
                     `${ANALYTICS_URL}/activity/tx?burnTxHash=${burnTxHash}&bridgeId=${BRIDGE_ID}`
                 );
-
-                if (!res.ok) return false;
-                const data = await res.json();
-
-                const mintTxHash = data?.mintTxHash || data?.transaction?.mintTxHash;
-
-                if (mintTxHash) {
-                    console.log(`[StuckChecker] ✅ Arc relay completed for ${burnTxHash} → mintTxHash: ${mintTxHash}`);
-
-                    // Report mint to backend (updates status to completed)
-                    await fetch(`${ANALYTICS_URL}/track/mint`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            burnTxHash,
-                            mintTxHash,
-                            bridgeId: BRIDGE_ID,
-                            success: true,
-                        }),
-                    });
-                    return true;
+                if (res.ok) {
+                    const data = await res.json();
+                    const mintTxHash = data?.mintTxHash || data?.transaction?.mintTxHash;
+                    if (mintTxHash) {
+                        console.log(`[StuckChecker] ✅ Arc relay completed (backend) for ${burnTxHash}`);
+                        await fetch(`${ANALYTICS_URL}/track/mint`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ burnTxHash, mintTxHash, bridgeId: BRIDGE_ID, success: true }),
+                        });
+                        return true;
+                    }
                 }
-
-                console.log(`[StuckChecker] ⏳ Arc relay not yet completed for ${burnTxHash}`);
             } catch (err) {
                 console.warn(`[StuckChecker] Arc backend poll failed for ${burnTxHash}:`, err.message);
             }
+
+            // ── Layer 2: Backend has no mintTxHash — try Iris directly ────────
+            // Circle's Iris may return the destinationTransaction for relay-completed
+            // CCTP messages even when the source is Arc (a custom chain).
+            // This recovers old txs where Bridge.jsx never called sdk.trackMint().
+            if (txAgeMs > 2 * 60 * 1000) { // only try after 2min to avoid false negatives
+                try {
+                    const irisRes = await fetch(`${IRIS_API}?sourceTxHash=${burnTxHash}`);
+                    if (irisRes.ok) {
+                        const irisData = await irisRes.json();
+                        const destTxHash = irisData?.messages?.[0]?.destinationTransaction?.transactionHash;
+                        if (destTxHash) {
+                            console.log(`[StuckChecker] ✅ Arc relay found via Iris for ${burnTxHash} → ${destTxHash}`);
+                            await fetch(`${ANALYTICS_URL}/track/mint`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ burnTxHash, mintTxHash: destTxHash, bridgeId: BRIDGE_ID, success: true }),
+                            });
+                            return true;
+                        }
+                        console.log(`[StuckChecker] ⏳ Iris has no destTx for Arc burn ${burnTxHash} yet`);
+                    }
+                } catch (err) {
+                    console.warn(`[StuckChecker] Iris fallback failed for ${burnTxHash}:`, err.message);
+                }
+            }
+
+            // ── Layer 3: On-chain usedNonces check on destination chain ──────
+            // Reads the CCTP MessageTransmitter.usedNonces() mapping directly.
+            // This definitively confirms whether the relay already minted,
+            // even when the backend and Iris have no record.
+            if (tx.toChain) {
+                try {
+                    const nonceUsed = await checkNonceUsedOnChain({
+                        burnTxHash,
+                        fromChain: tx.fromChain,
+                        toChain: tx.toChain,
+                    });
+                    if (nonceUsed) {
+                        console.log(`[StuckChecker] ✅ usedNonces confirms relay minted for ${burnTxHash}`);
+                        await fetch(`${ANALYTICS_URL}/track/status`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ burnTxHash, bridgeId: BRIDGE_ID, status: 'minted' }),
+                        });
+                        return true;
+                    }
+                } catch (err) {
+                    console.warn(`[StuckChecker] usedNonces check failed for ${burnTxHash}:`, err.message);
+                }
+            }
+
+            console.log(`[StuckChecker] ⏳ Arc relay still pending for ${burnTxHash} — keeping as Processing`);
             return false;
         };
+
 
         // ── STRATEGY B: Query Circle Iris for standard CCTP chains ───────────
         const checkIrisTx = async (tx) => {
@@ -174,7 +222,11 @@ export function useStuckTxChecker(allTransactions, address, onRecovered) {
                                     }
                                 } catch (_) { /* ignore */ }
 
-                                const isAutoMode = localStorage.getItem(`mintMode_${burnTxHash}`) === 'auto';
+                                // Arc Testnet source bridges ALWAYS use auto/forwarder mode —
+                                // this is a protocol fact, not a user setting.
+                                // localStorage is only a secondary fallback for other chains.
+                                const isArcSource = ARC_SOURCE_CHAINS.includes(tx.fromChain);
+                                const isAutoMode = isArcSource || localStorage.getItem(`mintMode_${burnTxHash}`) === 'auto';
 
                                 if (relayAlreadyMinted) {
                                     return true; // trigger refetch, backend is already correct

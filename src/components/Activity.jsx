@@ -4,7 +4,7 @@ import { Search, ExternalLink, ArrowRight, ArrowLeft, CheckCircle, XCircle, Aler
 import { getChainByName, ARC_CHAIN, SUPPORTED_CHAINS } from '../config/chains';
 import { TOKEN_INFO } from '../config/contracts';
 import { retryMint } from '../services/bridgeService';
-import { checkAttestationStatus } from '../services/attestationService';
+import { checkAttestationStatus, checkNonceUsedOnChain } from '../services/attestationService';
 import { sdk } from '../services/analyticsService';
 import { RemintModal } from './RemintModal';
 import { useStuckTxChecker } from '../hooks/useStuckTxChecker';
@@ -155,6 +155,13 @@ export default function Activity({ setActiveTab }) {
     // Fetch activity on mount and when mode/address changes
     useEffect(() => { fetchData(); }, [fetchData]);
 
+    // Auto-refresh every 30s so relay-completed and recent txs show their
+    // final status without requiring a manual page refresh.
+    useEffect(() => {
+        const interval = setInterval(() => { fetchData(); }, 30_000);
+        return () => clearInterval(interval);
+    }, [fetchData]);
+
     // Auto-recover stuck "Processing" transactions for the connected wallet
     useStuckTxChecker(allTransactions, address, fetchData);
 
@@ -185,6 +192,39 @@ export default function Activity({ setActiveTab }) {
             for (const tx of myPendingTxs) {
                 if (cancelled) break;
                 try {
+                    const isArcSourceTx = tx.fromChain === 'Arc Testnet' || tx.fromChain === 'Arc_Testnet';
+
+                    if (isArcSourceTx && tx.toChain) {
+                        // Arc burns: Iris can't verify these, so check usedNonces on-chain instead.
+                        // Only add to checkedRef when RESOLVED — unresolved txs re-check every 30s auto-refresh.
+                        console.log(`[Activity] Checking usedNonces for Arc tx ${tx.sourceTxHash.slice(0,10)}... toChain: ${tx.toChain}`);
+                        const nonceUsed = await checkNonceUsedOnChain({
+                            burnTxHash: tx.sourceTxHash,
+                            fromChain: tx.fromChain,
+                            toChain: tx.toChain,
+                        });
+                        console.log(`[Activity] usedNonces result for ${tx.sourceTxHash.slice(0,10)}: ${nonceUsed}`);
+                        if (nonceUsed && !cancelled) {
+                            console.log(`[Activity] ✅ usedNonces confirms Arc tx ${tx.sourceTxHash.slice(0,10)} already minted`);
+                            fetch(import.meta.env.VITE_ANALYTICS_URL + '/track/status', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    burnTxHash: tx.sourceTxHash,
+                                    bridgeId: import.meta.env.VITE_BRIDGE_ID,
+                                    status: 'minted',
+                                }),
+                            }).catch(() => {});
+                            setAllTransactions(prev => prev.map(t =>
+                                t.id === tx.id ? { ...t, rawStatus: 'minted', status: 'completed' } : t
+                            ));
+                            // Only mark as checked when resolved — prevents infinite loop on setAllTransactions
+                            checkedAttestationRef.current.add(tx.sourceTxHash);
+                        }
+                        // If nonceUsed=false: do NOT add to checkedRef — will re-check on next auto-refresh
+                        continue;
+                    }
+
                     const attestStatus = await checkAttestationStatus({
                         burnTxHash: tx.sourceTxHash,
                         fromChain: tx.fromChain,

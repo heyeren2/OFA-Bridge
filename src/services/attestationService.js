@@ -47,6 +47,92 @@ export const CCTP_MESSAGE_TRANSMITTER = {
     'Plume Testnet':    '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
 };
 
+const USED_NONCES_ABI = [{
+    name: 'usedNonces',
+    type: 'function',
+    inputs: [{ name: 'nonce', type: 'bytes32' }],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+}];
+
+// keccak256('MessageSent(bytes)')
+const MESSAGE_SENT_TOPIC = '0x8c5261668696ce22758910d05bab8f186d6eb247ceac2af2e82c7dc17669b036';
+
+/**
+ * Checks whether a CCTP burn's nonce has already been consumed on the destination chain
+ * by reading the MessageTransmitter.usedNonces() mapping directly on-chain.
+ *
+ * This works even when Circle's Iris API has no record of the transaction (e.g., Arc Testnet).
+ * A non-zero return value means the USDC was already minted — the transaction is complete.
+ *
+ * @returns {Promise<boolean>} true = already minted, false = not yet / unknown
+ */
+export const checkNonceUsedOnChain = async ({ burnTxHash, fromChain, toChain }) => {
+    try {
+        const { createPublicClient, http, keccak256, encodePacked } = await import('viem');
+        const { getChainByName } = await import('../config/chains');
+
+        const fromConfig = getChainByName(fromChain);
+        const toConfig   = getChainByName(toChain);
+        if (!fromConfig?.rpc || !toConfig?.rpc) return false;
+
+        const makeViemChain = (cfg, name) => ({
+            id: cfg.chainId,
+            name,
+            nativeCurrency: cfg.nativeCurrency || { name: 'ETH', symbol: 'ETH', decimals: 18 },
+            rpcUrls: { default: { http: [cfg.rpc] } },
+        });
+
+        // Step 1 — get burn tx receipt from source chain
+        const sourceClient = createPublicClient({
+            chain: makeViemChain(fromConfig, fromChain),
+            transport: http(fromConfig.rpc),
+        });
+        const receipt = await sourceClient.getTransactionReceipt({ hash: burnTxHash });
+        if (!receipt) return false;
+
+        // Step 2 — find the MessageSent(bytes) log
+        const msgLog = receipt.logs.find(
+            log => log.topics[0]?.toLowerCase() === MESSAGE_SENT_TOPIC
+        );
+        if (!msgLog) return false;
+
+        // Step 3 — decode message bytes from ABI-encoded log data
+        // Layout: [32B offset][32B length][message bytes]
+        const rawHex = msgLog.data.replace('0x', '');
+        const messageHex = rawHex.slice(128); // skip offset + length (64 hex chars each)
+
+        // CCTP message layout: version(4B) sourceDomain(4B) destDomain(4B) nonce(8B) ...
+        const sourceDomain = parseInt(messageHex.slice(8, 16), 16);   // bytes 4-7
+        const nonce        = BigInt('0x' + messageHex.slice(24, 40)); // bytes 12-19
+
+        // Step 4 — compute nonce key: keccak256(abi.encodePacked(uint32, uint64))
+        const nonceKey = keccak256(encodePacked(['uint32', 'uint64'], [sourceDomain, nonce]));
+
+        // Step 5 — call usedNonces on destination chain
+        const transmitterAddr = CCTP_MESSAGE_TRANSMITTER[toChain];
+        if (!transmitterAddr) return false;
+
+        const destClient = createPublicClient({
+            chain: makeViemChain(toConfig, toChain),
+            transport: http(toConfig.rpc),
+        });
+        const result = await destClient.readContract({
+            address: transmitterAddr,
+            abi: USED_NONCES_ABI,
+            functionName: 'usedNonces',
+            args: [nonceKey],
+        });
+
+        // Non-zero = nonce was consumed = USDC was minted on destination
+        return result > 0n;
+
+    } catch (err) {
+        console.warn('[AttestationService] checkNonceUsedOnChain error:', err.message);
+        return false;
+    }
+};
+
 // Minimal ABI for the receiveMessage function on the MessageTransmitter contract
 export const RECEIVE_MESSAGE_ABI = [{
     name: 'receiveMessage',
