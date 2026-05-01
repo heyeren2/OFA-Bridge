@@ -45,6 +45,7 @@ export default function Activity({ setActiveTab }) {
         completedBridges: 0, pendingBridges: 0
     });
     const [txLoading, setTxLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const pollingTimerRef = useRef(null);
 
     // Debounce search input
@@ -155,12 +156,23 @@ export default function Activity({ setActiveTab }) {
     // Fetch activity on mount and when mode/address changes
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // Auto-refresh every 30s so relay-completed and recent txs show their
-    // final status without requiring a manual page refresh.
+    // Auto-refresh every 20 minutes (1,200,000 ms)
     useEffect(() => {
-        const interval = setInterval(() => { fetchData(); }, 30_000);
+        const interval = setInterval(() => { fetchData(); fetchStats(); }, 1_200_000);
         return () => clearInterval(interval);
-    }, [fetchData]);
+    }, [fetchData, fetchStats]);
+
+    // Manual refresh handler
+    const handleManualRefresh = async () => {
+        if (refreshing || txLoading) return;
+        setRefreshing(true);
+        try {
+            await Promise.all([fetchData(), fetchStats()]);
+        } finally {
+            // Keep the animation for at least 600ms for visual feedback
+            setTimeout(() => setRefreshing(false), 600);
+        }
+    };
 
     // Auto-recover stuck "Processing" transactions for the connected wallet
     useStuckTxChecker(allTransactions, address, fetchData);
@@ -579,10 +591,17 @@ export default function Activity({ setActiveTab }) {
                         <button className="activity-back-arrow" onClick={() => setActiveTab('bridge')} data-tooltip="Back to Bridge" data-tooltip-pos="bottom">
                             <ArrowLeft size={22} />
                         </button>
-                        <div className="title-area">
+                         <div className="title-area">
                             <h1>Bridge Activity</h1>
                             <p>Real-time bridge analytics</p>
                         </div>
+                        <button 
+                            className={`mobile-refresh-circle ${refreshing ? 'spinning' : ''}`}
+                            onClick={handleManualRefresh}
+                            disabled={refreshing || txLoading}
+                        >
+                            <RefreshCw size={18} />
+                        </button>
                     </div>
                 )}
 
@@ -821,6 +840,13 @@ export default function Activity({ setActiveTab }) {
                                 </div>
                             </div>
                             <div className="toolbar-right">
+                                <button 
+                                    className={`desktop-refresh-pill ${refreshing ? 'spinning-text' : ''}`}
+                                    onClick={handleManualRefresh}
+                                    disabled={refreshing || txLoading}
+                                >
+                                    Refresh
+                                </button>
                                 <div className="live-indicator">
                                     <div className="live-dot" />
                                     <span>LIVE</span>
