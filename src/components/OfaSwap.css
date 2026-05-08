@@ -22,7 +22,8 @@
 .ofa-swap-card-container {
     display: flex;
     flex-direction: column;
-    gap: 6px; /* Reduced for mobile visibility */
+    gap: 6px;
+    /* Reduced for mobile visibility */
     width: 404px;
     max-width: 100%;
     margin: 0 auto;
@@ -41,7 +42,8 @@
     max-width: 100%;
     box-sizing: border-box;
     display: flex;
-    margin-bottom: 8px !important; /* Shifted up as requested */
+    margin-bottom: 8px !important;
+    /* Shifted up as requested */
 }
 
 .ofa-bal-horizontal-row {
@@ -58,7 +60,6 @@
 }
 
 .ofa-bal-token-icon {
-    width: 18px;
     height: 18px;
     border-radius: 50%;
 }
@@ -81,6 +82,55 @@
     width: 1px;
     background: var(--text-on-dark) !important;
     opacity: 0.15;
+}
+
+/* Pair Selector Tabs */
+.ofa-pair-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.ofa-pair-tab {
+    flex: 1;
+    padding: 6px 0;
+    border-radius: 10px;
+    border: 1px solid rgba(240, 231, 213, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(240, 231, 213, 0.45);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.02em;
+}
+
+.ofa-pair-tab:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(240, 231, 213, 0.8);
+}
+
+.ofa-pair-tab.active {
+    background: linear-gradient(135deg, rgba(58, 66, 79, 0.8) 0%, rgba(63, 158, 142, 0.4) 100%);
+    border-color: rgba(63, 158, 142, 0.4);
+    color: #fff;
+}
+
+[data-theme='dark'] .ofa-pair-tab {
+    background: rgba(33, 40, 66, 0.05);
+    border-color: rgba(33, 40, 66, 0.1);
+    color: rgba(33, 40, 66, 0.4);
+}
+
+[data-theme='dark'] .ofa-pair-tab:hover {
+    background: rgba(33, 40, 66, 0.1);
+    color: rgba(33, 40, 66, 0.8);
+}
+
+[data-theme='dark'] .ofa-pair-tab.active {
+    background: rgba(33, 40, 66, 0.15);
+    border-color: rgba(33, 40, 66, 0.3);
+    color: var(--midnight-indigo);
 }
 
 /* 3. Independent Card Components (Renamed Prefix) */
@@ -209,6 +259,10 @@
     font-weight: 500;
 }
 
+.ofa-selector-group {
+    position: relative;
+}
+
 .ofa-token-selector-btn {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.03);
@@ -231,7 +285,6 @@
 }
 
 .ofa-token-icon {
-    width: 100%;
     height: 100%;
     border-radius: 50%;
 }
@@ -285,6 +338,49 @@
     animation: ofaDropdownFadeIn 0.2s ease-out;
 }
 
+/* Token Selector Dropdown - Pops out next to the button */
+.ofa-token-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    width: 220px;
+    background: #1a1f33;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    padding: 8px;
+    animation: ofaDropdownFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: top right;
+}
+
+[data-theme='dark'] .ofa-token-dropdown {
+    background: #fdfaf3;
+    /* Premium vanilla */
+    border-color: rgba(33, 40, 66, 0.15);
+}
+
+.ofa-rotate-90 {
+    transform: rotate(90deg);
+}
+
+.ofa-token-selector-btn .lucide-chevron-right {
+    transition: transform 0.2s ease;
+}
+
+@keyframes ofaDropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
 [data-theme='dark'] .ofa-recipient-dropdown {
     background: var(--vanilla-cream);
     border-color: rgba(33, 40, 66, 0.1);
@@ -306,15 +402,22 @@
 }
 
 .ofa-dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='dark'] .ofa-dropdown-item:hover {
-    background: rgba(33, 40, 66, 0.05);
+    background: rgba(33, 40, 66, 0.08);
 }
 
 .ofa-dropdown-item.active {
     background: rgba(255, 255, 255, 0.08);
+}
+
+.ofa-dropdown-check {
+    margin-left: auto;
+    font-size: 14px;
+    color: #3f9e8e;
+    /* Match active theme color */
 }
 
 .ofa-dropdown-icon {
@@ -326,7 +429,6 @@
 }
 
 .ofa-dropdown-icon img {
-    width: 100%;
     height: 100%;
     border-radius: 50%;
 }
@@ -399,7 +501,8 @@
 /* 4. Arrow & Info Overlay */
 .ofa-relay-connector {
     height: 0;
-    margin: -3px 0 !important; /* Half of the 6px gap to make total distance 6px */
+    margin: -3px 0 !important;
+    /* Half of the 6px gap to make total distance 6px */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -748,9 +851,11 @@
 /* Mobile Header */
 .swap-mobile-header {
     display: flex;
-    justify-content: center; /* Center the header content */
+    justify-content: center;
+    /* Center the header content */
     align-items: center;
-    margin-bottom: 15px; /* Reduced margin to shift up */
+    margin-bottom: 15px;
+    /* Reduced margin to shift up */
     padding: 0 4px;
     animation: ofaTabPop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     width: 100%;
@@ -766,8 +871,10 @@
     background: rgba(33, 40, 66, 0.05);
     border: 1px solid rgba(33, 40, 66, 0.1);
     border-radius: 10px;
-    width: 34px; /* Reduced by 40%+ */
-    height: 34px; /* Reduced by 40%+ */
+    width: 34px;
+    /* Reduced by 40%+ */
+    height: 34px;
+    /* Reduced by 40%+ */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -797,4 +904,35 @@
     background: rgba(240, 231, 213, 0.1);
     border-color: rgba(30, 36, 66, 0.1);
     color: var(--vanilla-cream);
+}
+
+/* ═══════════════════════════════════════════════════
+   8. Independent cirBTC Layout (No size change to pills)
+   ═══════════════════════════════════════════════════ */
+
+/* Larger internal gap for cirBTC without widening the pill */
+.ofa-token-selector-btn-cirbtc {
+    gap: 18px !important;
+    padding-left: 2px !important;
+}
+
+/* Shift the icon container left to clear space */
+.ofa-cirbtc-wrap {
+    transform: translateX(-4px);
+}
+
+/* cirBTC fixed icon sizing (instead of scale) */
+.ofa-cirbtc-icon {
+    transform: scale(2.2) !important;
+    transform-origin: center;
+    border-radius: 0 !important;
+    max-width: none !important;
+}
+
+/* cirBTC independent badge position */
+.ofa-chain-badge-cirbtc {
+    right: -16px !important;
+    bottom: -4px !important;
+    width: 16px !important;
+    height: 15px !important;
 }

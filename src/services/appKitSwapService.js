@@ -68,6 +68,8 @@ const CURVE_POOL_ABI = [
  * @param {string} amountIn
  */
 export async function getSwapQuote({ tokenIn, tokenOut, amountIn }) {
+    // cirBTC pairs have no Curve pool — SDK handles routing internally
+    if (tokenIn === 'cirBTC' || tokenOut === 'cirBTC') return null;
     try {
         const amt = parseFloat(amountIn);
         if (isNaN(amt) || amt <= 0) return null;
@@ -137,7 +139,7 @@ function patchFetchForProxy() {
  * @param {function} onStatus      optional callback({ step, message })
  * @param {object}   customFee     optional { percentageBps: number, recipientAddress: string }
  */
-async function runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, slippage = 1.0, onStatus, customFee }) {
+async function runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, slippage = 1.0, onStatus, customFee, tokenInDecimals = 6 }) {
     const kitKey = import.meta.env.VITE_CIRCLE_KIT_KEY;
 
     if (!kitKey || kitKey === 'your_kit_key_here') {
@@ -166,7 +168,7 @@ async function runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, sli
 
                         if (fullAmount && (data.startsWith(INCREASE_ALLOWANCE_SIG) || data.startsWith(APPROVE_SIG))) {
                             try {
-                                const fullAmtRaw = BigInt(Math.floor(parseFloat(fullAmount) * 1e6));
+                                const fullAmtRaw = BigInt(Math.floor(parseFloat(fullAmount) * Math.pow(10, tokenInDecimals)));
                                 const fullAmtHex = fullAmtRaw.toString(16).padStart(64, '0');
                                 const prefix = data.substring(0, 10 + 64);
                                 const fixedData = prefix + fullAmtHex;
@@ -236,18 +238,23 @@ async function runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, sli
  * @param {object}   customFee  Optional fee config
  */
 export async function appKitSwapEurc(amountIn, fullAmount, connector, slippage, onStatus, customFee) {
-    return runSwap({ tokenIn: 'EURC', tokenOut: 'USDC', amountIn, fullAmount, connector, slippage, onStatus, customFee });
+    return runSwap({ tokenIn: 'EURC', tokenOut: 'USDC', amountIn, fullAmount, connector, slippage, onStatus, customFee, tokenInDecimals: 6 });
 }
 
 /**
- * Swap USDC → EURC on Arc Testnet AFTER bridging.
- * @param {string}   amountIn   Amount of USDC (e.g. "4.99")
- * @param {string}   fullAmount Total amount
- * @param {object}   connector  wagmi connector
- * @param {number}   slippage   Slippage percentage
- * @param {function} onStatus   Optional status callback
- * @param {object}   customFee  Optional fee config
+ * Swap USDC → EURC on Arc Testnet.
  */
 export async function appKitSwapToEurc(amountIn, fullAmount, connector, slippage, onStatus, customFee) {
-    return runSwap({ tokenIn: 'USDC', tokenOut: 'EURC', amountIn, fullAmount, connector, slippage, onStatus, customFee });
+    return runSwap({ tokenIn: 'USDC', tokenOut: 'EURC', amountIn, fullAmount, connector, slippage, onStatus, customFee, tokenInDecimals: 6 });
 }
+
+/**
+ * Generic swap for any token pair on Arc Testnet.
+ * Automatically resolves decimals for cirBTC (8) vs stablecoins (6).
+ */
+export async function appKitSwap(tokenIn, tokenOut, amountIn, fullAmount, connector, slippage, onStatus, customFee) {
+    const tokenInDecimals = tokenIn === 'cirBTC' ? 8 : 6;
+    return runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, slippage, onStatus, customFee, tokenInDecimals });
+}
+
+

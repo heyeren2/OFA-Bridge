@@ -3,8 +3,8 @@ import { ArrowUpDown, Zap, ExternalLink, ChevronDown, ChevronRight, ScrollText, 
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { parseUnits } from 'viem';
-import { appKitSwapEurc, appKitSwapToEurc, estimateSwapStats, getSwapQuote } from '../services/appKitSwapService';
-import { USDC_ADDRESSES, EURC_ADDRESSES, TOKEN_INFO, SWAP_FEE_PERCENTAGE, SWAP_FEE_RECIPIENT, ARC_SWAP_SPENDER, ERC20_ABI } from '../config/contracts';
+import { appKitSwap, estimateSwapStats, getSwapQuote } from '../services/appKitSwapService';
+import { USDC_ADDRESSES, EURC_ADDRESSES, CIRBTC_ADDRESSES, TOKEN_INFO, SWAP_FEE_PERCENTAGE, SWAP_FEE_RECIPIENT, ARC_SWAP_SPENDER, ERC20_ABI } from '../config/contracts';
 import OfaReceive from './OfaReceive';
 import OfaModal from './OfaModal';
 import './OfaSwap.css';
@@ -13,11 +13,22 @@ import './OfaModal.css';
 // Arc Testnet chain ID
 const ARC_CHAIN_ID = 5042002;
 
+const DIRECTION_MAP = {
+    eurc_to_usdc:    { in: 'EURC',   out: 'USDC'   },
+    usdc_to_eurc:    { in: 'USDC',   out: 'EURC'   },
+    usdc_to_cirbtc:  { in: 'USDC',   out: 'cirBTC' },
+    cirbtc_to_usdc:  { in: 'cirBTC', out: 'USDC'   },
+    eurc_to_cirbtc:  { in: 'EURC',   out: 'cirBTC' },
+    cirbtc_to_eurc:  { in: 'cirBTC', out: 'EURC'   },
+};
+
+
+
 export default function OfaSwap({ setActiveTab }) {
     const { address, isConnected, connector } = useAccount();
     const { openConnectModal } = useConnectModal();
 
-    const [direction, setDirection] = useState('eurc_to_usdc'); // 'eurc_to_usdc' | 'usdc_to_eurc'
+    const [direction, setDirection] = useState('eurc_to_usdc'); // see DIRECTION_MAP
     const [amount, setAmount] = useState('');
     const [isSwapping, setIsSwapping] = useState(false);
     const [statusMsg, setStatusMsg] = useState('');
@@ -48,6 +59,11 @@ export default function OfaSwap({ setActiveTab }) {
     });
     const [modalError, setModalError] = useState('');
 
+    const [isTokenInDropdownOpen, setIsTokenInDropdownOpen] = useState(false);
+    const [isTokenOutDropdownOpen, setIsTokenOutDropdownOpen] = useState(false);
+
+    const tokenInDropdownRef = useRef(null);
+    const tokenOutDropdownRef = useRef(null);
     const dropdownRef = useRef(null);
 
     const isCustomRecipient = isConnected && address && recipientAddress &&
@@ -58,6 +74,12 @@ export default function OfaSwap({ setActiveTab }) {
         const handleClickOutside = (e) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
                 setIsRecipientDropdownOpen(false);
+            }
+            if (tokenInDropdownRef.current && !tokenInDropdownRef.current.contains(e.target)) {
+                setIsTokenInDropdownOpen(false);
+            }
+            if (tokenOutDropdownRef.current && !tokenOutDropdownRef.current.contains(e.target)) {
+                setIsTokenOutDropdownOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -81,8 +103,8 @@ export default function OfaSwap({ setActiveTab }) {
             setIsFetchingQuote(true);
             try {
                 const q = await getSwapQuote({
-                    tokenIn: direction === 'eurc_to_usdc' ? 'EURC' : 'USDC',
-                    tokenOut: direction === 'eurc_to_usdc' ? 'USDC' : 'EURC',
+                    tokenIn,
+                    tokenOut,
                     amountIn: amount
                 });
 
@@ -104,8 +126,8 @@ export default function OfaSwap({ setActiveTab }) {
         return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
     };
 
-    const tokenIn = direction === 'eurc_to_usdc' ? 'EURC' : 'USDC';
-    const tokenOut = direction === 'eurc_to_usdc' ? 'USDC' : 'EURC';
+    const tokenIn = DIRECTION_MAP[direction].in;
+    const tokenOut = DIRECTION_MAP[direction].out;
     const tokenInInfo = TOKEN_INFO[tokenIn];
     const tokenOutInfo = TOKEN_INFO[tokenOut];
 
@@ -124,6 +146,13 @@ export default function OfaSwap({ setActiveTab }) {
         watch: true,
     });
 
+    const { data: cirbtcData } = useBalance({
+        address,
+        token: CIRBTC_ADDRESSES.Arc_Testnet,
+        chainId: ARC_CHAIN_ID,
+        watch: true,
+    });
+
     const fmt = (data) => {
         if (!data) return '0.00';
         const [int, frac] = data.formatted.split('.');
@@ -132,12 +161,32 @@ export default function OfaSwap({ setActiveTab }) {
 
     const usdcBalance = fmt(usdcData);
     const eurcBalance = fmt(eurcData);
-    const sourceBalanceFormatted = direction === 'eurc_to_usdc' ? eurcBalance : usdcBalance;
-    const destBalanceFormatted = direction === 'eurc_to_usdc' ? usdcBalance : eurcBalance;
+    const cirbtcBalance = (() => {
+        if (!cirbtcData) return '0.00';
+        const [int, frac] = cirbtcData.formatted.split('.');
+        return `${int}.${(frac || '').padEnd(6, '0').slice(0, 6)}`;
+    })();
+
+    const getBalanceData = (token) => {
+        if (token === 'USDC')   return usdcData;
+        if (token === 'EURC')   return eurcData;
+        if (token === 'cirBTC') return cirbtcData;
+        return null;
+    };
+
+    const fmtBalance = (token) => {
+        if (token === 'cirBTC') return cirbtcBalance;
+        return fmt(getBalanceData(token));
+    };
+
+    const sourceBalanceFormatted = fmtBalance(tokenIn);
+    const destBalanceFormatted   = fmtBalance(tokenOut);
 
     // Allowance check for dynamic button text
     const { data: allowance } = useReadContract({
-        address: direction === 'eurc_to_usdc' ? EURC_ADDRESSES.Arc_Testnet : USDC_ADDRESSES.Arc_Testnet,
+        address: tokenIn === 'EURC'   ? EURC_ADDRESSES.Arc_Testnet
+               : tokenIn === 'cirBTC' ? CIRBTC_ADDRESSES.Arc_Testnet
+               : USDC_ADDRESSES.Arc_Testnet,
         abi: ERC20_ABI,
         functionName: 'allowance',
         args: [address, ARC_SWAP_SPENDER],
@@ -147,11 +196,13 @@ export default function OfaSwap({ setActiveTab }) {
         }
     });
 
+    const tokenInDecimals = tokenIn === 'cirBTC' ? 8 : 6;
+
     const hasAllowance = (() => {
         if (!amount || isNaN(parseFloat(amount))) return false;
         if (allowance === undefined || allowance === null) return false;
         try {
-            const required = parseUnits(amount, 6); // EURC/USDC on Arc are both 6 decimal
+            const required = parseUnits(amount, tokenInDecimals);
             return BigInt(allowance) >= required;
         } catch (e) {
             return false;
@@ -159,20 +210,41 @@ export default function OfaSwap({ setActiveTab }) {
     })();
 
     const handleToggle = () => {
-        setDirection(prev => prev === 'eurc_to_usdc' ? 'usdc_to_eurc' : 'eurc_to_usdc');
+        setDirection(`${tokenOut.toLowerCase()}_to_${tokenIn.toLowerCase()}`);
         setAmount('');
-        setStatusMsg('');
-        setStatusType('');
+        setQuote(null);
+    };
+
+    const handleTokenChange = (type, token) => {
+        if (type === 'in') {
+            if (token === tokenOut) {
+                // Swap tokens if same selected
+                setDirection(`${tokenOut.toLowerCase()}_to_${tokenIn.toLowerCase()}`);
+            } else {
+                setDirection(`${token.toLowerCase()}_to_${tokenOut.toLowerCase()}`);
+            }
+            setIsTokenInDropdownOpen(false);
+        } else {
+            if (token === tokenIn) {
+                // Swap tokens if same selected
+                setDirection(`${tokenOut.toLowerCase()}_to_${tokenIn.toLowerCase()}`);
+            } else {
+                setDirection(`${tokenIn.toLowerCase()}_to_${token.toLowerCase()}`);
+            }
+            setIsTokenOutDropdownOpen(false);
+        }
+        setAmount('');
+        setQuote(null);
     };
 
     const handlePercentageClick = (pct) => {
-        const balanceObj = direction === 'eurc_to_usdc' ? eurcData : usdcData;
+        const balanceObj = getBalanceData(tokenIn);
         if (!balanceObj) return;
         const fullAmount = parseFloat(balanceObj.formatted);
         if (pct === 100) {
             setAmount(balanceObj.formatted);
         } else {
-            setAmount(((fullAmount * pct) / 100).toFixed(6));
+            setAmount(((fullAmount * pct) / 100).toFixed(tokenInDecimals));
         }
     };
 
@@ -194,8 +266,8 @@ export default function OfaSwap({ setActiveTab }) {
             // Use quote data if available, else show a neutral fallback
             const finalToAmount = quote ? quote.amountOut : '--';
             const finalRate = quote
-                ? (direction === 'eurc_to_usdc' ? `1 EURC = ${quote.rate} USDC` : `1 USDC = ${quote.rate} EURC`)
-                : 'Loading...';
+                ? `1 ${tokenIn} = ${quote.rate} ${tokenOut}`
+                : 'Calculated by SDK';
 
             setModalStats(prev => ({
                 ...prev,
@@ -212,8 +284,9 @@ export default function OfaSwap({ setActiveTab }) {
             };
 
             // 3. Start Swap
-            const fn = direction === 'eurc_to_usdc' ? appKitSwapEurc : appKitSwapToEurc;
-            const result = await fn(
+            const result = await appKitSwap(
+                tokenIn,
+                tokenOut,
                 amount,
                 amount,
                 connector,
@@ -250,7 +323,7 @@ export default function OfaSwap({ setActiveTab }) {
 
     const isInsufficientBalance = (() => {
         if (!amount || isNaN(parseFloat(amount)) || !isConnected) return false;
-        const balanceObj = direction === 'eurc_to_usdc' ? eurcData : usdcData;
+        const balanceObj = getBalanceData(tokenIn);
         if (!balanceObj) return false;
         try {
             const required = parseUnits(amount, balanceObj.decimals);
@@ -298,6 +371,12 @@ export default function OfaSwap({ setActiveTab }) {
                         <span className="ofa-bal-sym">USDC</span>
                         <span className="ofa-bal-amount">{usdcBalance}</span>
                     </div>
+                    <div className="ofa-bal-sep" />
+                    <div className="ofa-bal-group">
+                        <img src="/icons/cirBTC.png" alt="cirBTC" className="ofa-bal-token-icon ofa-cirbtc-icon" />
+                        <span className="ofa-bal-sym">cirBTC</span>
+                        <span className="ofa-bal-amount">{cirbtcBalance}</span>
+                    </div>
                 </div>
             </div>
 
@@ -325,28 +404,51 @@ export default function OfaSwap({ setActiveTab }) {
                             />
                             <div className="ofa-fiat-sub">
                                 <span className="ofa-fiat-val">
-                                    {direction === 'eurc_to_usdc'
-                                        ? quote
-                                            ? `$${(parseFloat(quote.amountOut) / 0.998).toFixed(2)}` // USD value of EURC = USDC you'd get ÷ fee factor
-                                            : '$0.00'
-                                        : `$${parseFloat(amount || 0).toFixed(2)}` // USDC is 1:1 USD
+                                    {tokenIn === 'cirBTC'
+                                        ? ''
+                                        : tokenIn === 'USDC'
+                                            ? `$${parseFloat(amount || 0).toFixed(2)}`
+                                            : quote
+                                                ? `$${(parseFloat(quote.amountOut) / 0.998).toFixed(2)}`
+                                                : '$0.00'
                                     }
                                 </span>
                             </div>
                         </div>
 
-                        <div className="ofa-selector-group">
-                            <button className="ofa-token-selector-btn">
-                                <div className="ofa-token-icon-wrap">
-                                    <img src={tokenInInfo.icon} alt={tokenIn} className="ofa-token-icon" />
-                                    <img src="/icons/Arc.png" alt="" className="ofa-chain-badge" />
+                        <div className="ofa-selector-group" ref={tokenInDropdownRef}>
+                            <button className={`ofa-token-selector-btn ${tokenIn === 'cirBTC' ? 'ofa-token-selector-btn-cirbtc' : ''}`} onClick={() => setIsTokenInDropdownOpen(!isTokenInDropdownOpen)}>
+                                <div className={`ofa-token-icon-wrap ${tokenIn === 'cirBTC' ? 'ofa-cirbtc-wrap' : ''}`}>
+                                    <img src={tokenInInfo.icon} alt={tokenIn} className={`ofa-token-icon ${tokenIn === 'cirBTC' ? 'ofa-cirbtc-icon' : ''}`} />
+                                    <img src="/icons/Arc.png" alt="" className={`ofa-chain-badge ${tokenIn === 'cirBTC' ? 'ofa-chain-badge-cirbtc' : ''}`} />
                                 </div>
                                 <div className="ofa-token-selector-info">
                                     <span className="ofa-token-sym">{tokenIn}</span>
                                     <span className="ofa-chain-name-sub">Arc</span>
                                 </div>
-                                <ChevronRight size={18} />
+                                <ChevronRight size={18} className={isTokenInDropdownOpen ? 'ofa-rotate-90' : ''} />
                             </button>
+
+                            {isTokenInDropdownOpen && (
+                                <div className="ofa-token-dropdown">
+                                    {Object.keys(TOKEN_INFO).filter(sym => sym !== 'ETH').map((sym) => (
+                                        <div
+                                            key={sym}
+                                            className={`ofa-dropdown-item ${tokenIn === sym ? 'active' : ''}`}
+                                            onClick={() => handleTokenChange('in', sym)}
+                                        >
+                                            <div className="ofa-dropdown-icon">
+                                                <img src={TOKEN_INFO[sym].icon} alt={sym} className={sym === 'cirBTC' ? 'ofa-cirbtc-icon' : ''} />
+                                            </div>
+                                            <div className="ofa-dropdown-text">
+                                                <span className="ofa-dropdown-label">{TOKEN_INFO[sym].symbol}</span>
+                                                <span className="ofa-dropdown-sub">{TOKEN_INFO[sym].name}</span>
+                                            </div>
+                                            {tokenIn === sym && <span className="ofa-dropdown-check">✓</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -455,11 +557,11 @@ export default function OfaSwap({ setActiveTab }) {
                                 )}
                             </div>
                             <div className="ofa-fiat-sub">
-                                {quote && amount ? (
+                                {quote && amount && tokenOut !== 'cirBTC' ? (
                                     <span className="ofa-fiat-val">
-                                        {direction === 'eurc_to_usdc'
-                                            ? `$${parseFloat(quote.amountOut).toFixed(2)}`   // receiving USDC — already USD
-                                            : `$${(parseFloat(amount) * 0.998).toFixed(2)}`  // receiving EURC — USD value = USDC spent × 0.998
+                                        {tokenOut === 'USDC'
+                                            ? `$${parseFloat(quote.amountOut).toFixed(2)}`
+                                            : `$${(parseFloat(amount) * 0.998).toFixed(2)}`
                                         }
                                     </span>
                                 ) : (
@@ -468,18 +570,39 @@ export default function OfaSwap({ setActiveTab }) {
                             </div>
                         </div>
 
-                        <div className="ofa-selector-group">
-                            <button className="ofa-token-selector-btn">
-                                <div className="ofa-token-icon-wrap">
-                                    <img src={tokenOutInfo.icon} alt={tokenOut} className="ofa-token-icon" />
-                                    <img src="/icons/Arc.png" alt="" className="ofa-chain-badge" />
+                        <div className="ofa-selector-group" ref={tokenOutDropdownRef}>
+                            <button className={`ofa-token-selector-btn ${tokenOut === 'cirBTC' ? 'ofa-token-selector-btn-cirbtc' : ''}`} onClick={() => setIsTokenOutDropdownOpen(!isTokenOutDropdownOpen)}>
+                                <div className={`ofa-token-icon-wrap ${tokenOut === 'cirBTC' ? 'ofa-cirbtc-wrap' : ''}`}>
+                                    <img src={tokenOutInfo.icon} alt={tokenOut} className={`ofa-token-icon ${tokenOut === 'cirBTC' ? 'ofa-cirbtc-icon' : ''}`} />
+                                    <img src="/icons/Arc.png" alt="" className={`ofa-chain-badge ${tokenOut === 'cirBTC' ? 'ofa-chain-badge-cirbtc' : ''}`} />
                                 </div>
                                 <div className="ofa-token-selector-info">
                                     <span className="ofa-token-sym">{tokenOut}</span>
                                     <span className="ofa-chain-name-sub">Arc</span>
                                 </div>
-                                <ChevronRight size={18} />
+                                <ChevronRight size={18} className={isTokenOutDropdownOpen ? 'ofa-rotate-90' : ''} />
                             </button>
+
+                            {isTokenOutDropdownOpen && (
+                                <div className="ofa-token-dropdown">
+                                    {Object.keys(TOKEN_INFO).filter(sym => sym !== 'ETH').map((sym) => (
+                                        <div
+                                            key={sym}
+                                            className={`ofa-dropdown-item ${tokenOut === sym ? 'active' : ''}`}
+                                            onClick={() => handleTokenChange('out', sym)}
+                                        >
+                                            <div className="ofa-dropdown-icon">
+                                                <img src={TOKEN_INFO[sym].icon} alt={sym} className={sym === 'cirBTC' ? 'ofa-cirbtc-icon' : ''} />
+                                            </div>
+                                            <div className="ofa-dropdown-text">
+                                                <span className="ofa-dropdown-label">{TOKEN_INFO[sym].symbol}</span>
+                                                <span className="ofa-dropdown-sub">{TOKEN_INFO[sym].name}</span>
+                                            </div>
+                                            {tokenOut === sym && <span className="ofa-dropdown-check">✓</span>}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -506,8 +629,8 @@ export default function OfaSwap({ setActiveTab }) {
                     <div className="ofa-info-sub-row">
                         <span className="ofa-exchange-rate-text">
                             {quote
-                                ? (direction === 'eurc_to_usdc' ? `1 EURC = ${quote.rate} USDC` : `1 USDC = ${quote.rate} EURC`)
-                                : (direction === 'eurc_to_usdc' ? '1 EURC = ... USDC' : '1 USDC = ... EURC')
+                                ? `1 ${tokenIn} = ${quote.rate} ${tokenOut}`
+                                : `1 ${tokenIn} = ... ${tokenOut}`
                             }
                         </span>
 

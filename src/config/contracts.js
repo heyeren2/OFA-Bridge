@@ -54,11 +54,22 @@ export const TOKEN_INFO = {
         decimals: 6,
         icon: '/icons/euro.png',
     },
+    cirBTC: {
+        symbol: 'cirBTC',
+        name: 'Circle Bitcoin',
+        decimals: 8,
+        icon: '/icons/cirBTC.png',
+    },
 };
 
 // EURC contract addresses (testnet)
 export const EURC_ADDRESSES = {
     Arc_Testnet: '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a',
+};
+
+// cirBTC contract addresses (testnet)
+export const CIRBTC_ADDRESSES = {
+    Arc_Testnet: '0xf0C4a4CE82A5746AbAAd9425360Ab04fbBA432BF',
 };
 
 // SwapRouter02 ABI (only the functions we need)
