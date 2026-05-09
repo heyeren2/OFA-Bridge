@@ -349,13 +349,15 @@ export default function OfaSwap({ setActiveTab }) {
             ? 'Enter Amount'
             : isInsufficientBalance
                 ? 'Insufficient Balance'
-                : isSwapping
-                    ? `Swapping...`
-                    : hasAllowance
-                        ? `Swap`
-                        : `Approve & Swap`;
+        : quoteError
+            ? 'Quote Unavailable'
+            : isSwapping
+                ? `Swapping...`
+                : hasAllowance
+                    ? `Swap`
+                    : `Approve & Swap`;
 
-    const canSwap = isConnected && amount && parseFloat(amount) > 0 && !isSwapping && !kitKeyMissing && !isInsufficientBalance;
+    const canSwap = isConnected && amount && parseFloat(amount) > 0 && !isSwapping && !kitKeyMissing && !isInsufficientBalance && !quoteError && !!quote;
 
     return (
         <div className="ofa-swap-page">
@@ -719,7 +721,7 @@ export default function OfaSwap({ setActiveTab }) {
                     <button
                         className={`ofa-action-btn ${canSwap ? 'active' : ''}`}
                         onClick={handleSwap}
-                        disabled={!isConnected ? false : !canSwap}
+                        disabled={!isConnected ? false : !canSwap || !!quoteError}
                     >
                         {btnLabel}
                     </button>
