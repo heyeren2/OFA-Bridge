@@ -418,8 +418,8 @@ export default function OfaSwap({ setActiveTab }) {
                                         ? (quote ? `$${parseFloat(quote.amountOut).toFixed(2)}` : '$0.00')
                                         : tokenIn === 'USDC'
                                             ? `$${parseFloat(amount || 0).toFixed(2)}`
-                                            : quote
-                                                ? `$${(parseFloat(quote.amountOut) / 0.998).toFixed(2)}`
+                                            : tokenIn === 'EURC'
+                                                ? `$${(parseFloat(amount || 0) * 1.08).toFixed(2)}`
                                                 : '$0.00'
                                     }
                                 </span>
@@ -571,12 +571,15 @@ export default function OfaSwap({ setActiveTab }) {
                             <div className="ofa-fiat-sub">
                                 {quote && amount ? (
                                     <span className="ofa-fiat-val">
-                                        {tokenOut === 'USDC'
-                                            ? `$${parseFloat(quote.amountOut).toFixed(2)}`
-                                            : tokenOut === 'EURC'
-                                                ? `$${(parseFloat(quote.amountOut) * 1.05).toFixed(2)}` // Approx EUR/USD
-                                                : `$${(parseFloat(amount) * 0.998).toFixed(2)}` // BTC side Buy
-                                        }
+                                        {(() => {
+                                            if (!amount || !quote) return '$0.00';
+                                            const fiat = tokenOut === 'USDC'
+                                                ? parseFloat(quote.amountOut)
+                                                : tokenOut === 'EURC'
+                                                    ? parseFloat(quote.amountOut) * 1.08
+                                                    : parseFloat(amount) * 0.998; // Fallback estimate
+                                            return `$${fiat.toFixed(2)}`;
+                                        })()}
                                     </span>
                                 ) : (
                                     <span className="ofa-fiat-val">$0.00</span>
@@ -633,7 +636,12 @@ export default function OfaSwap({ setActiveTab }) {
                         <span className="ofa-val" style={{ fontWeight: 700, fontSize: '13px' }}>
                             0.2%
                             <span style={{ fontSize: '11px', opacity: 0.6, marginLeft: '6px' }}>
-                                (${(parseFloat(amount || 0) * SWAP_FEE_PERCENTAGE).toFixed(2)})
+                                {(() => {
+                                    const rawFee = parseFloat(amount || 0) * SWAP_FEE_PERCENTAGE;
+                                    // For BTC/low amounts, we need more decimals
+                                    const feeDisplay = rawFee < 0.01 && rawFee > 0 ? rawFee.toFixed(4) : rawFee.toFixed(2);
+                                    return `($${feeDisplay})`;
+                                })()}
                             </span>
                         </span>
                     </div>
