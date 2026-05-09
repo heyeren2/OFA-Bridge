@@ -89,10 +89,28 @@
 }
 
 .token-icon-v2 img:not(.network-badge-v2) {
-    width: 100%;
     height: 100%;
     border-radius: 50%;
+}
+
+.token-icon-v2 img:not(.network-badge-v2):not(.ofa-modal-cirbtc-icon) {
     background: white;
+}
+
+.ofa-modal-cirbtc-icon {
+    background: transparent !important;
+    transform: scale(2);
+    /* Resetting to a more balanced size, user can adjust */
+    margin-right: 4px;
+    /* Creates the gap from the text */
+}
+
+.ofa-modal-cirbtc-badge {
+    background: #1a1f33 !important;
+    /* Dark indigo background as requested */
+    border-color: #1a1f33 !important;
+    transform: scale(1.1);
+    /* Make it slightly bigger to stand out */
 }
 
 .network-badge-v2 {
@@ -103,6 +121,50 @@
     height: 14px;
     border-radius: 50%;
     border: 1.5px solid #1a1f33;
+    background: #1a1f33 !important;
+    /* Solid dark indigo background for all badges */
+}
+
+/* Individual Icon Spacing Controls - Adjust these to shift icons left/right/up/down */
+.ofa-modal-icon-usdc {}
+
+.ofa-modal-icon-eurc {}
+
+.ofa-modal-icon-cirbtc {
+    background: transparent !important;
+    position: relative;
+    left: -5px;
+    /* Move left/right (e.g., -5px or 5px) */
+    top: 0px;
+    /* Move up/down (e.g., -5px or 5px) */
+    margin-right: 8px;
+    /* Control the gap from the text */
+}
+
+/* Individual Badge Positioning Controls */
+.ofa-modal-badge-usdc {}
+
+.ofa-modal-badge-eurc {}
+
+.ofa-modal-badge-cirbtc {
+    background: #1a1f33 !important;
+    border-color: #1a1f33 !important;
+    position: absolute;
+    right: -7px;
+    /* Move left/right */
+    bottom: -2px;
+    /* Move up/down */
+    transform: scale(1.1);
+}
+
+/* Legacy helper class for cirBTC */
+.ofa-modal-cirbtc-icon {
+    background: transparent !important;
+}
+
+.ofa-modal-cirbtc-badge {
+    background: #1a1f33 !important;
+    border-color: #1a1f33 !important;
 }
 
 .token-label-v2 {
@@ -588,8 +650,16 @@
     height: 22px;
     border-radius: 50%;
     margin-right: 10px;
-    background: white;
     object-fit: contain;
+}
+
+.summary-token-icon:not(.ofa-modal-cirbtc-icon-summary) {
+    background: white;
+}
+
+.ofa-modal-cirbtc-icon-summary {
+    background: transparent !important;
+    transform: scale(4);
 }
 
 .summary-amount {

@@ -119,8 +119,16 @@ function ProcessingView({ step, fromAmount, fromToken, toAmount, toToken, stats,
                 <div className="route-row-v2">
                     <div className="token-group">
                         <div className="token-icon-v2">
-                            <img src={fromToken?.icon} alt="" />
-                            <img src="/icons/Arc.png" className="network-badge-v2" alt="" />
+                            <img 
+                                src={fromToken?.icon} 
+                                alt="" 
+                                className={`ofa-modal-icon-${fromToken?.symbol?.toLowerCase()} ${fromToken?.symbol === 'cirBTC' ? 'ofa-modal-cirbtc-icon' : ''}`} 
+                            />
+                            <img 
+                                src="/icons/Arc.png" 
+                                className={`network-badge-v2 ${fromToken?.symbol === 'cirBTC' ? 'ofa-modal-badge-cirbtc' : ''}`} 
+                                alt="" 
+                            />
                         </div>
                         <div className="token-label-v2">
                             <span className="network-name">Arc</span>
@@ -134,8 +142,16 @@ function ProcessingView({ step, fromAmount, fromToken, toAmount, toToken, stats,
 
                     <div className="token-group">
                         <div className="token-icon-v2">
-                            <img src={toToken?.icon} alt="" />
-                            <img src="/icons/Arc.png" className="network-badge-v2" alt="" />
+                            <img 
+                                src={toToken?.icon} 
+                                alt="" 
+                                className={`ofa-modal-icon-${toToken?.symbol?.toLowerCase()} ${toToken?.symbol === 'cirBTC' ? 'ofa-modal-cirbtc-icon' : ''}`} 
+                            />
+                            <img 
+                                src="/icons/Arc.png" 
+                                className={`network-badge-v2 ${toToken?.symbol === 'cirBTC' ? 'ofa-modal-badge-cirbtc' : ''}`} 
+                                alt="" 
+                            />
                         </div>
                         <div className="token-label-v2">
                             <span className="network-name">Arc</span>
@@ -268,16 +284,42 @@ function SuccessView({ fromAmount, fromToken, toAmount, toToken, explorerUrl, tx
                 <div className="summary-row">
                     <span className="label">SENT</span>
                     <div className="val">
-                        <img src={fromToken?.icon} alt="" className="summary-token-icon" />
-                        <span className="summary-amount">{formatAmount(fromAmount)} {fromToken?.symbol}</span>
+                        <div className="token-icon-v2" style={{ width: '24px', height: '24px' }}>
+                            <img 
+                                src={fromToken?.icon} 
+                                alt="" 
+                                className={`summary-token-icon ofa-modal-icon-${fromToken?.symbol?.toLowerCase()}-summary ${fromToken?.symbol === 'cirBTC' ? 'ofa-modal-cirbtc-icon-summary' : ''}`} 
+                                style={{ margin: 0, width: '100%', height: '100%' }} 
+                            />
+                            <img 
+                                src="/icons/Arc.png" 
+                                className={`network-badge-v2 ${fromToken?.symbol === 'cirBTC' ? 'ofa-modal-badge-cirbtc-summary' : ''}`} 
+                                style={{ width: '10px', height: '10px', bottom: '-1px', right: '-1px' }} 
+                                alt="" 
+                            />
+                        </div>
+                        <span className="summary-amount" style={{ marginLeft: '10px' }}>{formatAmount(fromAmount)} {fromToken?.symbol}</span>
                     </div>
                 </div>
                 <div className="summary-row">
                     <span className="label">RECEIVED</span>
                     <div className="val received-group">
                         <div className="received-left">
-                            <img src={toToken?.icon} alt="" className="summary-token-icon" />
-                            <span className="summary-amount">{formatAmount(toAmount)} {toToken?.symbol}</span>
+                            <div className="token-icon-v2" style={{ width: '24px', height: '24px' }}>
+                                <img 
+                                    src={toToken?.icon} 
+                                    alt="" 
+                                    className={`summary-token-icon ofa-modal-icon-${toToken?.symbol?.toLowerCase()}-summary ${toToken?.symbol === 'cirBTC' ? 'ofa-modal-cirbtc-icon-summary' : ''}`} 
+                                    style={{ margin: 0, width: '100%', height: '100%' }} 
+                                />
+                                <img 
+                                    src="/icons/Arc.png" 
+                                    className={`network-badge-v2 ${toToken?.symbol === 'cirBTC' ? 'ofa-modal-badge-cirbtc-summary' : ''}`} 
+                                    style={{ width: '10px', height: '10px', bottom: '-1px', right: '-1px' }} 
+                                    alt="" 
+                                />
+                            </div>
+                            <span className="summary-amount" style={{ marginLeft: '10px' }}>{formatAmount(toAmount)} {toToken?.symbol}</span>
                         </div>
                         <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="hash-snippet-link">
                             {hashSnippet} <ExternalLink size={10} />

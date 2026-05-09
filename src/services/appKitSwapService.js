@@ -67,12 +67,38 @@ const CURVE_POOL_ABI = [
  * @param {string} tokenOut
  * @param {string} amountIn
  */
-export async function getSwapQuote({ tokenIn, tokenOut, amountIn }) {
-    // cirBTC pairs have no Curve pool — SDK handles routing internally
-    if (tokenIn === 'cirBTC' || tokenOut === 'cirBTC') return null;
+export async function getSwapQuote({ tokenIn, tokenOut, amountIn, connector }) {
     try {
         const amt = parseFloat(amountIn);
         if (isNaN(amt) || amt <= 0) return null;
+
+        // cirBTC pairs: use kit.estimateSwap() — SDK handles routing
+        if (tokenIn === 'cirBTC' || tokenOut === 'cirBTC') {
+            if (!connector) return null; // Need wallet for adapter
+            const kitKey = import.meta.env.VITE_CIRCLE_KIT_KEY;
+            if (!kitKey || kitKey === 'your_kit_key_here') return null;
+            patchFetchForProxy();
+            const rawProvider = await connector.getProvider();
+            const adapter = await createViemAdapterFromProvider({
+                provider: rawProvider,
+                publicClient: arcClient
+            });
+            const kit = getKit();
+            const estimate = await kit.estimateSwap({
+                from: { adapter, chain: 'Arc_Testnet' },
+                tokenIn,
+                tokenOut,
+                amountIn,
+                config: { kitKey, slippage: 1.0 }
+            });
+            const amountOut = parseFloat(estimate.estimatedOutput.amount).toFixed(
+                tokenOut === 'cirBTC' ? 6 : 4
+            );
+            const rate = (parseFloat(amountOut) / amt).toFixed(
+                tokenOut === 'cirBTC' ? 8 : 6
+            );
+            return { amountOut, rate, priceImpact: '0' };
+        }
 
         let dy_raw;
         let amountOut;

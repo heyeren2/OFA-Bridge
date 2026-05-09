@@ -14,12 +14,12 @@ import './OfaModal.css';
 const ARC_CHAIN_ID = 5042002;
 
 const DIRECTION_MAP = {
-    eurc_to_usdc:    { in: 'EURC',   out: 'USDC'   },
-    usdc_to_eurc:    { in: 'USDC',   out: 'EURC'   },
-    usdc_to_cirbtc:  { in: 'USDC',   out: 'cirBTC' },
-    cirbtc_to_usdc:  { in: 'cirBTC', out: 'USDC'   },
-    eurc_to_cirbtc:  { in: 'EURC',   out: 'cirBTC' },
-    cirbtc_to_eurc:  { in: 'cirBTC', out: 'EURC'   },
+    eurc_to_usdc: { in: 'EURC', out: 'USDC' },
+    usdc_to_eurc: { in: 'USDC', out: 'EURC' },
+    usdc_to_cirbtc: { in: 'USDC', out: 'cirBTC' },
+    cirbtc_to_usdc: { in: 'cirBTC', out: 'USDC' },
+    eurc_to_cirbtc: { in: 'EURC', out: 'cirBTC' },
+    cirbtc_to_eurc: { in: 'cirBTC', out: 'EURC' },
 };
 
 
@@ -36,6 +36,7 @@ export default function OfaSwap({ setActiveTab }) {
     const [lastTx, setLastTx] = useState(null);
     const [isFetchingQuote, setIsFetchingQuote] = useState(false);
     const [quote, setQuote] = useState(null);
+    const [quoteError, setQuoteError] = useState('');
 
     // Dynamic Recipient Logic
     const [recipientAddress, setRecipientAddress] = useState('');
@@ -97,21 +98,29 @@ export default function OfaSwap({ setActiveTab }) {
         const fetchQuote = async () => {
             if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
                 setQuote(null);
+                setQuoteError('');
                 return;
             }
 
             setIsFetchingQuote(true);
+            setQuoteError('');
             try {
                 const q = await getSwapQuote({
                     tokenIn,
                     tokenOut,
-                    amountIn: amount
+                    amountIn: amount,
+                    connector
                 });
-
-                setQuote(q); // null if fetch failed
+                if (!q && (tokenIn === 'cirBTC' || tokenOut === 'cirBTC')) {
+                    setQuoteError('Quote unavailable, try a smaller amount');
+                }
+                setQuote(q);
             } catch (err) {
                 console.warn('[OfaSwap] Quote effect failed:', err);
                 setQuote(null);
+                if (tokenIn === 'cirBTC' || tokenOut === 'cirBTC') {
+                    setQuoteError('Quote failed, try a smaller amount');
+                }
             } finally {
                 setIsFetchingQuote(false);
             }
@@ -119,7 +128,7 @@ export default function OfaSwap({ setActiveTab }) {
 
         const timer = setTimeout(fetchQuote, 600);
         return () => clearTimeout(timer);
-    }, [amount, direction]);
+    }, [amount, direction, connector]);
 
     const abbreviateAddress = (addr) => {
         if (!addr) return 'Connect Wallet';
@@ -162,14 +171,15 @@ export default function OfaSwap({ setActiveTab }) {
     const usdcBalance = fmt(usdcData);
     const eurcBalance = fmt(eurcData);
     const cirbtcBalance = (() => {
-        if (!cirbtcData) return '0.00';
-        const [int, frac] = cirbtcData.formatted.split('.');
-        return `${int}.${(frac || '').padEnd(6, '0').slice(0, 6)}`;
+        if (!cirbtcData) return '0.0000';
+        const val = parseFloat(cirbtcData.formatted);
+        if (val === 0) return '0.0000';
+        return val >= 1 ? val.toFixed(2) : val.toFixed(4);
     })();
 
     const getBalanceData = (token) => {
-        if (token === 'USDC')   return usdcData;
-        if (token === 'EURC')   return eurcData;
+        if (token === 'USDC') return usdcData;
+        if (token === 'EURC') return eurcData;
         if (token === 'cirBTC') return cirbtcData;
         return null;
     };
@@ -180,13 +190,13 @@ export default function OfaSwap({ setActiveTab }) {
     };
 
     const sourceBalanceFormatted = fmtBalance(tokenIn);
-    const destBalanceFormatted   = fmtBalance(tokenOut);
+    const destBalanceFormatted = fmtBalance(tokenOut);
 
     // Allowance check for dynamic button text
     const { data: allowance } = useReadContract({
-        address: tokenIn === 'EURC'   ? EURC_ADDRESSES.Arc_Testnet
-               : tokenIn === 'cirBTC' ? CIRBTC_ADDRESSES.Arc_Testnet
-               : USDC_ADDRESSES.Arc_Testnet,
+        address: tokenIn === 'EURC' ? EURC_ADDRESSES.Arc_Testnet
+            : tokenIn === 'cirBTC' ? CIRBTC_ADDRESSES.Arc_Testnet
+                : USDC_ADDRESSES.Arc_Testnet,
         abi: ERC20_ABI,
         functionName: 'allowance',
         args: [address, ARC_SWAP_SPENDER],
@@ -405,7 +415,7 @@ export default function OfaSwap({ setActiveTab }) {
                             <div className="ofa-fiat-sub">
                                 <span className="ofa-fiat-val">
                                     {tokenIn === 'cirBTC'
-                                        ? ''
+                                        ? (quote ? `$${parseFloat(quote.amountOut).toFixed(2)}` : '$0.00')
                                         : tokenIn === 'USDC'
                                             ? `$${parseFloat(amount || 0).toFixed(2)}`
                                             : quote
@@ -552,16 +562,20 @@ export default function OfaSwap({ setActiveTab }) {
                             <div className="ofa-amount-input" style={{ height: '32px', display: 'flex', alignItems: 'center' }}>
                                 {isFetchingQuote ? (
                                     <span className="ofa-animate-pulse" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '18px' }}>...</span>
+                                ) : quoteError && amount ? (
+                                    <span style={{ fontSize: '12px', color: 'rgba(251,191,36,0.8)', fontWeight: 500 }}>{quoteError}</span>
                                 ) : (
                                     <>{amount ? (quote ? quote.amountOut : '...') : '0.0000'}</>
                                 )}
                             </div>
                             <div className="ofa-fiat-sub">
-                                {quote && amount && tokenOut !== 'cirBTC' ? (
+                                {quote && amount ? (
                                     <span className="ofa-fiat-val">
                                         {tokenOut === 'USDC'
                                             ? `$${parseFloat(quote.amountOut).toFixed(2)}`
-                                            : `$${(parseFloat(amount) * 0.998).toFixed(2)}`
+                                            : tokenOut === 'EURC'
+                                                ? `$${(parseFloat(quote.amountOut) * 1.05).toFixed(2)}` // Approx EUR/USD
+                                                : `$${(parseFloat(amount) * 0.998).toFixed(2)}` // BTC side Buy
                                         }
                                     </span>
                                 ) : (
