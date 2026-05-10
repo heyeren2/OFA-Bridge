@@ -1467,8 +1467,11 @@ body {
   color: var(--error);
   font-size: 13px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .status-success {
@@ -6428,14 +6431,17 @@ body {
   background: transparent;
   border: none;
   padding: 4px 10px;
-  /* Reduced by 20% */
-  color: rgba(240, 231, 213, 0.6);
+  color: #e7e5e3;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
   border-radius: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.2px;
 }
 
 .pill-nav-btn:hover {

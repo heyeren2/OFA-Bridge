@@ -774,8 +774,29 @@ export default function Bridge({
             const maskAddress = (str) =>
                 typeof str === 'string' ? str.replace(/0x[a-fA-F0-9]{40}/g, addr => `${addr.slice(0, 6)}...${addr.slice(-4)}`) : str;
 
+            // Sanitize long/technical error messages into short user-friendly ones
+            const sanitizeError = (raw) => {
+                if (!raw || typeof raw !== 'string') return 'Transaction failed. Please try again.';
+                const r = raw.toLowerCase();
+                if (r.includes('insufficient funds') || r.includes('insufficient gas') || r.includes('9002'))
+                    return `Insufficient gas funds on ${fromChainName}`;
+                if (r.includes('user rejected') || r.includes('user denied') || r.includes('action_rejected'))
+                    return 'Transaction rejected by wallet.';
+                if (r.includes('internal error') || r.includes('error processing the transaction'))
+                    return 'Network error. Please check your connection and try again.';
+                if (r.includes('nonce') || r.includes('replacement transaction'))
+                    return 'Pending transaction conflict. Please reset your wallet nonce.';
+                if (r.includes('timeout') || r.includes('timed out'))
+                    return 'Request timed out. Please try again.';
+                if (r.includes('unknown blockchain error'))
+                    return 'Blockchain error. Please try again in a moment.';
+                // If still too long, truncate at 80 chars
+                const masked = maskAddress(raw);
+                return masked.length > 80 ? masked.slice(0, 80) + '…' : masked;
+            };
+
             // User-facing error message
-            let displayError = maskAddress(err.shortMessage || err.message || 'Bridge execution failed');
+            let displayError = sanitizeError(err.shortMessage || err.message || 'Bridge execution failed');
 
             // Map error codes
             if (err.code === 9002 || err.message?.includes('9002')) {
@@ -984,7 +1005,7 @@ export default function Bridge({
                             onClick={() => setActiveTab('swap')}
                             data-tooltip="Swap Tab"
                         >
-                            <Repeat size={18} />
+                            Swap
                         </button>
                         <div className="pill-nav-divider" />
                         <button 
@@ -992,7 +1013,7 @@ export default function Bridge({
                             onClick={() => setActiveTab('activity')}
                             data-tooltip="Activity Tab"
                         >
-                            <BookText size={18} />
+                            Activity
                         </button>
                     </div>
                     <button
