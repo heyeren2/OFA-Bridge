@@ -775,7 +775,8 @@
 [data-theme='dark'] .ofa-user-handle,
 [data-theme='dark'] .ofa-balance-label,
 [data-theme='dark'] .ofa-val,
-[data-theme='dark'] .ofa-info-label {
+[data-theme='dark'] .ofa-info-label,
+[data-theme='dark'] .ofa-exchange-rate-text {
     color: var(--midnight-indigo) !important;
 }
 
@@ -789,6 +790,20 @@
     background: var(--vanilla-cream);
     color: var(--midnight-indigo);
     border-color: var(--midnight-indigo);
+}
+
+[data-theme='dark'] .ofa-pct-buttons button {
+    background: rgba(33, 40, 66, 0.08);
+    color: var(--midnight-indigo) !important;
+    border: 1px solid rgba(33, 40, 66, 0.15);
+}
+
+[data-theme='dark'] .ofa-pct-buttons button:hover {
+    background: rgba(33, 40, 66, 0.12);
+}
+
+[data-theme='dark'] .ofa-info-divider {
+    background: rgba(33, 40, 66, 0.15) !important;
 }
 
 /* layout upwards shift */
