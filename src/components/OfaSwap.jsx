@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ArrowUpDown, Zap, ExternalLink, ChevronDown, ChevronRight, ScrollText, User, Wallet, Settings, Pen, Check, ArrowLeft } from 'lucide-react';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
@@ -140,7 +140,7 @@ export default function OfaSwap({ setActiveTab }) {
     const tokenInInfo = TOKEN_INFO[tokenIn];
     const tokenOutInfo = TOKEN_INFO[tokenOut];
 
-    // Source/Dest balance on Arc Testnet
+    // Source/Dest balance on Arc Testnet (connected wallet)
     const { data: usdcData } = useBalance({
         address,
         token: USDC_ADDRESSES.Arc_Testnet,
@@ -161,6 +161,38 @@ export default function OfaSwap({ setActiveTab }) {
         chainId: ARC_CHAIN_ID,
         watch: true,
     });
+
+    // Recipient balance hooks (only active when a custom recipient is set)
+    const recipientAddr = isCustomRecipient ? recipientAddress : undefined;
+    const { data: recipientUsdcData } = useBalance({
+        address: recipientAddr,
+        token: USDC_ADDRESSES.Arc_Testnet,
+        chainId: ARC_CHAIN_ID,
+        watch: true,
+        enabled: !!recipientAddr,
+    });
+    const { data: recipientEurcData } = useBalance({
+        address: recipientAddr,
+        token: EURC_ADDRESSES.Arc_Testnet,
+        chainId: ARC_CHAIN_ID,
+        watch: true,
+        enabled: !!recipientAddr,
+    });
+    const { data: recipientCirbtcData } = useBalance({
+        address: recipientAddr,
+        token: CIRBTC_ADDRESSES.Arc_Testnet,
+        chainId: ARC_CHAIN_ID,
+        watch: true,
+        enabled: !!recipientAddr,
+    });
+
+    const getRecipientBalanceData = (token) => {
+        if (!isCustomRecipient) return null;
+        if (token === 'USDC') return recipientUsdcData;
+        if (token === 'EURC') return recipientEurcData;
+        if (token === 'cirBTC') return recipientCirbtcData;
+        return null;
+    };
 
     const fmt = (data) => {
         if (!data) return '0.00';
@@ -189,8 +221,22 @@ export default function OfaSwap({ setActiveTab }) {
         return fmt(getBalanceData(token));
     };
 
+    const fmtRecipientBalance = (token) => {
+        const data = getRecipientBalanceData(token);
+        if (!data) return null;
+        if (token === 'cirBTC') {
+            const val = parseFloat(data.formatted);
+            if (val === 0) return '0.0000';
+            return val >= 1 ? val.toFixed(2) : val.toFixed(4);
+        }
+        return fmt(data);
+    };
+
     const sourceBalanceFormatted = fmtBalance(tokenIn);
-    const destBalanceFormatted = fmtBalance(tokenOut);
+    // Dest balance: show recipient's balance if custom recipient is set
+    const destBalanceFormatted = isCustomRecipient
+        ? (fmtRecipientBalance(tokenOut) ?? fmtBalance(tokenOut))
+        : fmtBalance(tokenOut);
 
     // Allowance check for dynamic button text
     const { data: allowance } = useReadContract({
@@ -294,6 +340,7 @@ export default function OfaSwap({ setActiveTab }) {
             };
 
             // 3. Start Swap
+            const toAddress = isCustomRecipient ? recipientAddress : undefined;
             const result = await appKitSwap(
                 tokenIn,
                 tokenOut,
@@ -305,7 +352,8 @@ export default function OfaSwap({ setActiveTab }) {
                     if (step === 'approving') setModalStep('approving');
                     else if (step === 'swapping') setModalStep('swapping');
                 },
-                customFeeConfig
+                customFeeConfig,
+                toAddress
             );
 
             // 3. Finalize — capture amounts BEFORE clearing the input
@@ -326,7 +374,7 @@ export default function OfaSwap({ setActiveTab }) {
         } finally {
             setIsSwapping(false);
         }
-    }, [isConnected, amount, direction, connector, openConnectModal, quote, slippage]);
+    }, [isConnected, amount, direction, connector, openConnectModal, quote, slippage, isCustomRecipient, recipientAddress]);
 
     const kitKeyMissing = !import.meta.env.VITE_CIRCLE_KIT_KEY ||
         import.meta.env.VITE_CIRCLE_KIT_KEY === 'your_kit_key_here';
@@ -443,21 +491,23 @@ export default function OfaSwap({ setActiveTab }) {
 
                             {isTokenInDropdownOpen && (
                                 <div className="ofa-token-dropdown">
-                                    {Object.keys(TOKEN_INFO).filter(sym => sym !== 'ETH').map((sym) => (
-                                        <div
-                                            key={sym}
-                                            className={`ofa-dropdown-item ${tokenIn === sym ? 'active' : ''}`}
-                                            onClick={() => handleTokenChange('in', sym)}
-                                        >
-                                            <div className="ofa-dropdown-icon">
-                                                <img src={TOKEN_INFO[sym].icon} alt={sym} className={sym === 'cirBTC' ? 'ofa-cirbtc-icon' : ''} />
+                                    {Object.keys(TOKEN_INFO).filter(sym => sym !== 'ETH').map((sym, index, array) => (
+                                        <React.Fragment key={sym}>
+                                            <div
+                                                className={`ofa-dropdown-item ${tokenIn === sym ? 'active' : ''}`}
+                                                onClick={() => handleTokenChange('in', sym)}
+                                            >
+                                                <div className="ofa-dropdown-icon">
+                                                    <img src={TOKEN_INFO[sym].icon} alt={sym} className={sym === 'cirBTC' ? 'ofa-cirbtc-icon' : ''} />
+                                                </div>
+                                                <div className="ofa-dropdown-text">
+                                                    <span className="ofa-dropdown-label">{TOKEN_INFO[sym].symbol}</span>
+                                                    <span className="ofa-dropdown-sub">{TOKEN_INFO[sym].name}</span>
+                                                </div>
+                                                {tokenIn === sym && <span className="ofa-dropdown-check">✓</span>}
                                             </div>
-                                            <div className="ofa-dropdown-text">
-                                                <span className="ofa-dropdown-label">{TOKEN_INFO[sym].symbol}</span>
-                                                <span className="ofa-dropdown-sub">{TOKEN_INFO[sym].name}</span>
-                                            </div>
-                                            {tokenIn === sym && <span className="ofa-dropdown-check">✓</span>}
-                                        </div>
+                                            {index < array.length - 1 && <div className="ofa-dropdown-divider" />}
+                                        </React.Fragment>
                                     ))}
                                 </div>
                             )}
@@ -604,21 +654,23 @@ export default function OfaSwap({ setActiveTab }) {
 
                             {isTokenOutDropdownOpen && (
                                 <div className="ofa-token-dropdown">
-                                    {Object.keys(TOKEN_INFO).filter(sym => sym !== 'ETH').map((sym) => (
-                                        <div
-                                            key={sym}
-                                            className={`ofa-dropdown-item ${tokenOut === sym ? 'active' : ''}`}
-                                            onClick={() => handleTokenChange('out', sym)}
-                                        >
-                                            <div className="ofa-dropdown-icon">
-                                                <img src={TOKEN_INFO[sym].icon} alt={sym} className={sym === 'cirBTC' ? 'ofa-cirbtc-icon' : ''} />
+                                    {Object.keys(TOKEN_INFO).filter(sym => sym !== 'ETH').map((sym, index, array) => (
+                                        <React.Fragment key={sym}>
+                                            <div
+                                                className={`ofa-dropdown-item ${tokenOut === sym ? 'active' : ''}`}
+                                                onClick={() => handleTokenChange('out', sym)}
+                                            >
+                                                <div className="ofa-dropdown-icon">
+                                                    <img src={TOKEN_INFO[sym].icon} alt={sym} className={sym === 'cirBTC' ? 'ofa-cirbtc-icon' : ''} />
+                                                </div>
+                                                <div className="ofa-dropdown-text">
+                                                    <span className="ofa-dropdown-label">{TOKEN_INFO[sym].symbol}</span>
+                                                    <span className="ofa-dropdown-sub">{TOKEN_INFO[sym].name}</span>
+                                                </div>
+                                                {tokenOut === sym && <span className="ofa-dropdown-check">✓</span>}
                                             </div>
-                                            <div className="ofa-dropdown-text">
-                                                <span className="ofa-dropdown-label">{TOKEN_INFO[sym].symbol}</span>
-                                                <span className="ofa-dropdown-sub">{TOKEN_INFO[sym].name}</span>
-                                            </div>
-                                            {tokenOut === sym && <span className="ofa-dropdown-check">✓</span>}
-                                        </div>
+                                            {index < array.length - 1 && <div className="ofa-dropdown-divider" />}
+                                        </React.Fragment>
                                     ))}
                                 </div>
                             )}
@@ -627,7 +679,12 @@ export default function OfaSwap({ setActiveTab }) {
 
                     <div className="ofa-card-footer">
                         <div className="ofa-balance-info">
-                            <span className="ofa-balance-label">Balance: {destBalanceFormatted}</span>
+                            <span className="ofa-balance-label">
+                                {isCustomRecipient
+                                    ? `Recipient (${abbreviateAddress(recipientAddress)}): ${destBalanceFormatted}`
+                                    : `Balance: ${destBalanceFormatted}`
+                                }
+                            </span>
                         </div>
                     </div>
                 </div>

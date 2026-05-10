@@ -164,8 +164,9 @@ function patchFetchForProxy() {
  * @param {number}   slippage      slippage percentage, e.g. 1.0
  * @param {function} onStatus      optional callback({ step, message })
  * @param {object}   customFee     optional { percentageBps: number, recipientAddress: string }
+ * @param {string}   toAddress     optional custom recipient address for swap output
  */
-async function runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, slippage = 1.0, onStatus, customFee, tokenInDecimals = 6 }) {
+async function runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, slippage = 1.0, onStatus, customFee, tokenInDecimals = 6, toAddress }) {
     const kitKey = import.meta.env.VITE_CIRCLE_KIT_KEY;
 
     if (!kitKey || kitKey === 'your_kit_key_here') {
@@ -242,6 +243,7 @@ async function runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, sli
             allowanceStrategy: 'approve',
             ...(slippage ? { slippage } : {}),
             ...(customFee ? { customFee } : {}),
+            ...(toAddress ? { to: toAddress } : {}),
         },
     });
 
@@ -278,9 +280,9 @@ export async function appKitSwapToEurc(amountIn, fullAmount, connector, slippage
  * Generic swap for any token pair on Arc Testnet.
  * Automatically resolves decimals for cirBTC (8) vs stablecoins (6).
  */
-export async function appKitSwap(tokenIn, tokenOut, amountIn, fullAmount, connector, slippage, onStatus, customFee) {
+export async function appKitSwap(tokenIn, tokenOut, amountIn, fullAmount, connector, slippage, onStatus, customFee, toAddress) {
     const tokenInDecimals = tokenIn === 'cirBTC' ? 8 : 6;
-    return runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, slippage, onStatus, customFee, tokenInDecimals });
+    return runSwap({ tokenIn, tokenOut, amountIn, fullAmount, connector, slippage, onStatus, customFee, tokenInDecimals, toAddress });
 }
 
 

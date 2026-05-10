@@ -802,7 +802,8 @@
     background: rgba(33, 40, 66, 0.12);
 }
 
-[data-theme='dark'] .ofa-info-divider {
+[data-theme='dark'] .ofa-info-divider,
+[data-theme='dark'] .ofa-dropdown-divider {
     background: rgba(33, 40, 66, 0.15) !important;
 }
 

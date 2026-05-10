@@ -157,23 +157,5 @@
     }
 }
 
-/* Theme Inversions */
-[data-theme='dark'] .ofa-receive-modal-content {
-    background: var(--vanilla-cream);
-    border: 1px solid rgba(33, 40, 66, 0.1);
-}
+/* Theme Inversions — Removed to keep modal consistently dark */
 
-[data-theme='dark'] .ofa-receive-modal-title,
-[data-theme='dark'] .ofa-receive-address-input {
-    color: var(--midnight-indigo) !important;
-}
-
-[data-theme='dark'] .ofa-receive-done-btn {
-    background: rgba(33, 40, 66, 0.05);
-    color: rgba(33, 40, 66, 0.3);
-}
-
-[data-theme='dark'] .ofa-receive-done-btn--active {
-    background: var(--midnight-indigo) !important;
-    color: var(--vanilla-cream) !important;
-}
