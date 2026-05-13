@@ -1,6 +1,6 @@
 import { BridgeKit } from '@circle-fin/bridge-kit';
 import { createViemAdapterFromProvider } from '@circle-fin/adapter-viem-v2';
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, createWalletClient, http, custom } from 'viem';
 import { mainnet, sepolia, base, baseSepolia, arbitrum, arbitrumSepolia, optimism, optimismSepolia } from 'viem/chains';
 import { FORWARDING_CONFIG, CHAINS_WITHOUT_FORWARDER_SUPPORT } from './forwardingConfig';
 import { FEE_RECIPIENT, FEE_PERCENTAGE, SWAP_FEE_PERCENTAGE } from '../config/contracts';
@@ -847,7 +847,6 @@ export const retryMint = async ({ burnTxHash, fromChain, toChain, cachedAttestat
         console.log('[BridgeService] Manual retryMint tx submitted:', txHash);
 
         // Wait for on-chain confirmation before declaring success
-        const { createPublicClient, custom } = await import('viem');
         const publicClient = createPublicClient({
             chain: { id: destChainConfig.chainId },
             transport: custom(window.ethereum),
