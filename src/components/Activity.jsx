@@ -128,7 +128,8 @@ export default function Activity({ setActiveTab }) {
                 setAllTransactions(mapTransactions(activity?.transactions));
             } else {
                 // "All" mode: fetch global activity directly from backend
-                const res = await fetch(import.meta.env.VITE_ANALYTICS_URL + '/activity/all');
+                // Include bridgeId so the backend scopes results to this bridge only
+                const res = await fetch(import.meta.env.VITE_ANALYTICS_URL + `/activity/all?bridgeId=${import.meta.env.VITE_BRIDGE_ID}&limit=200`);
                 if (res.ok) {
                     const data = await res.json();
                     setAllTransactions(mapTransactions(data?.transactions));
@@ -341,27 +342,33 @@ export default function Activity({ setActiveTab }) {
     }, [allTransactions, fromChainFilter, toChainFilter, debouncedSearch, timeFilter]);
 
     const stats = useMemo(() => {
-        // Always use filteredTxs for stats to ensure consistency with the visible list
-        // and to handle range filtering even if the backend stats endpoint doesn't.
+        // Exclude genuinely failed transactions — a failed burn means no money moved,
+        // so it should not contribute to volume or transaction count.
+        // Processing and completed are both valid (processing = burn confirmed, in transit).
+        const countableTxs = filteredTxs.filter(tx => tx.status !== 'failed');
 
-        const volume = filteredTxs.reduce((sum, tx) => sum + parseFloat(tx.amountDisplay || 0), 0);
-        const count = filteredTxs.length;
-        const uniqueWallets = new Set(filteredTxs.map(tx => tx.sender?.toLowerCase())).size;
+        const localVolume = countableTxs.reduce((sum, tx) => sum + parseFloat(tx.amountDisplay || 0), 0);
+        const localCount = countableTxs.length;
+        const uniqueWallets = new Set(countableTxs.map(tx => tx.sender?.toLowerCase())).size;
 
-        // If 'all' is selected, we can fallback to globalStats from backend if available,
-        // but filteredTxs is more reliable for real-time updates.
-        if (timeFilter === 'all' && globalStats.totalTransactions > count) {
+        // For 'all' time filter: use the backend globalStats as the primary source of truth
+        // (it aggregates the full DB, not just the capped 200-row local fetch).
+        // Safety: take the MAX of backend vs local so ALL can never show LESS than a sub-range
+        // (which would happen if the backend stats only counts completed txns, not processing).
+        if (timeFilter === 'all' && globalStats.totalTransactions > 0) {
             return {
-                volume: parseFloat(globalStats.totalVolume || '0'),
-                count: globalStats.totalTransactions || 0,
-                users: globalStats.uniqueWallets || 0,
+                volume: Math.max(parseFloat(globalStats.totalVolume || '0'), localVolume),
+                count: Math.max(globalStats.totalTransactions, localCount),
+                users: globalStats.uniqueWallets || uniqueWallets,
                 fees: 0,
             };
         }
 
+        // For time-filtered views (24H, 7D, 30D) use the locally filtered subset
+        // since the backend stats endpoint may not support range queries.
         return {
-            volume,
-            count,
+            volume: localVolume,
+            count: localCount,
             users: uniqueWallets,
             fees: 0,
         };
