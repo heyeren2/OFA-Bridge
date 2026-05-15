@@ -140,7 +140,7 @@ export default function RetryModal({ isOpen, onClose }) {
                 }
             } catch (simErr) {
                 const simReason = (simErr.shortMessage || simErr.details || simErr.message || '').toLowerCase();
-                console.warn('[RetryModal] Pre-mint simulation blocked execution:', simReason);
+                console.warn('[RetryModal] Pre-mint simulation warning:', simReason);
 
                 if (simReason.includes('nonce') || simReason.includes('already used') || simReason.includes('already executed')) {
                     throw new Error('Nonce already used');
@@ -148,9 +148,10 @@ export default function RetryModal({ isOpen, onClose }) {
                 if (simReason.includes('expired') || simReason.includes('must be re-signed')) {
                     throw new Error('ATTESTATION_EXPIRED');
                 }
-                // Unknown simulation errors — block to be safe.
-                // We can't verify the transaction state, so we must not let the user waste gas.
-                throw new Error('Could not verify transaction status on the destination chain. It may have already been completed, or the chain RPC is unavailable. Check the destination chain explorer before retrying.');
+                // Unknown simulation error (e.g. RPC timeout, chain-specific revert on Arc Testnet).
+                // Do NOT hard-block — allow the mint to proceed. The wallet/contract will reject
+                // it on-chain if the nonce is truly consumed or attestation invalid.
+                console.warn('[RetryModal] Unknown sim error — proceeding to wallet confirmation anyway.');
             }
             // ─── END GUARD ────────────────────────────────────────────────────────
 
