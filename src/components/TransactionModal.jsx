@@ -117,8 +117,8 @@ export default function TransactionModal({
     }, [bridgeStep]);
 
     useEffect(() => {
-        const handleEsc = (e) => { 
-            if (e.key === 'Escape' && isOpen) handleClose(); 
+        const handleEsc = (e) => {
+            if (e.key === 'Escape' && isOpen) handleClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
@@ -191,12 +191,12 @@ export default function TransactionModal({
     const remainingSeconds = Math.max(0, 90 - totalElapsed);
 
     return createPortal(
-        <div 
-            className={`tx-modal-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`} 
+        <div
+            className={`tx-modal-overlay ofa-animate-fade-in ${isClosing ? 'ofa-animate-fade-out' : ''}`}
             onClick={handleClose}
         >
-            <div 
-                className={`txm-modal ${isCancelled ? 'cancelled' : ''} ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`} 
+            <div
+                className={`txm-modal ${isCancelled ? 'cancelled' : ''} ${isClosing ? 'ofa-animate-pop-out' : 'ofa-animate-pop-in'}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <button className="txm-close" onClick={handleClose}>
@@ -258,8 +258,38 @@ export default function TransactionModal({
                 <div className="txm-body">
                     {isComplete ? (
                         <div className="txm-success-v4">
-                            <div className="success-hero-icon">
-                                <Check size={40} strokeWidth={3} />
+                            <div className="success-hero-icon" style={{
+                                width: '80px',
+                                height: '80px',
+                                background: 'rgba(240, 231, 213, 0.1)',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '12px',
+                                border: '1px solid rgba(240, 231, 213, 0.2)',
+                                position: 'relative',
+                                margin: '0 auto 24px auto'
+                            }}>
+                                <img src="/icons/Ofa2.png" alt="Success" style={{ width: '330%', height: '200%', objectFit: 'contain' }} />
+
+                                {/* Indigo Success Badge */}
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '-2px',
+                                    right: '-2px',
+                                    width: '28px',
+                                    height: '28px',
+                                    background: '#1a152ef2', // Indigo
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '2px solid #1a1b23', // Match modal background
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                                }}>
+                                    <Check size={16} style={{ color: '#f5deb3' }} strokeWidth={3} />
+                                </div>
                             </div>
 
                             <h1>Bridge Successful!</h1>

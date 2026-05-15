@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react';
+import { X, ArrowRight, RefreshCw, Check } from 'lucide-react';
 import { getChainByName } from '../config/chains';
 import { TOKEN_INFO } from '../config/contracts';
 
@@ -78,14 +78,35 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, mintingStep, onClose,
                         <div style={{
                             width: '80px',
                             height: '80px',
-                            background: 'rgba(16, 185, 129, 0.1)',
+                            background: 'rgba(240, 231, 213, 0.1)',
                             borderRadius: '50%',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            margin: '0 auto 20px auto'
+                            margin: '0 auto 20px auto',
+                            padding: '12px',
+                            border: '1px solid rgba(240, 231, 213, 0.2)',
+                            position: 'relative'
                         }}>
-                            <CheckCircle2 size={44} style={{ color: '#10b981' }} />
+                            <img src="/icons/Ofa2.png" alt="Success" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+
+                            {/* Success Badge at bottom side */}
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '-2px',
+                                right: '-2px',
+                                width: '28px',
+                                height: '28px',
+                                background: '#4f46e5', // Indigo color
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '2px solid #0f172a', // Match modal background
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                            }}>
+                                <Check size={16} style={{ color: '#f5deb3' }} strokeWidth={3} />
+                            </div>
                         </div>
                         <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#f5deb3', margin: '0 0 8px 0' }}>Remint Successful!</h1>
                         <p style={{ fontSize: '13.5px', color: 'rgba(240, 231, 213, 0.6)' }}>

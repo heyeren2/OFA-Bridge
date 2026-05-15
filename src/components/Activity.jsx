@@ -210,15 +210,15 @@ export default function Activity({ setActiveTab }) {
                     if (isArcSourceTx && tx.toChain) {
                         // Arc burns: Iris can't verify these, so check usedNonces on-chain instead.
                         // Only add to checkedRef when RESOLVED — unresolved txs re-check every 30s auto-refresh.
-                        console.log(`[Activity] Checking usedNonces for Arc tx ${tx.sourceTxHash.slice(0,10)}... toChain: ${tx.toChain}`);
+                        console.log(`[Activity] Checking usedNonces for Arc tx ${tx.sourceTxHash.slice(0, 10)}... toChain: ${tx.toChain}`);
                         const nonceUsed = await checkNonceUsedOnChain({
                             burnTxHash: tx.sourceTxHash,
                             fromChain: tx.fromChain,
                             toChain: tx.toChain,
                         });
-                        console.log(`[Activity] usedNonces result for ${tx.sourceTxHash.slice(0,10)}: ${nonceUsed}`);
+                        console.log(`[Activity] usedNonces result for ${tx.sourceTxHash.slice(0, 10)}: ${nonceUsed}`);
                         if (nonceUsed && !cancelled) {
-                            console.log(`[Activity] ✅ usedNonces confirms Arc tx ${tx.sourceTxHash.slice(0,10)} already minted`);
+                            console.log(`[Activity] ✅ usedNonces confirms Arc tx ${tx.sourceTxHash.slice(0, 10)} already minted`);
                             fetch(import.meta.env.VITE_ANALYTICS_URL + '/track/status', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -227,7 +227,7 @@ export default function Activity({ setActiveTab }) {
                                     bridgeId: import.meta.env.VITE_BRIDGE_ID,
                                     status: 'minted',
                                 }),
-                            }).catch(() => {});
+                            }).catch(() => { });
                             setAllTransactions(prev => prev.map(t =>
                                 t.id === tx.id ? { ...t, rawStatus: 'minted', status: 'completed' } : t
                             ));
@@ -598,11 +598,11 @@ export default function Activity({ setActiveTab }) {
                         <button className="activity-back-arrow" onClick={() => setActiveTab('bridge')} data-tooltip="Back to Bridge" data-tooltip-pos="bottom">
                             <ArrowLeft size={22} />
                         </button>
-                         <div className="title-area">
+                        <div className="title-area">
                             <h1>Bridge Activity</h1>
                             <p>Real-time bridge analytics</p>
                         </div>
-                        <button 
+                        <button
                             className={`mobile-refresh-circle ${refreshing ? 'spinning' : ''}`}
                             onClick={handleManualRefresh}
                             disabled={refreshing || txLoading}
@@ -847,7 +847,7 @@ export default function Activity({ setActiveTab }) {
                                 </div>
                             </div>
                             <div className="toolbar-right">
-                                <button 
+                                <button
                                     className={`desktop-refresh-pill ${refreshing ? 'spinning-text' : ''}`}
                                     onClick={handleManualRefresh}
                                     disabled={refreshing || txLoading}

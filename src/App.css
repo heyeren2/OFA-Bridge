@@ -2907,8 +2907,8 @@ body {
 
 .txm-step-circle.completed {
   background: rgba(16, 185, 129, 0.1);
-  border-color: #10b981;
-  color: #10b981;
+  border-color: #1a1f33;
+  color: #1a1f33;
 }
 
 .txm-step-circle.error {
@@ -3021,7 +3021,7 @@ body {
 
 .txm-success-v4 p {
   color: rgba(240, 231, 213, 0.4);
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .txm-primary-btn-v4 {
@@ -5144,7 +5144,7 @@ body {
 
 /* Body */
 .txm-body {
-  padding: 20px 24px 16px;
+  padding: 2px 24px 1px;
   min-height: 280px;
   display: flex;
   flex-direction: column;
