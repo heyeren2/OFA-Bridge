@@ -5177,7 +5177,7 @@ body {
 }
 
 .txm-header {
-  padding: 8px 32px 2px;
+  padding: 4px 32px 2px;
   /* Further compressed for 20% shrink goal: 10% top/bottom reduction achieved via padding sync */
   display: flex;
   justify-content: space-between;
@@ -5241,7 +5241,7 @@ body {
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 0 32px 6px;
+  padding: 0 32px 2px;
   /* Compressed for 20% total shrink */
   animation: txmFadeIn 0.4s ease-out;
 }
@@ -5289,15 +5289,15 @@ body {
 .txm-step-list-v2 {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 32px;
+  gap: 0px;
+  padding: 4px 32px;
   /* Compressed for 20% shrink goal */
 }
 
 .txm-step-v2 {
   display: flex;
   gap: 20px;
-  padding: 6px 0;
+  padding: 4px 0;
   /* Reduced from 12px */
   transition: opacity 0.3s;
 }
@@ -5343,7 +5343,7 @@ body {
 .txm-step-line-v2 {
   width: 2px;
   flex: 1;
-  min-height: 16px;
+  min-height: 10px;
   /* Reduced from 24px */
   background: rgba(240, 231, 213, 0.1);
   margin-top: 4px;
@@ -5386,6 +5386,16 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(240, 231, 213, 0.1);
   color: rgba(240, 231, 213, 0.4);
+}
+
+.txm-step-badge-failed {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 40px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
 .txm-step-timer-v2 {
@@ -5612,7 +5622,7 @@ body {
 
 /* Footer & Circle Logo */
 .txm-footer-v2 {
-  padding: 6px 32px 12px;
+  padding: 4px 32px 10px;
   /* Total 20% shrink target: 12px off bottom (original 32), 10px off top padding sync */
   display: flex;
   align-items: center;

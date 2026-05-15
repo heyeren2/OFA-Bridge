@@ -388,7 +388,12 @@ export default function TransactionModal({
                                                 {status === 'completed' && (
                                                     <span className="txm-step-badge-done">DONE</span>
                                                 )}
-                                                {status === 'active' && !isCancelled && (
+                                                {status === 'error' && (
+                                                    <span className="txm-step-badge-failed">
+                                                        {isCancelled ? 'CANCELLED' : 'FAILED'}
+                                                    </span>
+                                                )}
+                                                {status === 'active' && !isCancelled && !error && (
                                                     <span className="txm-step-timer-v2">{formatTime(stepElapsed)}</span>
                                                 )}
                                             </div>
@@ -409,26 +414,21 @@ export default function TransactionModal({
                         </div>
                     )}
 
-                    {error && !isCancelled && (
-                        <div className="txm-error-v2">
-                            <div className="txm-error-content-v2">
-                                <X color="#ef4444" size={16} />
-                                <p>{error}</p>
-                            </div>
-                            {bridgeStep === 'mint' && (
-                                <button
-                                    className="txm-remint-btn-v2"
-                                    onClick={onRemint}
-                                    disabled={isReminting}
-                                >
-                                    {isReminting ? (
-                                        <Loader2 size={16} className="spin" />
-                                    ) : null}
-                                    <span>{isReminting ? 'Reminting...' : 'Remint USDC'}</span>
-                                </button>
-                            )}
+                    {/* Footer error box removed — errors show inline next to steps. 
+                        However, we keep the Remint action button if the mint step fails. */}
+                    {error && !isCancelled && bridgeStep === 'mint' && (
+                        <div className="txm-remint-container-v2">
+                            <button
+                                className="txm-remint-btn-v2"
+                                onClick={onRemint}
+                                disabled={isReminting}
+                            >
+                                {isReminting ? <Loader2 size={16} className="spin" /> : null}
+                                <span>{isReminting ? 'Reminting...' : 'Remint USDC'}</span>
+                            </button>
                         </div>
                     )}
+
 
                     {isCancelled && bridgeStep === 'mint' && (
                         <div className="txm-remint-container-v2">
