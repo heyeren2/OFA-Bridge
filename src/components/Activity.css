@@ -283,7 +283,8 @@
 .desktop-view .toolbar-right {
     display: flex;
     align-items: center;
-    gap: 14px; /* Reduced from 24px to get closer to LIVE indicator */
+    gap: 14px;
+    /* Reduced from 24px to get closer to LIVE indicator */
 }
 
 .desktop-view .live-indicator {
@@ -337,12 +338,13 @@
     transition: all 0.2s ease;
     font-family: 'Inter', sans-serif;
     white-space: nowrap;
-    
+
     /* Default (Light Mode): Indigo background, Vanilla text */
     background: #212842;
     color: #F0E7D5;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    margin-left: 32px; /* Push away from the My Tx toggle on the left */
+    margin-left: 32px;
+    /* Push away from the My Tx toggle on the left */
 }
 
 .desktop-refresh-pill:hover:not(:disabled) {
@@ -370,11 +372,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    
+
     /* Default (Light Mode): Indigo background, Vanilla icon */
     background: #212842;
     color: #F0E7D5;
-    
+
     border: none;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -398,8 +400,13 @@
 }
 
 @keyframes rotate-refresh {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .header-card-filters {

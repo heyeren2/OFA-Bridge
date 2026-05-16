@@ -22,6 +22,7 @@ export default function RetryModal({ isOpen, onClose }) {
     const [mintHash, setMintHash] = useState('');
     const [isClosing, setIsClosing] = useState(false);
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+    const [isExecuting, setIsExecuting] = useState(false);
 
     const handleClose = useCallback(() => {
         setIsClosing(true);
@@ -104,6 +105,7 @@ export default function RetryModal({ isOpen, onClose }) {
         if (!attestation) return;
 
         setError('');
+        setIsExecuting(true);
         try {
             // Use the destination chain decoded from message bytes in startRetry.
             const target = destChain || 'Arc Testnet';
@@ -176,7 +178,7 @@ export default function RetryModal({ isOpen, onClose }) {
                         bridgeId: import.meta.env.VITE_BRIDGE_ID,
                         success: true,
                     }),
-                }).catch(() => {});
+                }).catch(() => { });
             } catch (e) {
                 console.warn('[RetryModal] Sync failed:', e.message);
             }
@@ -188,10 +190,12 @@ export default function RetryModal({ isOpen, onClose }) {
                 userMsg = 'This transaction has already been completed. The tokens were already delivered to the destination wallet.';
             }
             // Wallet rejections stay inline — don't navigate to error screen
-            setError(userMsg);
+            setIsExecuting(false);
             if (!userMsg.includes('User rejected')) {
                 setStep('error');
             }
+        } finally {
+            setIsExecuting(false);
         }
     };
 
@@ -262,8 +266,13 @@ export default function RetryModal({ isOpen, onClose }) {
                             </p>
 
                             {step === 'minting' && (
-                                <button className="retry-primary-btn" onClick={executeMint}>
-                                    EXECUTE MINT
+                                <button
+                                    className="retry-primary-btn"
+                                    onClick={executeMint}
+                                    disabled={isExecuting}
+                                    style={isExecuting ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                                >
+                                    {isExecuting ? 'CONFIRMING MINT...' : 'EXECUTE MINT'}
                                 </button>
                             )}
                         </div>
@@ -271,9 +280,39 @@ export default function RetryModal({ isOpen, onClose }) {
 
                     {step === 'success' && (
                         <div className="retry-success-view">
-                            <div className="success-icon-ring">
-                                <div className="success-icon-wrap">
-                                    <Check size={28} />
+                            <div className="txm-success-hero" style={{ marginBottom: '24px' }}>
+                                <div style={{
+                                    width: '65px',
+                                    height: '65px',
+                                    background: 'rgba(240, 231, 213, 0.1)',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    margin: '0 auto 20px auto',
+                                    padding: '12px',
+                                    border: '1px solid rgba(240, 231, 213, 0.2)',
+                                    position: 'relative'
+                                }}>
+                                    <img src="/icons/Ofa2.png" alt="Success" style={{ width: '360%', height: '250%', objectFit: 'contain' }} />
+
+                                    {/* Success Badge at bottom side */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: '-2px',
+                                        right: '-2px',
+                                        width: '24px',
+                                        height: '24px',
+                                        background: '#1a1f33', // Indigo color
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        border: '2px solid #111827', // Match modal background
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                                    }}>
+                                        <Check size={16} style={{ color: '#fff' }} strokeWidth={3} />
+                                    </div>
                                 </div>
                             </div>
                             <h3>Mint Successful!</h3>

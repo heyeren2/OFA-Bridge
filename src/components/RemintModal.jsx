@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, ArrowRight, RefreshCw, Check } from 'lucide-react';
+import { X, ArrowRight, RefreshCw, Check, CheckCircle2 } from 'lucide-react';
 import { getChainByName } from '../config/chains';
 import { TOKEN_INFO } from '../config/contracts';
 
@@ -76,8 +76,8 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, mintingStep, onClose,
 
                     <div className="txm-success-hero" style={{ marginBottom: '40px' }}>
                         <div style={{
-                            width: '80px',
-                            height: '80px',
+                            width: '65px',
+                            height: '65px',
                             background: 'rgba(240, 231, 213, 0.1)',
                             borderRadius: '50%',
                             display: 'flex',
@@ -88,16 +88,16 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, mintingStep, onClose,
                             border: '1px solid rgba(240, 231, 213, 0.2)',
                             position: 'relative'
                         }}>
-                            <img src="/icons/Ofa2.png" alt="Success" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <img src="/icons/Ofa2.png" alt="Success" style={{ width: '360%', height: '250%', objectFit: 'contain' }} />
 
                             {/* Success Badge at bottom side */}
                             <div style={{
                                 position: 'absolute',
                                 bottom: '-2px',
                                 right: '-2px',
-                                width: '28px',
-                                height: '28px',
-                                background: '#4f46e5', // Indigo color
+                                width: '24px',
+                                height: '24px',
+                                background: '#1a1f33', // Indigo color
                                 borderRadius: '50%',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -317,7 +317,7 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, mintingStep, onClose,
                         <div key={step.key} className={`txm-step-v2 ${step.status}`} style={{ display: 'flex', gap: '16px', marginBottom: idx === steps.length - 1 ? 0 : '16px' }}>
                             <div className="txm-step-indicator-v2" style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '32px' }}>
                                 {step.status === 'completed' ? (
-                                    <div className="txm-step-circle completed" style={{ background: '#10b981', color: 'white', border: 'none' }}>
+                                    <div className="txm-step-circle completed" style={{ background: '#fff', color: '#1a152e', border: 'none' }}>
                                         <CheckCircle2 size={16} />
                                     </div>
                                 ) : step.status === 'active' ? (
@@ -325,8 +325,9 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, mintingStep, onClose,
                                         <div className="dual-rolling-circle" style={{
                                             width: '18px',
                                             height: '18px',
-                                            border: '2px solid #10b981',
-                                            borderTopColor: '#F0E7D5',
+                                            border: '2px solid #1a152e',
+                                            borderTopColor: '#eaeae0ff',
+                                            borderBottomColor: '#efe7e7ff',
                                             borderRadius: '50%',
                                             animation: 'rotate 1s linear infinite'
                                         }} />
@@ -338,7 +339,7 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, mintingStep, onClose,
                                     <div className={`txm-step-line-v2 ${step.status === 'completed' ? 'done' : ''}`} style={{
                                         width: '2px',
                                         height: '24px',
-                                        background: step.status === 'completed' ? '#10b981' : 'rgba(240, 231, 213, 0.1)',
+                                        background: step.status === 'completed' ? '#fff' : 'rgba(240, 231, 213, 0.1)',
                                         margin: '4px 0'
                                     }} />
                                 )}
@@ -355,7 +356,7 @@ export const RemintModal = ({ isOpen, isSuccess, mintHash, mintingStep, onClose,
                                         {step.desc}
                                     </span>
                                     {step.status === 'completed' && (
-                                        <span className="txm-step-badge-done" style={{ fontSize: '9px', fontWeight: '800', padding: '2px 6px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '4px', letterSpacing: '0.05em', marginLeft: 'auto' }}>DONE</span>
+                                        <span className="txm-step-badge-done" style={{ fontSize: '9px', fontWeight: '800', padding: '2px 6px', background: 'rgba(240, 231, 213, 0.1)', color: '#f0e7d5', borderRadius: '4px', letterSpacing: '0.05em', marginLeft: 'auto' }}>DONE</span>
                                     )}
                                 </div>
                             </div>
