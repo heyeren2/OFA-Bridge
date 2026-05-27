@@ -642,14 +642,22 @@ export default function Bridge({
                             if (update.step === 'burn') {
                                 setTxData(prev => ({ ...prev, sourceHash: update.txHash }));
                                 updateHistory({ txHashes: { source: update.txHash }, sourceTxHash: update.txHash, lastStep: 'attestation' });
-                                // Track burn with SDK → sends to backend
-                                await sdk.trackBurn({
-                                    burnTxHash: update.txHash,
-                                    wallet: currentAddress,
-                                    amount: bridgeAmount,
-                                    sourceChain: fromChainName,
-                                    destinationChain: toChainName,
-                                }).catch(err => console.warn('[Bridge] trackBurn failed:', err.message));
+                                // Track burn directly to backend so we can include custom recipient address
+                                const analyticsUrl = import.meta.env.VITE_ANALYTICS_URL;
+                                const bridgeId = import.meta.env.VITE_BRIDGE_ID;
+                                await fetch(`${analyticsUrl}/track/burn`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        burnTxHash: update.txHash,
+                                        wallet: currentAddress,
+                                        recipient: customRecipient || currentAddress,
+                                        amount: bridgeAmount,
+                                        sourceChain: fromChainName,
+                                        destinationChain: toChainName,
+                                        bridgeId,
+                                    }),
+                                }).catch(err => console.warn('[Bridge] Direct track/burn failed:', err.message));
                                 // Store mintMode in localStorage so Activity tab can use correct
                                 // retry path (forwarder vs manual wallet) for this tx.
                                 localStorage.setItem(`mintMode_${update.txHash}`, mintMode);

@@ -88,7 +88,7 @@ export default function Activity({ setActiveTab }) {
             return {
                 id: tx.burnTxHash || String(i),
                 sender: tx.wallet,
-                receiver: tx.wallet,
+                receiver: tx.recipient || tx.wallet,
                 amountDisplay: tx.amount,
                 amountReceived: tx.amountReceived || null,
                 fromChain: searchName(tx.sourceChain),
